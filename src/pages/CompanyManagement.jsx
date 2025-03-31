@@ -29,6 +29,26 @@ const CompanyManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
+  const handleDeleteCompany = async (companyId, companyName) => {
+    if (window.confirm(`정말로 ${companyName} 회사를 삭제하시겠습니까?`)) {
+      try {
+        const response = await fetch(`http://localhost:8080/api/companies/${companyId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          alert(`${companyName} 회사가 삭제되었습니다.`);
+          fetchCompanies(); // 회사 목록 새로고침
+        } else {
+          alert('회사 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting company:', error);
+        alert('회사 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   return (
     <DashboardContainer>
       <Sidebar 
@@ -69,7 +89,12 @@ const CompanyManagement = () => {
                     </RoleBadge>
                   </TableCell>
                   <TableCell>
-                    <ActionButton>상세보기</ActionButton>
+                    <ActionButtonContainer>
+                      <ActionButton>상세보기</ActionButton>
+                      <DeleteButton onClick={() => handleDeleteCompany(company.id, company.name)}>
+                        삭제
+                      </DeleteButton>
+                    </ActionButtonContainer>
                   </TableCell>
                 </TableRow>
               ))}
@@ -222,3 +247,23 @@ const LoadingMessage = styled.div`
 `;
 
 export default CompanyManagement;
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const DeleteButton = styled.button`
+  padding: 6px 12px;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.1);
+  }
+`;

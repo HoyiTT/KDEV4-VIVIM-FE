@@ -29,6 +29,26 @@ const UserManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
+  const handleDeleteUser = async (userId, userName) => {
+    if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
+      try {
+        const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          alert(`${userName} 유저가 삭제되었습니다.`);
+          fetchUsers(); // 유저 목록 새로고침
+        } else {
+          alert('유저 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('유저 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   return (
     <DashboardContainer>
       <Sidebar 
@@ -69,7 +89,12 @@ const UserManagement = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <ActionButton>상세보기</ActionButton>
+                    <ActionButtonContainer>
+                      <ActionButton>상세보기</ActionButton>
+                      <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
+                        삭제
+                      </DeleteButton>
+                    </ActionButtonContainer>
                   </TableCell>
                 </TableRow>
               ))}
@@ -206,6 +231,26 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
+`;
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const DeleteButton = styled.button`
+  padding: 6px 12px;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.1);
+  }
 `;
 
 export default UserManagement;
