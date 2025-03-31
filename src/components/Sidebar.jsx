@@ -5,64 +5,59 @@ import { useNavigate } from 'react-router-dom';
 const Sidebar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
 
-  const handleUserManagement = () => {
-    handleMenuClick('유저 관리');
-    navigate('/user-management');
-  };
-
-  const handleDashboard = () => {
+  const handleDashboardClick = () => {
     handleMenuClick('대시보드');
     navigate('/dashboard');
   };
 
-  const handleCompanyManagement = () => {
+  const handleCompanyClick = () => {
     handleMenuClick('회사 관리');
     navigate('/company-management');
   };
 
+  const handleUserClick = () => {
+    handleMenuClick('유저 관리');
+    navigate('/user-management');
+  };
+
+  const handleAdminProjectClick = () => {
+    handleMenuClick('진행중인 프로젝트 - 관리자');
+    navigate('/admin-projects');
+  };
+
   return (
     <SidebarContainer>
-      <SidebarHeader>
-        <Logo src="/logo.svg" alt="Logo" />
-        <Title>BN 시스템 프로젝트 관리</Title>
-      </SidebarHeader>
-      
+      <LogoText>VIVIM</LogoText>
       <MenuList>
         <MenuItem 
           active={activeMenuItem === '대시보드'} 
-          onClick={handleDashboard}
+          onClick={handleDashboardClick}
         >
           대시보드
         </MenuItem>
         <MenuItem 
-          active={activeMenuItem === '진행중인 프로젝트'} 
-          onClick={() => handleMenuClick('진행중인 프로젝트')}
+          active={activeMenuItem === '진행중인 프로젝트 - 관리자'} 
+          onClick={handleAdminProjectClick}
         >
-          진행중인 프로젝트
+          진행중인 프로젝트 - 관리자
         </MenuItem>
         <MenuItem 
-          active={activeMenuItem === '완료된 프로젝트'} 
-          onClick={() => handleMenuClick('완료된 프로젝트')}
+          active={activeMenuItem === '진행중인 프로젝트 - 유저'} 
+          onClick={() => handleMenuClick('진행중인 프로젝트 - 유저')}
         >
-          완료된 프로젝트
+          진행중인 프로젝트 - 유저
         </MenuItem>
         <MenuItem 
           active={activeMenuItem === '회사 관리'} 
-          onClick={handleCompanyManagement}
+          onClick={handleCompanyClick}
         >
           회사 관리
         </MenuItem>
         <MenuItem 
           active={activeMenuItem === '유저 관리'} 
-          onClick={handleUserManagement}
+          onClick={handleUserClick}
         >
           유저 관리
-        </MenuItem>
-        <MenuItem 
-          active={activeMenuItem === '통계 및 보고서'} 
-          onClick={() => handleMenuClick('통계 및 보고서')}
-        >
-          통계 및 보고서
         </MenuItem>
       </MenuList>
     </SidebarContainer>
@@ -89,6 +84,14 @@ const Logo = styled.img`
   width: 40px;
   height: 40px;
   margin-bottom: 16px;
+`;
+
+const LogoText = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  color: #2E7D32;
+  padding: 0 24px;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`

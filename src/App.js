@@ -7,6 +7,8 @@ import CompanyManagement from './pages/CompanyManagement';
 import UserManagement from './pages/UserManagement';
 import CompanyCreate from './pages/CompanyCreate';
 import UserCreate from './pages/UserCreate';
+import CompanyEdit from './pages/CompanyEdit';
+import AdminProjectList from './pages/AdminProjectList';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/user-management" element={<UserManagement />} />
         <Route path="/company-create" element={<CompanyCreate />} />
         <Route path="/user-create" element={<UserCreate />} />
+        <Route path="/company-edit/:id" element={<CompanyEdit />} />
+        <Route path="/admin-projects" element={<AdminProjectList />} />
       </Routes>
     </Router>
   );

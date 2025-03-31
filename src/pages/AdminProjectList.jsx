@@ -3,24 +3,24 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
-const CompanyManagement = () => {
+const AdminProjectList = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('회사 관리');
-  const [companies, setCompanies] = useState([]);
+  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCompanies();
+    fetchProjects();
   }, []);
 
-  const fetchCompanies = async () => {
+  const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/companies');
+      const response = await fetch('http://localhost:8080/api/projects/all');
       const data = await response.json();
-      setCompanies(data);
+      setProjects(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching companies:', error);
+      console.error('Error fetching projects:', error);
       setLoading(false);
     }
   };
@@ -29,79 +29,55 @@ const CompanyManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
-  const handleDeleteCompany = async (companyId, companyName) => {
-    if (window.confirm(`정말로 ${companyName} 회사를 삭제하시겠습니까?`)) {
-      try {
-        const response = await fetch(`http://localhost:8080/api/companies/${companyId}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          alert(`${companyName} 회사가 삭제되었습니다.`);
-          fetchCompanies(); // 회사 목록 새로고침
-        } else {
-          alert('회사 삭제에 실패했습니다.');
-        }
-      } catch (error) {
-        console.error('Error deleting company:', error);
-        alert('회사 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
-
   return (
     <DashboardContainer>
       <Sidebar 
         activeMenuItem={activeMenuItem} 
         handleMenuClick={handleMenuClick} 
       />
-
       <MainContent>
         <Header>
-          <PageTitle>회사 관리</PageTitle>
-          <AddButton onClick={() => navigate('/company-create')}>
-            새 회사 등록
+          <PageTitle>프로젝트 목록 (관리자)</PageTitle>
+          <AddButton onClick={() => navigate('/projectCreate')}>
+            새 프로젝트 등록
           </AddButton>
         </Header>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
-          <CompanyTable>
+          <ProjectTable>
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>회사명</TableHeaderCell>
-                <TableHeaderCell>사업자 번호</TableHeaderCell>
-                <TableHeaderCell>주소</TableHeaderCell>
-                <TableHeaderCell>회사 유형</TableHeaderCell>
+                <TableHeaderCell>프로젝트명</TableHeaderCell>
+                <TableHeaderCell>시작일</TableHeaderCell>
+                <TableHeaderCell>종료일</TableHeaderCell>
+                <TableHeaderCell>상태</TableHeaderCell>
                 <TableHeaderCell>관리</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {companies.map((company) => (
-                <TableRow key={company.id}>
-                  <TableCell>{company.name}</TableCell>
-                  <TableCell>{company.businessNumber}</TableCell>
-                  <TableCell>{company.address}</TableCell>
+              {projects.map((project) => (
+                <TableRow key={project.projectId}>
+                  <TableCell>{project.name}</TableCell>
+                  <TableCell>{project.startDate}</TableCell>
+                  <TableCell>{project.endDate}</TableCell>
                   <TableCell>
-                    <RoleBadge role={company.companyRole}>
-                      {company.companyRole}
-                    </RoleBadge>
+                    <StatusBadge deleted={project.deleted}>
+                      {project.deleted ? '삭제됨' : '진행중'}
+                    </StatusBadge>
                   </TableCell>
                   <TableCell>
                     <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
+                      <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
                         수정하기
                       </ActionButton>
-                      <DeleteButton onClick={() => handleDeleteCompany(company.id, company.name)}>
-                        삭제
-                      </DeleteButton>
                     </ActionButtonContainer>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </CompanyTable>
+          </ProjectTable>
         )}
       </MainContent>
     </DashboardContainer>
@@ -151,7 +127,7 @@ const AddButton = styled.button`
   }
 `;
 
-const CompanyTable = styled.table`
+const ProjectTable = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -191,37 +167,25 @@ const TableCell = styled.td`
   border-bottom: 1px solid #e2e8f0;
 `;
 
-const RoleBadge = styled.span`
+const StatusBadge = styled.span`
   display: inline-block;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   
-  ${props => {
-    switch (props.role) {
-      case 'ADMIN':
-        return `
-          background: rgba(46, 125, 50, 0.1);
-          color: #2E7D32;
-        `;
-      case 'DEVELOPER':
-        return `
-          background: rgba(79, 106, 255, 0.1);
-          color: #4F6AFF;
-        `;
-      case 'CUSTOMER':
-        return `
-          background: rgba(255, 159, 28, 0.1);
-          color: #FF9F1C;
-        `;
-      default:
-        return `
-          background: rgba(100, 116, 139, 0.1);
-          color: #64748b;
-        `;
-    }
-  }}
+  ${props => props.deleted ? `
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+  ` : `
+    background: rgba(46, 125, 50, 0.1);
+    color: #2E7D32;
+  `}
+`;
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
 `;
 
 const ActionButton = styled.button`
@@ -248,24 +212,4 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
-export default CompanyManagement;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const DeleteButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(220, 38, 38, 0.1);
-  }
-`;
+export default AdminProjectList;
