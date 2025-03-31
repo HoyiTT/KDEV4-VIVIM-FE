@@ -1,7 +1,25 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ activeMenuItem, handleMenuClick }) => {
+  const navigate = useNavigate();
+
+  const handleUserManagement = () => {
+    handleMenuClick('유저 관리');
+    navigate('/user-management');
+  };
+
+  const handleDashboard = () => {
+    handleMenuClick('대시보드');
+    navigate('/dashboard');
+  };
+
+  const handleCompanyManagement = () => {
+    handleMenuClick('회사 관리');
+    navigate('/company-management');
+  };
+
   return (
     <SidebarContainer>
       <SidebarHeader>
@@ -12,7 +30,7 @@ const Sidebar = ({ activeMenuItem, handleMenuClick }) => {
       <MenuList>
         <MenuItem 
           active={activeMenuItem === '대시보드'} 
-          onClick={() => handleMenuClick('대시보드')}
+          onClick={handleDashboard}
         >
           대시보드
         </MenuItem>
@@ -29,16 +47,16 @@ const Sidebar = ({ activeMenuItem, handleMenuClick }) => {
           완료된 프로젝트
         </MenuItem>
         <MenuItem 
-          active={activeMenuItem === '리소스 관리'} 
-          onClick={() => handleMenuClick('리소스 관리')}
+          active={activeMenuItem === '회사 관리'} 
+          onClick={handleCompanyManagement}
         >
-          리소스 관리
+          회사 관리
         </MenuItem>
         <MenuItem 
-          active={activeMenuItem === '고객사 관리'} 
-          onClick={() => handleMenuClick('고객사 관리')}
+          active={activeMenuItem === '유저 관리'} 
+          onClick={handleUserManagement}
         >
-          고객사 관리
+          유저 관리
         </MenuItem>
         <MenuItem 
           active={activeMenuItem === '통계 및 보고서'} 

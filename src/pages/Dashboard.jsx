@@ -6,7 +6,7 @@ import Sidebar from '../components/Sidebar';
 // Change component name from Dashboard2 to Dashboard
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
+  const [activeMenuItem, setActiveMenuItem] = useState('대시보드');  // Changed from '진행중인 프로젝트'
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -100,7 +100,7 @@ const Dashboard = () => {
                 </TableCell>
                 <TableCell>2025.03.30</TableCell>
                 <TableCell>
-                  <ActionButton>보기</ActionButton>
+                  <ActionButton onClick={() => navigate(`/projectModify/1`)}>보기</ActionButton>
                 </TableCell>
               </TableRow>
               <TableRow>
