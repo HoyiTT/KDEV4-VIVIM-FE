@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+// Sidebar 대신 Navbar 컴포넌트 import
+import Navbar from '../components/Navbar';
 
 const CompanyManagement = () => {
   const navigate = useNavigate();
@@ -12,6 +13,27 @@ const CompanyManagement = () => {
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  // 회사 삭제 함수 추가
+  const handleDeleteCompany = async (companyId) => {
+    if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
+      try {
+        const response = await fetch(`http://localhost:8080/api/companies/${companyId}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          // 삭제 성공 시 목록 다시 불러오기
+          fetchCompanies();
+        } else {
+          alert('회사 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting company:', error);
+        alert('회사 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -29,33 +51,12 @@ const CompanyManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
-  const handleDeleteCompany = async (companyId, companyName) => {
-    if (window.confirm(`정말로 ${companyName} 회사를 삭제하시겠습니까?`)) {
-      try {
-        const response = await fetch(`http://localhost:8080/api/companies/${companyId}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          alert(`${companyName} 회사가 삭제되었습니다.`);
-          fetchCompanies(); // 회사 목록 새로고침
-        } else {
-          alert('회사 삭제에 실패했습니다.');
-        }
-      } catch (error) {
-        console.error('Error deleting company:', error);
-        alert('회사 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
-
   return (
-    <DashboardContainer>
-      <Sidebar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
+    <PageContainer>
+      <Navbar 
+        activeMenuItem={activeMenuItem}
+        handleMenuClick={handleMenuClick}
       />
-
       <MainContent>
         <Header>
           <PageTitle>회사 관리</PageTitle>
@@ -64,63 +65,70 @@ const CompanyManagement = () => {
           </AddButton>
         </Header>
 
+        {/* 기존 컨텐츠 유지 */}
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
           <CompanyTable>
-            <TableHeader>
-              <TableRow>
+            <thead>
+              <tr>
                 <TableHeaderCell>회사명</TableHeaderCell>
-                <TableHeaderCell>사업자 번호</TableHeaderCell>
-                <TableHeaderCell>주소</TableHeaderCell>
-                <TableHeaderCell>회사 유형</TableHeaderCell>
+                <TableHeaderCell>사업자등록번호</TableHeaderCell>
+                <TableHeaderCell>대표자</TableHeaderCell>
+                <TableHeaderCell>연락처</TableHeaderCell>
                 <TableHeaderCell>관리</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+              </tr>
+            </thead>
+            <tbody>
               {companies.map((company) => (
                 <TableRow key={company.id}>
-                  <TableCell>{company.name}</TableCell>
-                  <TableCell>{company.businessNumber}</TableCell>
-                  <TableCell>{company.address}</TableCell>
-                  <TableCell>
-                    <RoleBadge role={company.companyRole}>
-                      {company.companyRole}
-                    </RoleBadge>
+                  <TableCell 
+                    onClick={() => navigate(`/company/${company.id}`)}
+                    style={{ cursor: 'pointer', color: '#2E7D32' }}
+                  >
+                    {company.name}
                   </TableCell>
+                  <TableCell>{company.businessNumber}</TableCell>
+                  <TableCell>{company.representative}</TableCell>
+                  <TableCell>{company.phoneNumber}</TableCell>
                   <TableCell>
                     <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
-                        수정하기
+                      <ActionButton onClick={() => navigate(`/company-edit/${company.companyId}`)}>
+                        수정
                       </ActionButton>
-                      <DeleteButton onClick={() => handleDeleteCompany(company.id, company.name)}>
+                      <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
                         삭제
                       </DeleteButton>
                     </ActionButtonContainer>
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </tbody>
           </CompanyTable>
         )}
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-const DashboardContainer = styled.div`
+// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
+// MainContent 스타일 수정
 const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
 `;
 
+// 기존 스타일 컴포넌트 유지
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -161,84 +169,6 @@ const CompanyTable = styled.table`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
-const TableHeader = styled.thead`
-  background: #f8fafc;
-`;
-
-const TableRow = styled.tr`
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const TableHeaderCell = styled.th`
-  padding: 16px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const TableBody = styled.tbody``;
-
-const TableCell = styled.td`
-  padding: 16px;
-  font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const RoleBadge = styled.span`
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  
-  ${props => {
-    switch (props.role) {
-      case 'ADMIN':
-        return `
-          background: rgba(46, 125, 50, 0.1);
-          color: #2E7D32;
-        `;
-      case 'DEVELOPER':
-        return `
-          background: rgba(79, 106, 255, 0.1);
-          color: #4F6AFF;
-        `;
-      case 'CUSTOMER':
-        return `
-          background: rgba(255, 159, 28, 0.1);
-          color: #FF9F1C;
-        `;
-      default:
-        return `
-          background: rgba(100, 116, 139, 0.1);
-          color: #64748b;
-        `;
-    }
-  }}
-`;
-
-const ActionButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #4F6AFF;
-  border: 1px solid #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(79, 106, 255, 0.1);
-  }
-`;
-
 const LoadingMessage = styled.div`
   display: flex;
   justify-content: center;
@@ -247,6 +177,8 @@ const LoadingMessage = styled.div`
   font-size: 16px;
   color: #64748b;
 `;
+
+// 기타 필요한 스타일 컴포넌트들...
 
 export default CompanyManagement;
 
@@ -267,5 +199,45 @@ const DeleteButton = styled.button`
 
   &:hover {
     background: rgba(220, 38, 38, 0.1);
+  }
+`;
+
+const TableHeaderCell = styled.th`
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const TableRow = styled.tr`
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 16px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const ActionButton = styled.button`
+  padding: 6px 12px;
+  background: transparent;
+  color: #4F6AFF;
+  border: 1px solid #4F6AFF;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(79, 106, 255, 0.1);
   }
 `;

@@ -1,39 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
 
 const UserCreate = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('유저 관리');
+  const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [companies, setCompanies] = useState([]);
-  const [filteredCompanies, setFilteredCompanies] = useState([]); // 필터링된 회사 목록
-  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    companyId: '',
-    companyRole: ''
+    companyRole: '',
+    companyId: ''
   });
 
   useEffect(() => {
-    fetchCompanies();
+    // Fetch companies when component mounts
+    fetch('http://localhost:8080/api/companies')
+      .then(response => response.json())
+      .then(data => {
+        setCompanies(data);
+      })
+      .catch(error => {
+        console.error('Error fetching companies:', error);
+      });
   }, []);
-
-  const fetchCompanies = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/companies');
-      const data = await response.json();
-      setCompanies(data);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    }
-  };
-
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,17 +33,6 @@ const UserCreate = () => {
       ...prevState,
       [name]: value
     }));
-
-    // companyRole이 변경될 때 회사 목록 필터링
-    if (name === 'companyRole') {
-      const filtered = companies.filter(company => company.companyRole === value);
-      setFilteredCompanies(filtered);
-      setFormData(prevState => ({
-        ...prevState,
-        companyId: '', // 역할이 변경되면 선택된 회사 초기화
-        [name]: value
-      }));
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -77,11 +58,20 @@ const UserCreate = () => {
     }
   };
 
+  // Filter companies based on selected role
+  const filteredCompanies = companies.filter(company => 
+    company.companyRole === formData.companyRole
+  );
+
+  const handleMenuClick = (menuItem) => {
+    setActiveMenuItem(menuItem);
+  };
+
   return (
-    <DashboardContainer>
-      <Sidebar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
+    <PageContainer>
+      <Navbar 
+        activeMenuItem={activeMenuItem}
+        handleMenuClick={handleMenuClick}
       />
       <MainContent>
         <Header>
@@ -167,13 +157,13 @@ const UserCreate = () => {
           </ButtonContainer>
         </FormContainer>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-// Styled components are the same as CompanyCreate.jsx
-const DashboardContainer = styled.div`
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -183,10 +173,16 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Header = styled.div`
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -201,6 +197,7 @@ const FormContainer = styled.form`
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
   max-width: 800px;
 `;
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
 
 const CompanyCreate = () => {
   const navigate = useNavigate();
@@ -53,10 +53,10 @@ const CompanyCreate = () => {
   };
 
   return (
-    <DashboardContainer>
-      <Sidebar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
+    <PageContainer>
+      <Navbar 
+        activeMenuItem={activeMenuItem}
+        handleMenuClick={handleMenuClick}
       />
       <MainContent>
         <Header>
@@ -161,12 +161,13 @@ const CompanyCreate = () => {
           </ButtonContainer>
         </FormContainer>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-const DashboardContainer = styled.div`
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -176,10 +177,25 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; // 가운데 정렬을 위해 추가
 `;
 
 const Header = styled.div`
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px; // FormContainer와 동일한 최대 너비
+`;
+
+const FormContainer = styled.form`
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -189,13 +205,8 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
-const FormContainer = styled.form`
-  background: white;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  max-width: 800px;
-`;
+// Remove duplicate FormContainer declaration
+// const FormContainer = styled.form`...`
 
 const FormGroup = styled.div`
   margin-bottom: 20px;

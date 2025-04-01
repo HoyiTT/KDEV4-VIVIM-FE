@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 // Sidebar 대신 Navbar 컴포넌트 import
 import Navbar from '../components/Navbar';
 
-const AdminProjectList = () => {
+const AdminProjects = () => {
   const navigate = useNavigate();
+  // activeMenuItem을 '프로젝트 관리 - 관리자'로 설정
   const [activeMenuItem, setActiveMenuItem] = useState('프로젝트 관리 - 관리자');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,39 +34,36 @@ const AdminProjectList = () => {
   return (
     <PageContainer>
       <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
+        activeMenuItem={activeMenuItem}
+        handleMenuClick={handleMenuClick}
       />
       <MainContent>
         <Header>
-          <PageTitle>프로젝트 목록 (관리자)</PageTitle>
-          <AddButton onClick={() => navigate('/projectCreate')}>
-            새 프로젝트 등록
-          </AddButton>
+          <PageTitle>프로젝트 관리</PageTitle>
+          <CreateButton onClick={() => navigate('/project-create')}>
+            새 프로젝트
+          </CreateButton>
         </Header>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
-          <ProjectTable>
-            <TableHeader>
-              <TableRow>
+          <ProjectsTable>
+            <thead>
+              <tr>
                 <TableHeaderCell>프로젝트명</TableHeaderCell>
                 <TableHeaderCell>시작일</TableHeaderCell>
                 <TableHeaderCell>종료일</TableHeaderCell>
                 <TableHeaderCell>상태</TableHeaderCell>
-                <TableHeaderCell>관리</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+              </tr>
+            </thead>
+            <tbody>
               {projects.map((project) => (
-                <TableRow key={project.projectId}>
-                  <TableCell 
-                    onClick={() => navigate(`/project/${project.projectId}`)}
-                    style={{ cursor: 'pointer', color: '#2E7D32' }}
-                  >
-                    {project.name}
-                  </TableCell>
+                <TableRow 
+                  key={project.projectId}
+                  onClick={() => navigate(`/project/${project.projectId}`)}
+                >
+                  <TableCell>{project.name}</TableCell>
                   <TableCell>{project.startDate}</TableCell>
                   <TableCell>{project.endDate}</TableCell>
                   <TableCell>
@@ -73,24 +71,17 @@ const AdminProjectList = () => {
                       {project.deleted ? '삭제됨' : '진행중'}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell>
-                    <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
-                        수정하기
-                      </ActionButton>
-                    </ActionButtonContainer>
-                  </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
-          </ProjectTable>
+            </tbody>
+          </ProjectsTable>
         )}
       </MainContent>
     </PageContainer>
   );
 };
 
-// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
+// DashboardContainer를 PageContainer로 변경
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -107,7 +98,6 @@ const MainContent = styled.div`
   margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
 `;
 
-// 나머지 스타일 컴포넌트는 그대로 유지
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -122,95 +112,18 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
-const AddButton = styled.button`
-  padding: 12px 24px;
+const CreateButton = styled.button`
+  padding: 10px 16px;
   background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: #1B5E20;
-  }
-`;
-
-const ProjectTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const TableHeader = styled.thead`
-  background: #f8fafc;
-`;
-
-const TableRow = styled.tr`
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const TableHeaderCell = styled.th`
-  padding: 16px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const TableBody = styled.tbody``;
-
-const TableCell = styled.td`
-  padding: 16px;
-  font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  
-  ${props => props.deleted ? `
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-  ` : `
-    background: rgba(46, 125, 50, 0.1);
-    color: #2E7D32;
-  `}
-`;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const ActionButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #4F6AFF;
-  border: 1px solid #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(79, 106, 255, 0.1);
   }
 `;
 
@@ -223,4 +136,56 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
-export default AdminProjectList;
+const ProjectsTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+`;
+
+const TableHeaderCell = styled.th`
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const TableRow = styled.tr`
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 16px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const StatusBadge = styled.span`
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  
+  ${props => props.deleted ? `
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+  ` : `
+    background: rgba(46, 125, 50, 0.1);
+    color: #2E7D32;
+  `}
+`;
+
+export default AdminProjects;

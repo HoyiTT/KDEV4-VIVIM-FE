@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+// Sidebar를 Navbar로 변경
+import Navbar from '../components/Navbar';
 
 // Change component name from ProjectCreate2 to ProjectCreate
 const ProjectCreate = () => {
@@ -188,12 +189,11 @@ const ProjectCreate = () => {
   };
 
   return (
-    <DashboardContainer>
-      <Sidebar 
+    <PageContainer>
+      <Navbar 
         activeMenuItem={activeMenuItem} 
         handleMenuClick={handleMenuClick} 
       />
-
       <MainContent>
         <Header>
           <PageTitle>프로젝트 생성</PageTitle>
@@ -379,25 +379,24 @@ const ProjectCreate = () => {
           </Form>
         </FormSection>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
 // Styled Components
-const DashboardContainer = styled.div`
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-// Sidebar styled-component 제거 (이미 import된 컴포넌트로 대체)
-
-// 나머지 styled-components 유지
 const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
 `;
 
 const Header = styled.div`

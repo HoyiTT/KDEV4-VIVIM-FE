@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
 
 const UserManagement = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('유저 관리');
+  const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,8 +50,8 @@ const UserManagement = () => {
   };
 
   return (
-    <DashboardContainer>
-      <Sidebar 
+    <PageContainer>
+      <Navbar 
         activeMenuItem={activeMenuItem} 
         handleMenuClick={handleMenuClick} 
       />
@@ -102,12 +102,15 @@ const UserManagement = () => {
           </UserTable>
         )}
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-const DashboardContainer = styled.div`
+// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
+// 스타일 컴포넌트들을 상단으로 이동
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -117,6 +120,7 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px;
 `;
 
 const Header = styled.div`
