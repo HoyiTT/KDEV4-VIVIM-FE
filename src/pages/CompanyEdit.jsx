@@ -23,7 +23,7 @@ const CompanyEdit = () => {
 
   const fetchCompanyData = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/companies/${id}`);
+      const response = await fetch(`https://dev.vivim.co.kr/api/companies/${id}`);
       const data = await response.json();
       setFormData(data);
     } catch (error) {
@@ -35,7 +35,7 @@ const CompanyEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8080/api/companies/${id}`, {
+      const response = await fetch(`https://dev.vivim.co.kr/api/companies/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

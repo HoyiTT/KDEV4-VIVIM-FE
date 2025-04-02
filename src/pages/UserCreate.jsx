@@ -11,13 +11,14 @@ const UserCreate = () => {
     name: '',
     email: '',
     password: '',
+    phone: '',           // Added phone field
     companyRole: '',
     companyId: ''
   });
 
   useEffect(() => {
     // Fetch companies when component mounts
-    fetch('http://localhost:8080/api/companies')
+    fetch('https://dev.vivim.co.kr/api/companies')
       .then(response => response.json())
       .then(data => {
         setCompanies(data);
@@ -38,7 +39,7 @@ const UserCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      const response = await fetch('https://dev.vivim.co.kr/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,6 +88,18 @@ const UserCreate = () => {
               value={formData.name}
               onChange={handleChange}
               placeholder="이름을 입력하세요" 
+              required
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>전화번호</Label>
+            <Input 
+              type="tel" 
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="전화번호를 입력하세요" 
               required
             />
           </FormGroup>

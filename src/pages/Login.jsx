@@ -1,13 +1,38 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add login logic here
+    try {
+      const response = await fetch('https://dev.vivim.co.kr/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        navigate('/dashboard');
+      } else {
+        alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -16,7 +41,7 @@ const Login = () => {
         <LogoImage src="/logo.svg" alt="logo" />
         <Title>로그인</Title>
         
-        <Form onSubmit={handleLogin}>
+        <Form onSubmit={handleSubmit}>
           <InputGroup>
             <Label>이메일</Label>
             <Input

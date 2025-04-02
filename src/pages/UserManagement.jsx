@@ -15,7 +15,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/users');
+      const response = await fetch('https://dev.vivim.co.kr/api/users');
       const data = await response.json();
       setUsers(data);
       setLoading(false);
@@ -32,7 +32,7 @@ const UserManagement = () => {
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
       try {
-        const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
           method: 'DELETE',
         });
 

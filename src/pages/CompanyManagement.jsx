@@ -18,7 +18,7 @@ const CompanyManagement = () => {
   const handleDeleteCompany = async (companyId) => {
     if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
       try {
-        const response = await fetch(`http://localhost:8080/api/companies/${companyId}`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/companies/${companyId}`, {
           method: 'DELETE',
         });
         
@@ -37,7 +37,7 @@ const CompanyManagement = () => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/companies');
+      const response = await fetch('https://dev.vivim.co.kr/api/companies');
       const data = await response.json();
       setCompanies(data);
       setLoading(false);
@@ -93,7 +93,7 @@ const CompanyManagement = () => {
                   <TableCell>{company.phoneNumber}</TableCell>
                   <TableCell>
                     <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/company-edit/${company.companyId}`)}>
+                      <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
                         수정
                       </ActionButton>
                       <DeleteButton onClick={() => handleDeleteCompany(company.id)}>

@@ -33,7 +33,7 @@ const ProjectCreate = () => {
   
   // Add useEffect to fetch companies when component mounts
   useEffect(() => {
-    fetch('http://localhost:8080/api/companies')
+    fetch('https://dev.vivim.co.kr/api/companies')
       .then(response => response.json())
       .then(data => {
         setCompanies(data);
@@ -76,7 +76,7 @@ const ProjectCreate = () => {
   useEffect(() => {
     if (selectedDevCompany) {
       // Fetch users from API
-      fetch(`http://localhost:8080/api/companies/${selectedDevCompany}/employees`)
+      fetch(`https://dev.vivim.co.kr/api/companies/${selectedDevCompany}/employees`)
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {
@@ -158,7 +158,7 @@ const ProjectCreate = () => {
     console.log('Project data to be sent to server:', projectData);
     
     // Send POST request to the API
-    fetch('http://localhost:8080/api/projects', {
+    fetch('https://dev.vivim.co.kr/api/projects', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

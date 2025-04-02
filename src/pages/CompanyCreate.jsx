@@ -32,8 +32,8 @@ const CompanyCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:8080/api/companies', {
-        method: 'POST',  // Changed from 'PUT' to 'POST'
+      const response = await fetch('https://dev.vivim.co.kr/api/companies', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

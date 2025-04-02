@@ -16,7 +16,7 @@ const AdminProjectList = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/projects/all');
+      const response = await fetch('https://dev.vivim.co.kr/api/projects/all');
       const data = await response.json();
       setProjects(data);
       setLoading(false);
