@@ -12,10 +12,30 @@ const ProjectDetail = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Add new state for progress list
+  const [progressList, setProgressList] = useState([]);
+
   useEffect(() => {
     fetchProjectDetail();
     fetchProjectPosts();
+    fetchProjectProgress(); // Add new fetch call
   }, [id]);
+
+  // Add new fetch function for progress
+  const fetchProjectProgress = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setProgressList(data.progressList);
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+    }
+  };
 
   const fetchProjectDetail = async () => {
     try {
@@ -91,22 +111,14 @@ const ProjectDetail = () => {
             <StageSection>
               <SectionTitle>진행 단계</SectionTitle>
               <StageGrid>
-                <StageItem>
-                  <StageHeader>기획</StageHeader>
-                  <StageCount>3</StageCount>
-                </StageItem>
-                <StageItem>
-                  <StageHeader>디자인</StageHeader>
-                  <StageCount>2</StageCount>
-                </StageItem>
-                <StageItem>
-                  <StageHeader>개발</StageHeader>
-                  <StageCount>5</StageCount>
-                </StageItem>
-                <StageItem>
-                  <StageHeader>테스트</StageHeader>
-                  <StageCount>0</StageCount>
-                </StageItem>
+                {progressList
+                  .sort((a, b) => a.position - b.position)
+                  .map((stage) => (
+                    <StageItem key={stage.id}>
+                      <StageHeader>{stage.name}</StageHeader>
+                      <StageCount>0</StageCount>
+                    </StageItem>
+                  ))}
               </StageGrid>
             </StageSection>
             <BoardSection>
@@ -252,8 +264,16 @@ const StageSection = styled.div`
 
 const StageGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 const StageItem = styled.div`

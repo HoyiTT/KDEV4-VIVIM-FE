@@ -59,16 +59,15 @@ const ProjectCreate = () => {
         }
       })
         .then(response => response.json())
-        .then(result => {
-          if (result.statusCode === 200) {
-            const employeeData = result.data.map(employee => ({
-              userId: employee.id,
-              name: employee.name,
-              email: employee.email,
-              companyName: employee.companyName
-            }));
-            setClientCompanyUsers(employeeData);
-          }
+        .then(response => {
+          const data = response.data || [];  // response.data가 없으면 빈 배열 사용
+          const employeeData = data.map(employee => ({
+            userId: employee.id,
+            name: employee.name,
+            email: employee.email,
+            companyName: employee.companyName
+          }));
+          setClientCompanyUsers(employeeData);
         })
         .catch(error => {
           console.error('Error fetching client company users:', error);
@@ -82,8 +81,12 @@ const ProjectCreate = () => {
 
   useEffect(() => {
     if (selectedDevCompany) {
-      // Fetch users from API
-      fetch(`https://dev.vivim.co.kr/api/companies/${selectedDevCompany}/employees`)
+      const token = localStorage.getItem('token');
+      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedDevCompany), {
+        headers: {
+          'Authorization': token
+        }
+      })
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {
@@ -166,7 +169,7 @@ const ProjectCreate = () => {
     console.log('Project data to be sent to server:', projectData);
     
     // Send POST request to the API
-    fetch('https://dev.vivim.co.kr/api/projects', {
+    fetch(API_ENDPOINTS.PROJECTS, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -382,7 +385,7 @@ const ProjectCreate = () => {
             )}
 
             <ButtonGroup>
-              <CancelButton type="button" onClick={() => navigate('/dashboard2')}>취소</CancelButton>
+              <CancelButton type="button" onClick={() => navigate('/dashboard')}>취소</CancelButton>
               <SubmitButton type="submit">프로젝트 생성</SubmitButton>
             </ButtonGroup>
           </Form>

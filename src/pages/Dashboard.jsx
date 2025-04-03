@@ -10,18 +10,34 @@ const Dashboard = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const handleMenuClick = (menuItem) => {
+    setActiveMenuItem(menuItem);
+  };
+
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
+  const userId = decodedToken?.userId;  // Extract userId from token
 
   const fetchProjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.ADMIN_PROJECTS, {
-        headers: {
-          'Authorization': token
+      const response = await fetch(
+        isAdmin ? API_ENDPOINTS.ADMIN_PROJECTS : API_ENDPOINTS.USER_PROJECTS(userId),
+        {
+          headers: {
+            'Authorization': token
+          }
         }
-      });
+      );
       const data = await response.json();
       setProjects(data);
       setLoading(false);
@@ -31,9 +47,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+
 
   return (
     <PageContainer>
