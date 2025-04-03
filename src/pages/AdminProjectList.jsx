@@ -16,7 +16,12 @@ const AdminProjectList = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('https://dev.vivim.co.kr/api/projects/all');
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://dev.vivim.co.kr/api/projects/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setProjects(data);
       setLoading(false);
