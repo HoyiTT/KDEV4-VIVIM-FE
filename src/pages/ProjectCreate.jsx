@@ -50,7 +50,7 @@ const ProjectCreate = () => {
   useEffect(() => {
     if (selectedClientCompany) {
       // Fetch users from API
-      fetch(`http://localhost:8080/api/companies/${selectedClientCompany}/employees`)
+      fetch(`https://dev.vivim.co.kr/api/companies/${selectedClientCompany}/employees`)
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {

@@ -10,7 +10,9 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://dev.vivim.co.kr/api/login', {
+      const response = await fetch('https://dev.vivim.co.kr/api/auth/login', {
+        // 'https://dev.vivim.co.kr/api/login
+        // https://localhost/api/auth/login'
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
