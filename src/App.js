@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,10 +11,11 @@ import UserCreate from './pages/UserCreate';
 import CompanyEdit from './pages/CompanyEdit';
 import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
+import UserProjectList from './pages/UserProjectList';
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={
@@ -57,6 +58,11 @@ function App() {
             <CompanyEdit />
           </ProtectedRoute>
         } />
+        <Route path="/project-list" element={
+          <ProtectedRoute>
+            <UserProjectList />
+          </ProtectedRoute>
+        } />
         <Route path="/admin-projects" element={
           <ProtectedRoute>
             <AdminProjectList />
@@ -68,7 +74,7 @@ function App() {
           </ProtectedRoute>
         } />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 
