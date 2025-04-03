@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const CompanyCreate = () => {
   const navigate = useNavigate();
@@ -32,10 +33,12 @@ const CompanyCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:8080/api/companies', {
-        method: 'POST',  // Changed from 'PUT' to 'POST'
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANIES, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify(formData)
       });

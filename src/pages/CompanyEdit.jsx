@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const CompanyEdit = () => {
   const navigate = useNavigate();
@@ -23,7 +24,12 @@ const CompanyEdit = () => {
 
   const fetchCompanyData = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/companies/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setFormData(data);
     } catch (error) {
@@ -35,10 +41,12 @@ const CompanyEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8080/api/companies/${id}`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify(formData)
       });
@@ -67,9 +75,44 @@ const CompanyEdit = () => {
     setActiveMenuItem(menuItem);
   };
 
+  // First, change DashboardContainer to PageContainer
+  const PageContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  `;
+  
+  const MainContent = styled.div`
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    margin-top: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  `;
+  
+  const Header = styled.div`
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 800px;
+  `;
+  
+  const FormContainer = styled.form`
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    max-width: 800px;
+  `;
+  
+  // Also update the return statement to use PageContainer
   return (
-    <DashboardContainer>
-      <Sidebar 
+    <PageContainer>
+      <Navbar 
         activeMenuItem={activeMenuItem} 
         handleMenuClick={handleMenuClick} 
       />
@@ -174,7 +217,7 @@ const CompanyEdit = () => {
           </ButtonContainer>
         </FormContainer>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 

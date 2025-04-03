@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-// Sidebar 대신 Navbar 컴포넌트를 사용하도록 변경
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -19,7 +19,12 @@ const ProjectDetail = () => {
 
   const fetchProjectDetail = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/projects/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(id), {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setProject(data);
       setLoading(false);
@@ -31,7 +36,12 @@ const ProjectDetail = () => {
 
   const fetchProjectPosts = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/projects/${id}/posts`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setPosts(data);
     } catch (error) {

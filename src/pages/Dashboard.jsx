@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-// Sidebar 대신 Navbar 컴포넌트만 import
 import Navbar from '../components/Navbar';
-// Sidebar import 제거
+import { API_ENDPOINTS } from '../config/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,7 +16,12 @@ const Dashboard = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/projects/all');
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.ADMIN_PROJECTS, {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setProjects(data);
       setLoading(false);

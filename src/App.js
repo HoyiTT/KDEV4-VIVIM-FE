@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProjectCreate from './pages/ProjectCreate';
@@ -16,16 +17,56 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/projectCreate" element={<ProjectCreate />} />
-        <Route path="/projectModify/:projectId" element={<ProjectModify />} />
-        <Route path="/company-management" element={<CompanyManagement />} />
-        <Route path="/user-management" element={<UserManagement />} />
-        <Route path="/company-create" element={<CompanyCreate />} />
-        <Route path="/user-create" element={<UserCreate />} />
-        <Route path="/company-edit/:id" element={<CompanyEdit />} />
-        <Route path="/admin-projects" element={<AdminProjectList />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/projectCreate" element={
+          <ProtectedRoute>
+            <ProjectCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/projectModify/:projectId" element={
+          <ProtectedRoute>
+            <ProjectModify />
+          </ProtectedRoute>
+        } />
+        <Route path="/company-management" element={
+          <ProtectedRoute>
+            <CompanyManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/user-management" element={
+          <ProtectedRoute>
+            <UserManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/company-create" element={
+          <ProtectedRoute>
+            <CompanyCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/user-create" element={
+          <ProtectedRoute>
+            <UserCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/company-edit/:id" element={
+          <ProtectedRoute>
+            <CompanyEdit />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-projects" element={
+          <ProtectedRoute>
+            <AdminProjectList />
+          </ProtectedRoute>
+        } />
+        <Route path="/project/:id" element={
+          <ProtectedRoute>
+            <ProjectDetail />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

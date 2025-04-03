@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const UserCreate = () => {
   const navigate = useNavigate();
@@ -11,21 +12,29 @@ const UserCreate = () => {
     name: '',
     email: '',
     password: '',
+    phone: '',           // Added phone field
     companyRole: '',
     companyId: ''
   });
 
   useEffect(() => {
-    // Fetch companies when component mounts
-    fetch('http://localhost:8080/api/companies')
-      .then(response => response.json())
-      .then(data => {
-        setCompanies(data);
-      })
-      .catch(error => {
-        console.error('Error fetching companies:', error);
-      });
+    fetchCompanies();
   }, []);
+
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANIES, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,10 +47,12 @@ const UserCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.USERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify(formData)
       });
@@ -87,6 +98,18 @@ const UserCreate = () => {
               value={formData.name}
               onChange={handleChange}
               placeholder="이름을 입력하세요" 
+              required
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>전화번호</Label>
+            <Input 
+              type="tel" 
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="전화번호를 입력하세요" 
               required
             />
           </FormGroup>

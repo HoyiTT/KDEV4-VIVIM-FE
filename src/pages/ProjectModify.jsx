@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const ProjectModify = () => {
   const navigate = useNavigate();
@@ -62,48 +63,78 @@ const ProjectModify = () => {
     setTeamMembers(newTeamMembers);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // 여기서 API를 호출하여 프로젝트 데이터를 업데이트합니다
-    console.log({
-      projectId,
-      projectName,
-      clientName,
-      startDate,
-      endDate,
-      projectType,
-      projectStage,
-      projectStatus,
-      description,
-      teamMembers
-    });
-    
-    // 성공 시 대시보드로 이동
-    alert('프로젝트가 성공적으로 수정되었습니다.');
-    navigate('/dashboard');
+  useEffect(() => {
+    fetchProjectData();
+  }, [projectId]);
+
+  const fetchProjectData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      
+      // Update form data with fetched project data
+      setProjectName(data.name);
+      setClientName(data.clientName);
+      setStartDate(data.startDate);
+      setEndDate(data.endDate);
+      setProjectType(data.projectType || '웹사이트');
+      setProjectStage(data.projectStage || '기획');
+      setProjectStatus(data.status || '진행중');
+      setDescription(data.description);
+      setTeamMembers(data.teamMembers || [{ name: '', role: '', email: '' }]);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      setLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <DashboardContainer>
-        <Sidebar 
-          activeMenuItem={activeMenuItem} 
-          handleMenuClick={handleMenuClick} 
-        />
-        <MainContent>
-          <LoadingMessage>프로젝트 정보를 불러오는 중...</LoadingMessage>
-        </MainContent>
-      </DashboardContainer>
-    );
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          name: projectName,
+          clientName,
+          startDate,
+          endDate,
+          projectType,
+          projectStage,
+          status: projectStatus,
+          description,
+          teamMembers
+        })
+      });
+
+      if (response.ok) {
+        alert('프로젝트가 성공적으로 수정되었습니다.');
+        navigate('/dashboard');
+      } else {
+        alert('프로젝트 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('프로젝트 수정 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
-    <DashboardContainer>
-      <Sidebar 
+    <PageContainer>
+      <Navbar 
         activeMenuItem={activeMenuItem} 
         handleMenuClick={handleMenuClick} 
       />
-
       <MainContent>
         <Header>
           <PageTitle>프로젝트 수정</PageTitle>
@@ -290,13 +321,14 @@ const ProjectModify = () => {
           </ButtonContainer>
         </FormContainer>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-// Styled Components
-const DashboardContainer = styled.div`
+// Update styled components
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -306,6 +338,7 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  margin-top: 60px;
 `;
 
 const Header = styled.div`

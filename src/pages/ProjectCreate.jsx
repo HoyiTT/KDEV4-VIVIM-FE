@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 // Sidebar를 Navbar로 변경
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 // Change component name from ProjectCreate2 to ProjectCreate
 const ProjectCreate = () => {
@@ -32,8 +33,14 @@ const ProjectCreate = () => {
   const [companies, setCompanies] = useState([]);
   
   // Add useEffect to fetch companies when component mounts
+  // Add token to fetch requests
   useEffect(() => {
-    fetch('http://localhost:8080/api/companies')
+    const token = localStorage.getItem('token');
+    fetch(API_ENDPOINTS.COMPANIES, {
+      headers: {
+        'Authorization': token
+      }
+    })
       .then(response => response.json())
       .then(data => {
         setCompanies(data);
@@ -42,15 +49,15 @@ const ProjectCreate = () => {
         console.error('Error fetching companies:', error);
       });
   }, []);
-  
-  // Remove the mock users data
-  // const [users, setUsers] = useState([...]);
-  
-  // Update available users when companies are selected
+
   useEffect(() => {
     if (selectedClientCompany) {
-      // Fetch users from API
-      fetch(`http://localhost:8080/api/companies/${selectedClientCompany}/employees`)
+      const token = localStorage.getItem('token');
+      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany), {
+        headers: {
+          'Authorization': token
+        }
+      })
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {
@@ -76,7 +83,7 @@ const ProjectCreate = () => {
   useEffect(() => {
     if (selectedDevCompany) {
       // Fetch users from API
-      fetch(`http://localhost:8080/api/companies/${selectedDevCompany}/employees`)
+      fetch(`https://dev.vivim.co.kr/api/companies/${selectedDevCompany}/employees`)
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {
@@ -142,6 +149,7 @@ const ProjectCreate = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     
     // Create project data object
     const projectData = {
@@ -158,11 +166,12 @@ const ProjectCreate = () => {
     console.log('Project data to be sent to server:', projectData);
     
     // Send POST request to the API
-    fetch('http://localhost:8080/api/projects', {
+    fetch('https://dev.vivim.co.kr/api/projects', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': token
       },
       body: JSON.stringify(projectData)
     })

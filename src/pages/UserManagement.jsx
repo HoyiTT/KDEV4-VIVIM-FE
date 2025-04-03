@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -15,7 +16,12 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/users');
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.USERS, {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setUsers(data);
       setLoading(false);
@@ -25,20 +31,20 @@ const UserManagement = () => {
     }
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
       try {
-        const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+        const token = localStorage.getItem('token');
+        const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
           method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
         });
 
         if (response.ok) {
           alert(`${userName} 유저가 삭제되었습니다.`);
-          fetchUsers(); // 유저 목록 새로고침
+          fetchUsers();
         } else {
           alert('유저 삭제에 실패했습니다.');
         }
@@ -47,6 +53,10 @@ const UserManagement = () => {
         alert('유저 삭제 중 오류가 발생했습니다.');
       }
     }
+  };
+
+  const handleMenuClick = (menuItem) => {
+    setActiveMenuItem(menuItem);
   };
 
   return (
