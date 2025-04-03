@@ -124,7 +124,7 @@ const ProjectDetail = () => {
             <BoardSection>
               <BoardHeader>
                 <SectionTitle>게시판</SectionTitle>
-                <CreateButton onClick={() => navigate(`/board-create/${id}`)}>
+                <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
                   글쓰기
                 </CreateButton>
               </BoardHeader>

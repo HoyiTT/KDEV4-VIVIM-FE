@@ -15,6 +15,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import ProjectPostDetail from './pages/ProjectPostDetail';
 
 import UserProjectList from './pages/UserProjectList';
+import ProjectPostCreate from './pages/ProjectPostCreate';
 
 
 function App() {
@@ -80,6 +81,11 @@ function App() {
         <Route path="/project/:projectId/post/:postId" element={
           <ProtectedRoute>
             <ProjectPostDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/project/:projectId/post/create" element={
+          <ProtectedRoute>
+            <ProjectPostCreate />
           </ProtectedRoute>
         } />
       </Routes>

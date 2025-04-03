@@ -72,6 +72,20 @@ const ProjectPostDetail = () => {
               <PostContent>{post.description}</PostContent>
             </PostContainer>
             
+            <AttachmentsSection>
+              <AttachmentHeader>첨부파일 및 링크</AttachmentHeader>
+              <AttachmentContainer>
+                <AttachmentGroup>
+                  <GroupTitle>파일</GroupTitle>
+                  <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
+                </AttachmentGroup>
+                <AttachmentGroup>
+                  <GroupTitle>링크</GroupTitle>
+                  <PlaceholderMessage>아직 등록된 링크가 없습니다.</PlaceholderMessage>
+                </AttachmentGroup>
+              </AttachmentContainer>
+            </AttachmentsSection>
+                        
             <CommentsSection>
               <CommentHeader>댓글 목록</CommentHeader>
               {comments.length > 0 ? (
@@ -220,3 +234,48 @@ const NoComments = styled.p`
 `;
 
 export default ProjectPostDetail;
+
+// Add these styled components at the bottom with other styled components
+const AttachmentsSection = styled.div`
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+`;
+
+const AttachmentHeader = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+`;
+
+const AttachmentContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const AttachmentGroup = styled.div`
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+`;
+
+const GroupTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+`;
+
+const PlaceholderMessage = styled.p`
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+`;
