@@ -18,12 +18,15 @@ const CompanyManagement = () => {
   const handleDeleteCompany = async (companyId) => {
     if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`https://dev.vivim.co.kr/api/companies/${companyId}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
         });
         
         if (response.ok) {
-          // 삭제 성공 시 목록 다시 불러오기
           fetchCompanies();
         } else {
           alert('회사 삭제에 실패했습니다.');
@@ -37,7 +40,12 @@ const CompanyManagement = () => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch('https://dev.vivim.co.kr/api/companies');
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://dev.vivim.co.kr/api/companies', {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setCompanies(data);
       setLoading(false);

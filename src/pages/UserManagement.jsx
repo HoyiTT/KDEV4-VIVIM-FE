@@ -15,13 +15,42 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('https://dev.vivim.co.kr/api/users');
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://dev.vivim.co.kr/api/users', {
+        headers: {
+          'Authorization': token
+        }
+      });
       const data = await response.json();
       setUsers(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
+        });
+
+        if (response.ok) {
+          alert(`${userName} 유저가 삭제되었습니다.`);
+          fetchUsers();
+        } else {
+          alert('유저 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('유저 삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
