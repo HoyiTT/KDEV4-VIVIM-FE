@@ -21,8 +21,10 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    // 로그아웃 후 상태 초기화
     setUserInfo(null);
-    navigate('/login');
+    // 강제로 페이지 새로고침 후 홈으로 이동
+    window.location.href = '/';
   };
 
   return (
@@ -86,7 +88,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
             <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
           </>
         ) : (
-          <LoginButton onClick={() => navigate('/login')}>로그인</LoginButton>
+          <LoginButton onClick={() => navigate('/')}>로그인</LoginButton>
         )}
       </UserSection>
     </NavbarContainer>
@@ -177,6 +179,7 @@ const LoginButton = styled.button`
   }
 `;
 
+// Add styled component for logout button
 const LogoutButton = styled.button`
   padding: 8px 16px;
   background: transparent;
@@ -185,7 +188,8 @@ const LogoutButton = styled.button`
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  
+  transition: all 0.2s;
+
   &:hover {
     background: rgba(220, 38, 38, 0.1);
   }
