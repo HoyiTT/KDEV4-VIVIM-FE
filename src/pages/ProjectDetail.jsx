@@ -137,8 +137,11 @@ const ProjectDetail = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {posts.map((post, index) => (
-                    <BoardRow key={index}>
+                  {posts.map((post) => (
+                    <BoardRow 
+                      key={post.postId}
+                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                    >
                       <BoardCell>{post.title}</BoardCell>
                       <BoardCell>작성자 {post.creatorId}</BoardCell>
                       <BoardCell>
