@@ -67,39 +67,46 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
 
 // Update NavbarContainer and add NavContent
 const NavbarContainer = styled.nav`
-  display: flex;
-  justify-content: center;
-  padding: 0 24px;
-  height: 60px;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
+  height: 60px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
   z-index: 1000;
+`;
+const MenuContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 24px;
 `;
 
 const NavContent = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
-  max-width: 1200px;
-  position: relative;
-`;
-
-const LogoutButtonContainer = styled.div`
-  position: absolute;
-  right: 0;
+  max-width: 100%;
+  padding: 0;
+  position: relative;  // 추가
 `;
 
 const NavList = styled.div`
   display: flex;
   gap: 48px;
   align-items: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  position: absolute;  // 추가
+  left: 50%;  // 추가
+  transform: translateX(-50%);  // 추가
+`;
+
+const LogoutButtonContainer = styled.div`
+  display: flex;
+  margin-left: auto;
 `;
 
 const NavItem = styled.div`
@@ -186,6 +193,7 @@ const LoginButton = styled.button`
 
 // Add styled component for logout button
 const LogoutButton = styled.button`
+  // margin-left: auto; 제거
   padding: 8px 16px;
   background: transparent;
   color: #dc2626;
