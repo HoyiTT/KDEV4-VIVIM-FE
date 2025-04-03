@@ -32,8 +32,14 @@ const ProjectCreate = () => {
   const [companies, setCompanies] = useState([]);
   
   // Add useEffect to fetch companies when component mounts
+  // Add token to fetch requests
   useEffect(() => {
-    fetch('https://dev.vivim.co.kr/api/companies')
+    const token = localStorage.getItem('token');
+    fetch('https://dev.vivim.co.kr/api/companies', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(response => response.json())
       .then(data => {
         setCompanies(data);
@@ -42,15 +48,15 @@ const ProjectCreate = () => {
         console.error('Error fetching companies:', error);
       });
   }, []);
-  
-  // Remove the mock users data
-  // const [users, setUsers] = useState([...]);
-  
-  // Update available users when companies are selected
+
   useEffect(() => {
     if (selectedClientCompany) {
-      // Fetch users from API
-      fetch(`https://dev.vivim.co.kr/api/companies/${selectedClientCompany}/employees`)
+      const token = localStorage.getItem('token');
+      fetch(`https://dev.vivim.co.kr/api/companies/${selectedClientCompany}/employees`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
         .then(response => response.json())
         .then(result => {
           if (result.statusCode === 200) {
@@ -142,6 +148,7 @@ const ProjectCreate = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     
     // Create project data object
     const projectData = {
@@ -162,7 +169,8 @@ const ProjectCreate = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(projectData)
     })
