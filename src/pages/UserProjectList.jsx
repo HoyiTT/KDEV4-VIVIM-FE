@@ -76,9 +76,9 @@ const UserProjectList = () => {
                 <TableRow key={project.projectId}>
                   <TableCell 
                     onClick={() => navigate(`/project/${project.projectId}`)}
-                    style={{ cursor: 'pointer', color: '#2E7D32' }}
+                    style={{ cursor: 'pointer' }}
                   >
-                    {project.projectName}
+                    {project.name}
                   </TableCell>
                   <TableCell>
                     <RoleBadge>
