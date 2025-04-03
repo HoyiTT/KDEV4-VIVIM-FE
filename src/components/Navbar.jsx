@@ -1,104 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';  // Changed this line
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUserInfo(decoded);
-      } catch (error) {
-        console.error('Token decode error:', error);
-      }
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      return null;
     }
-  }, []);
+  };
+
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
+
+  const menuItems = [
+    { name: '대시보드', path: '/dashboard', showFor: 'all' },
+    { 
+      name: '프로젝트 관리', 
+      path: isAdmin ? '/admin-projects' : '/project-list',
+      showFor: 'all' 
+    },
+    { name: '회사 관리', path: '/company-management', showFor: 'admin' },
+    { name: '사용자 관리', path: '/user-management', showFor: 'admin' }
+  ];
+
+  const filteredMenuItems = menuItems.filter(item => 
+    item.showFor === 'all' || 
+    (isAdmin && item.showFor === 'admin')
+  );
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    // 로그아웃 후 상태 초기화
-    setUserInfo(null);
-    // 강제로 페이지 새로고침 후 홈으로 이동
-    window.location.href = '/';
+    navigate('/');
   };
 
   return (
     <NavbarContainer>
-      <Logo onClick={() => navigate('/')}>VIVIM</Logo>
-      <MenuItems>
-        <MenuItem 
-          active={activeMenuItem === '대시보드'} 
-          onClick={() => {
-            handleMenuClick('대시보드');
-            navigate('/dashboard');
-          }}
-        >
-          대시보드
-        </MenuItem>
-        <MenuItem 
-          active={activeMenuItem === '프로젝트 관리 - 관리자'} 
-          onClick={() => {
-            handleMenuClick('프로젝트 관리 - 관리자');
-            navigate('/admin-projects');
-          }}
-        >
-          프로젝트 관리 - 관리자
-        </MenuItem>
-        <MenuItem 
-          active={activeMenuItem === '프로젝트 관리 - 유저'} 
-          onClick={() => {
-            handleMenuClick('프로젝트 관리 - 유저');
-            navigate('/user-projects');
-          }}
-        >
-          프로젝트 관리 - 유저
-        </MenuItem>
-        <MenuItem 
-          active={activeMenuItem === '회사 관리'} 
-          onClick={() => {
-            handleMenuClick('회사 관리');
-            navigate('/company-management');
-          }}
-        >
-          회사 관리
-        </MenuItem>
-        <MenuItem 
-          active={activeMenuItem === '사용자 관리'} 
-          onClick={() => {
-            handleMenuClick('사용자 관리');
-            navigate('/user-management'); // 경로를 유저 관리 페이지로 변경
-          }}
-        >
-          사용자 관리
-        </MenuItem>
-      </MenuItems>
-      <UserSection>
-        {userInfo ? (
-          <>
-            <UserAvatar />
-            <UserInfo>
-              <UserName>{userInfo.name}</UserName>
-              <UserEmail>{userInfo.email}</UserEmail>
-            </UserInfo>
-            <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
-          </>
-        ) : (
-          <LoginButton onClick={() => navigate('/')}>로그인</LoginButton>
-        )}
-      </UserSection>
+      <NavContent>
+        <NavList>
+          {filteredMenuItems.map((item) => (
+            <NavItem
+              key={item.name}
+              active={activeMenuItem === item.name}
+              onClick={() => {
+                handleMenuClick(item.name);
+                navigate(item.path);
+              }}
+            >
+              {item.name}
+            </NavItem>
+          ))}
+        </NavList>
+        <LogoutButtonContainer>
+          <LogoutButton onClick={handleLogout}>
+            로그아웃
+          </LogoutButton>
+        </LogoutButtonContainer>
+      </NavContent>
     </NavbarContainer>
   );
 };
 
+// Update NavbarContainer and add NavContent
 const NavbarContainer = styled.nav`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 24px;
   height: 60px;
   background-color: white;
@@ -108,6 +78,41 @@ const NavbarContainer = styled.nav`
   left: 0;
   right: 0;
   z-index: 1000;
+`;
+
+const NavContent = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+`;
+
+const LogoutButtonContainer = styled.div`
+  position: absolute;
+  right: 0;
+`;
+
+const NavList = styled.div`
+  display: flex;
+  gap: 48px;
+  align-items: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+`;
+
+const NavItem = styled.div`
+  font-size: 14px;
+  font-weight: ${props => props.active ? '600' : '400'};
+  color: ${props => props.active ? '#2E7D32' : '#64748b'};
+  cursor: pointer;
+  padding: 8px 0;
+  border-bottom: ${props => props.active ? '2px solid #2E7D32' : 'none'};
+  
+  &:hover {
+    color: #2E7D32;
+  }
 `;
 
 const Logo = styled.div`
