@@ -17,5 +17,5 @@ export const API_ENDPOINTS = {
   PROJECTS: `${API_BASE_URL}/projects`,
   PROJECT_DETAIL: (id) => `${API_BASE_URL}/projects/${id}`,
   ADMIN_PROJECTS: `${API_BASE_URL}/projects/all`,
-  USER_PROJECTS: `${API_BASE_URL}/user/projects`,
+  USER_PROJECTS: (userId) => `${API_BASE_URL}/projects?userId=${userId}`,
 };
