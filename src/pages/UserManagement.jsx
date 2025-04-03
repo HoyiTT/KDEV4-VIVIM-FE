@@ -58,26 +58,6 @@ const UserManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
-  const handleDeleteUser = async (userId, userName) => {
-    if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
-      try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          alert(`${userName} 유저가 삭제되었습니다.`);
-          fetchUsers(); // 유저 목록 새로고침
-        } else {
-          alert('유저 삭제에 실패했습니다.');
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('유저 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
-
   return (
     <PageContainer>
       <Navbar 
