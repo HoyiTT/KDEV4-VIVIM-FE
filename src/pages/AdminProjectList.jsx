@@ -19,7 +19,7 @@ const AdminProjectList = () => {
       const token = localStorage.getItem('token');
       const response = await fetch('https://dev.vivim.co.kr/api/projects/all', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `${token}`
         }
       });
       const data = await response.json();
