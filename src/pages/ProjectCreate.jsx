@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 // Sidebar를 Navbar로 변경
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 // Change component name from ProjectCreate2 to ProjectCreate
 const ProjectCreate = () => {
@@ -35,9 +36,9 @@ const ProjectCreate = () => {
   // Add token to fetch requests
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('https://dev.vivim.co.kr/api/companies', {
+    fetch(API_ENDPOINTS.COMPANIES, {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': token
       }
     })
       .then(response => response.json())
@@ -52,9 +53,9 @@ const ProjectCreate = () => {
   useEffect(() => {
     if (selectedClientCompany) {
       const token = localStorage.getItem('token');
-      fetch(`https://dev.vivim.co.kr/api/companies/${selectedClientCompany}/employees`, {
+      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany), {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': token
         }
       })
         .then(response => response.json())
@@ -170,7 +171,7 @@ const ProjectCreate = () => {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': token
       },
       body: JSON.stringify(projectData)
     })

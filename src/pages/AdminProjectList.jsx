@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-// Sidebar 대신 Navbar 컴포넌트 import
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminProjectList = () => {
   const navigate = useNavigate();
@@ -17,9 +17,9 @@ const AdminProjectList = () => {
   const fetchProjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://dev.vivim.co.kr/api/projects/all', {
+      const response = await fetch(API_ENDPOINTS.ADMIN_PROJECTS, {
         headers: {
-          'Authorization': `${token}`
+          'Authorization': token
         }
       });
       const data = await response.json();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-// Sidebar 대신 Navbar 컴포넌트 import
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const CompanyManagement = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const CompanyManagement = () => {
     if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://dev.vivim.co.kr/api/companies/${companyId}`, {
+        const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(companyId), {
           method: 'DELETE',
           headers: {
             'Authorization': token
@@ -41,7 +41,7 @@ const CompanyManagement = () => {
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://dev.vivim.co.kr/api/companies', {
+      const response = await fetch(API_ENDPOINTS.COMPANIES, {
         headers: {
           'Authorization': token
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const UserCreate = () => {
   const navigate = useNavigate();
@@ -17,16 +18,23 @@ const UserCreate = () => {
   });
 
   useEffect(() => {
-    // Fetch companies when component mounts
-    fetch('https://dev.vivim.co.kr/api/companies')
-      .then(response => response.json())
-      .then(data => {
-        setCompanies(data);
-      })
-      .catch(error => {
-        console.error('Error fetching companies:', error);
-      });
+    fetchCompanies();
   }, []);
+
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANIES, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -39,10 +47,12 @@ const UserCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://dev.vivim.co.kr/api/users', {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.USERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
         body: JSON.stringify(formData)
       });

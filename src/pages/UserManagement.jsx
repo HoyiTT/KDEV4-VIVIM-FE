@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://dev.vivim.co.kr/api/users', {
+      const response = await fetch(API_ENDPOINTS.USERS, {
         headers: {
           'Authorization': token
         }
@@ -34,7 +35,7 @@ const UserManagement = () => {
     if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
+        const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
           method: 'DELETE',
           headers: {
             'Authorization': token
