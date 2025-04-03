@@ -11,6 +11,7 @@ import UserCreate from './pages/UserCreate';
 import CompanyEdit from './pages/CompanyEdit';
 import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
+import ProjectPostDetail from './pages/ProjectPostDetail';
 
 function App() {
   return (
@@ -65,6 +66,11 @@ function App() {
         <Route path="/project/:id" element={
           <ProtectedRoute>
             <ProjectDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/project/:projectId/post/:postId" element={
+          <ProtectedRoute>
+            <ProjectPostDetail />
           </ProtectedRoute>
         } />
       </Routes>
