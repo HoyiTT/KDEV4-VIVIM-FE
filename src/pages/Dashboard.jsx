@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Move all styled components here, before the Dashboard component
 const PageContainer = styled.div`
@@ -225,14 +226,52 @@ const CalendarSection = styled(StatisticsSection)`
   }
 `;
 
-const Dashboard = () => {
-  // Add with other state declarations
-  const [selectedDate, setSelectedDate] = useState(new Date());
+const KPISection = styled(StatisticsSection)`
+  .chart-container {
+    margin-top: 20px;
+  }
   
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+`;
+
+const KPICard = styled.div`
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  
+  h3 {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 8px 0;
+  }
+  
+  .value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #2E7D32;
+  }
+`;
+
+const Dashboard = () => {
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const mockData = [
+    { month: '1월', value: 65 },
+    { month: '2월', value: 72 },
+    { month: '3월', value: 68 },
+    { month: '4월', value: 85 },
+    { month: '5월', value: 78 },
+    { month: '6월', value: 90 },
+  ];
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -359,6 +398,7 @@ const Dashboard = () => {
                 </NotificationsList>
               </NotificationsSection>
             </TopSection>
+            
             <BottomSection>
               <CalendarSection>
                 <SectionTitle>일정</SectionTitle>
@@ -369,7 +409,39 @@ const Dashboard = () => {
                   calendarType="gregory"
                 />
               </CalendarSection>
-              {/* Add other sections here later */}
+              
+              <KPISection>
+                <SectionTitle>생산성 지표 (KPI)</SectionTitle>
+                <div className="kpi-grid">
+                  <KPICard>
+                    <h3>평균 업무 완료 시간</h3>
+                    <div className="value">4.2일</div>
+                  </KPICard>
+                  <KPICard>
+                    <h3>프로젝트 완료율</h3>
+                    <div className="value">78%</div>
+                  </KPICard>
+                </div>
+                <div className="chart-container" style={{ height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={mockData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke="#2E7D32" 
+                        strokeWidth={2}
+                        name="업무 처리량"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </KPISection>
+              
+              {/* Third section will be added later */}
             </BottomSection>
           </ContentContainer>
         )}
