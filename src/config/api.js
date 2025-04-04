@@ -1,4 +1,6 @@
 export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+// export const API_BASE_URL = 'https://localhost/api';
+
 
 export const API_ENDPOINTS = {
   // Auth
