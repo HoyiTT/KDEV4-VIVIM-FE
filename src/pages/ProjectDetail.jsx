@@ -4,6 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 
+// Add this import at the top of the file
+import ChecklistComponent from '../components/ChecklistComponent';
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -116,7 +119,7 @@ const ProjectDetail = () => {
                   .map((stage) => (
                     <StageItem key={stage.id}>
                       <StageHeader>{stage.name}</StageHeader>
-                      <StageCount>0</StageCount>
+                      <ChecklistComponent progressId={stage.id} />
                     </StageItem>
                   ))}
               </StageGrid>
@@ -276,11 +279,15 @@ const StageGrid = styled.div`
   }
 `;
 
+// Update the StageItem styled component
 const StageItem = styled.div`
   padding: 20px;
   background: #f8fafc;
   border-radius: 8px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
 `;
 
 const StageHeader = styled.div`
