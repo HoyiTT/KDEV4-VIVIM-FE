@@ -23,6 +23,9 @@ const ProjectModify = () => {
   const [devManagers, setDevManagers] = useState([]);
   const [devUsers, setDevUsers] = useState([]);
 
+  // Project users from API
+  const [projectUsers, setProjectUsers] = useState([]);
+
   // Company users
   const [clientCompanyUsers, setClientCompanyUsers] = useState([]);
   const [devCompanyUsers, setDevCompanyUsers] = useState([]);
@@ -69,17 +72,62 @@ const ProjectModify = () => {
           setSelectedClientCompany(data.clientCompanyId);
           setSelectedDevCompany(data.devCompanyId);
           
-          // Set user selections
-          setClientManagers(data.clientManagers || []);
-          setClientUsers(data.clientUsers || []);
-          setDevManagers(data.devManagers || []);
-          setDevUsers(data.devUsers || []);
-          
           setLoading(false);
         })
         .catch(error => {
           console.error('Error fetching project:', error);
           setLoading(false);
+        });
+    }
+  }, [projectId]);
+
+  // Fetch project users
+  useEffect(() => {
+    if (projectId) {
+      const token = localStorage.getItem('token');
+      fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
+        headers: {
+          'Authorization': token
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          setProjectUsers(data);
+          
+          // Organize users by role
+          const clientManagersList = [];
+          const clientUsersList = [];
+          const devManagersList = [];
+          const devUsersList = [];
+          
+          data.forEach(user => {
+            const userObj = { userId: user.userId };
+            
+            switch(user.role) {
+              case 'CLIENT_MANAGER':
+                clientManagersList.push(userObj);
+                break;
+              case 'CLIENT_USER':
+                clientUsersList.push(userObj);
+                break;
+              case 'DEVELOPER_MANAGER':
+                devManagersList.push(userObj);
+                break;
+              case 'DEVELOPER_USER':
+                devUsersList.push(userObj);
+                break;
+              default:
+                break;
+            }
+          });
+          
+          setClientManagers(clientManagersList);
+          setClientUsers(clientUsersList);
+          setDevManagers(devManagersList);
+          setDevUsers(devUsersList);
+        })
+        .catch(error => {
+          console.error('Error fetching project users:', error);
         });
     }
   }, [projectId]);
