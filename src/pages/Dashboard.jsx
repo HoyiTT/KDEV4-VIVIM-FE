@@ -3,12 +3,52 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const mockData = [
+    { month: '1월', value: 65 },
+    { month: '2월', value: 72 },
+    { month: '3월', value: 68 },
+    { month: '4월', value: 85 },
+    { month: '5월', value: 78 },
+    { month: '6월', value: 90 },
+  ];
+
+  const mockPosts = [
+    {
+      id: 1,
+      title: '프로젝트 진행 상황 보고',
+      author: '김철수',
+      date: '2024.01.15',
+    },
+    {
+      id: 2,
+      title: '주간 회의 일정 안내',
+      author: '이영희',
+      date: '2024.01.14',
+    },
+    {
+      id: 3,
+      title: '신규 프로젝트 킥오프 미팅',
+      author: '박지민',
+      date: '2024.01.13',
+    },
+    {
+      id: 4,
+      title: '1월 업무 목표 설정',
+      author: '정민수',
+      date: '2024.01.12',
+    },
+  ];
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -61,67 +101,138 @@ const Dashboard = () => {
         handleMenuClick={handleMenuClick}
       />
       <MainContent>
-        <Header>
-          <PageTitle>대시보드</PageTitle>
-        </Header>
 
         {/* 대시보드 내용 */}
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
           <ContentContainer>
-            <StatisticsSection>
-              <SectionTitle>프로젝트 현황</SectionTitle>
-              <StatisticsGrid>
-                <StatCard>
-                  <StatValue>{projects.length}</StatValue>
-                  <StatLabel>전체 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>{projects.filter(p => !p.deleted).length}</StatValue>
-                  <StatLabel>진행중인 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>{projects.filter(p => p.deleted).length}</StatValue>
-                  <StatLabel>종료된 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>12</StatValue>
-                  <StatLabel>참여 인원</StatLabel>
-                </StatCard>
-              </StatisticsGrid>
-            </StatisticsSection>
+            <TopSection>
+              <StatisticsSection>
+                <SectionTitle>프로젝트 현황</SectionTitle>
+                <StatisticsGrid>
+                  <StatCard>
+                    <StatValue>{projects.length}</StatValue>
+                    <StatLabel>전체 프로젝트</StatLabel>
+                  </StatCard>
+                  <StatCard>
+                    <StatValue>{projects.filter(p => !p.deleted).length}</StatValue>
+                    <StatLabel>진행중인 프로젝트</StatLabel>
+                  </StatCard>
+                </StatisticsGrid>
+              </StatisticsSection>
 
-            <RecentProjectsSection>
-              <SectionTitle>최근 프로젝트</SectionTitle>
-              <ProjectsTable>
-                <thead>
-                  <tr>
-                    <TableHeaderCell>프로젝트명</TableHeaderCell>
-                    <TableHeaderCell>시작일</TableHeaderCell>
-                    <TableHeaderCell>종료일</TableHeaderCell>
-                    <TableHeaderCell>상태</TableHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.slice(0, 5).map((project) => (
-                    <TableRow 
-                      key={project.projectId}
-                      onClick={() => navigate(`/project/${project.projectId}`)}
-                    >
-                      <TableCell>{project.name}</TableCell>
-                      <TableCell>{project.startDate}</TableCell>
-                      <TableCell>{project.endDate}</TableCell>
-                      <TableCell>
-                        <StatusBadge deleted={project.deleted}>
-                          {project.deleted ? '삭제됨' : '진행중'}
-                        </StatusBadge>
-                      </TableCell>
-                    </TableRow>
+              <RecentProjectsSection>
+                <SectionTitle>최근 프로젝트</SectionTitle>
+                <ProjectsTable>
+                  <thead>
+                    <tr>
+                      <TableHeaderCell>프로젝트명</TableHeaderCell>
+                      <TableHeaderCell>종료일</TableHeaderCell>
+                      <TableHeaderCell>상태</TableHeaderCell>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projects.slice(0, 5).map((project) => (
+                      <TableRow 
+                        key={project.projectId}
+                        onClick={() => navigate(`/project/${project.projectId}`)}
+                      >
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>{project.endDate}</TableCell>
+                        <TableCell>
+                          <StatusBadge deleted={project.deleted}>
+                            {project.deleted ? '삭제됨' : '진행중'}
+                          </StatusBadge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </tbody>
+                </ProjectsTable>
+              </RecentProjectsSection>
+
+              <NotificationsSection>
+                <SectionTitle>최근 알림</SectionTitle>
+                <NotificationsList>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>프로젝트 A의 마감일이 3일 남았습니다.</NotificationText>
+                      <NotificationDate>2024.01.15</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>새로운 프로젝트가 할당되었습니다.</NotificationText>
+                      <NotificationDate>2024.01.14</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>프로젝트 B에 새로운 댓글이 있습니다.</NotificationText>
+                      <NotificationDate>2024.01.13</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                </NotificationsList>
+              </NotificationsSection>
+            </TopSection>
+            
+            <BottomSection>
+              <CalendarSection>
+                <SectionTitle>일정</SectionTitle>
+                <Calendar
+                  onChange={setSelectedDate}
+                  value={selectedDate}
+                  locale="ko-KR"
+                  calendarType="gregory"
+                />
+              </CalendarSection>
+              
+              <KPISection>
+                <SectionTitle>생산성 지표 (KPI)</SectionTitle>
+                <div className="kpi-grid">
+                  <KPICard>
+                    <h3>평균 업무 완료 시간</h3>
+                    <div className="value">4.2일</div>
+                  </KPICard>
+                  <KPICard>
+                    <h3>프로젝트 완료율</h3>
+                    <div className="value">78%</div>
+                  </KPICard>
+                </div>
+                <div className="chart-container" style={{ height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={mockData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke="#2E7D32" 
+                        strokeWidth={2}
+                        name="업무 처리량"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </KPISection>
+              
+              <RecentPostsSection>
+                <SectionTitle>최근 게시글</SectionTitle>
+                <div className="posts-list">
+                  {mockPosts.map(post => (
+                    <PostItem key={post.id}>
+                      <PostTitle>{post.title}</PostTitle>
+                      <PostMeta>
+                        <span>{post.author}</span>
+                        <span>{post.date}</span>
+                      </PostMeta>
+                    </PostItem>
                   ))}
-                </tbody>
-              </ProjectsTable>
-            </RecentProjectsSection>
+                </div>
+              </RecentPostsSection>
+            </BottomSection>
           </ContentContainer>
         )}
       </MainContent>
@@ -129,7 +240,9 @@ const Dashboard = () => {
   );
 };
 
-// DashboardContainer를 PageContainer로 변경
+export default Dashboard;
+
+// Styled Components
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -138,12 +251,11 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-// MainContent 스타일 수정
 const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-top: 60px;
 `;
 
 const Header = styled.div`
@@ -188,9 +300,51 @@ const StatisticsSection = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
+const NotificationsSection = styled(StatisticsSection)``;
+
+const NotificationsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const NotificationItem = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const NotificationContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const NotificationText = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const NotificationDate = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const TopSection = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+`;
+
 const StatisticsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 16px;
 `;
 
@@ -267,4 +421,107 @@ const StatusBadge = styled.span`
   `}
 `;
 
-export default Dashboard;
+// Add after other styled components, before Dashboard component
+const BottomSection = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+`;
+
+const CalendarSection = styled(StatisticsSection)`
+  .react-calendar {
+    width: 100%;
+    border: none;
+    background: transparent;
+    
+    button {
+      color: #1e293b;
+      
+      &:hover {
+        background-color: #f1f5f9;
+      }
+      
+      &:disabled {
+        color: #cbd5e1;
+      }
+    }
+    
+    .react-calendar__tile--active {
+      background: #2E7D32;
+      color: white;
+      
+      &:hover {
+        background: #1b5e20;
+      }
+    }
+    
+    .react-calendar__month-view__days__day--weekend {
+      color: #ef4444;
+    }
+  }
+`;
+
+const KPISection = styled(StatisticsSection)`
+  .chart-container {
+    margin-top: 20px;
+  }
+  
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+`;
+
+const KPICard = styled.div`
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  
+  h3 {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 8px 0;
+  }
+  
+  .value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #2E7D32;
+  }
+`;
+
+// 먼저 styled-components를 추가합니다 (KPICard 컴포넌트 아래에 추가)
+const RecentPostsSection = styled(StatisticsSection)`
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+`;
+
+const PostItem = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const PostTitle = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 4px;
+`;
+
+const PostMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+`;
