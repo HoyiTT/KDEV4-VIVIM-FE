@@ -3,133 +3,10 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-  const userId = decodedToken?.userId;  // Extract userId from token
-
-  const fetchProjects = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        isAdmin ? API_ENDPOINTS.ADMIN_PROJECTS : API_ENDPOINTS.USER_PROJECTS(userId),
-        {
-          headers: {
-            'Authorization': token
-          }
-        }
-      );
-      const data = await response.json();
-      setProjects(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-
-
-  return (
-    <PageContainer>
-      {/* Sidebar 컴포넌트 제거하고 Navbar만 사용 */}
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
-      <MainContent>
-        <Header>
-          <PageTitle>대시보드</PageTitle>
-        </Header>
-
-        {/* 대시보드 내용 */}
-        {loading ? (
-          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-        ) : (
-          <ContentContainer>
-            <StatisticsSection>
-              <SectionTitle>프로젝트 현황</SectionTitle>
-              <StatisticsGrid>
-                <StatCard>
-                  <StatValue>{projects.length}</StatValue>
-                  <StatLabel>전체 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>{projects.filter(p => !p.deleted).length}</StatValue>
-                  <StatLabel>진행중인 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>{projects.filter(p => p.deleted).length}</StatValue>
-                  <StatLabel>종료된 프로젝트</StatLabel>
-                </StatCard>
-                <StatCard>
-                  <StatValue>12</StatValue>
-                  <StatLabel>참여 인원</StatLabel>
-                </StatCard>
-              </StatisticsGrid>
-            </StatisticsSection>
-
-            <RecentProjectsSection>
-              <SectionTitle>최근 프로젝트</SectionTitle>
-              <ProjectsTable>
-                <thead>
-                  <tr>
-                    <TableHeaderCell>프로젝트명</TableHeaderCell>
-                    <TableHeaderCell>시작일</TableHeaderCell>
-                    <TableHeaderCell>종료일</TableHeaderCell>
-                    <TableHeaderCell>상태</TableHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.slice(0, 5).map((project) => (
-                    <TableRow 
-                      key={project.projectId}
-                      onClick={() => navigate(`/project/${project.projectId}`)}
-                    >
-                      <TableCell>{project.name}</TableCell>
-                      <TableCell>{project.startDate}</TableCell>
-                      <TableCell>{project.endDate}</TableCell>
-                      <TableCell>
-                        <StatusBadge deleted={project.deleted}>
-                          {project.deleted ? '삭제됨' : '진행중'}
-                        </StatusBadge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </ProjectsTable>
-            </RecentProjectsSection>
-          </ContentContainer>
-        )}
-      </MainContent>
-    </PageContainer>
-  );
-};
-
-// DashboardContainer를 PageContainer로 변경
+// Move all styled components here, before the Dashboard component
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -138,12 +15,11 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-// MainContent 스타일 수정
 const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-top: 60px;
 `;
 
 const Header = styled.div`
@@ -188,9 +64,51 @@ const StatisticsSection = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
+const NotificationsSection = styled(StatisticsSection)``;
+
+const NotificationsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const NotificationItem = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const NotificationContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const NotificationText = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const NotificationDate = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const TopSection = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+`;
+
 const StatisticsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 16px;
 `;
 
@@ -266,5 +184,198 @@ const StatusBadge = styled.span`
     color: #2E7D32;
   `}
 `;
+
+// Add after other styled components, before Dashboard component
+const BottomSection = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+`;
+
+const CalendarSection = styled(StatisticsSection)`
+  .react-calendar {
+    width: 100%;
+    border: none;
+    background: transparent;
+    
+    button {
+      color: #1e293b;
+      
+      &:hover {
+        background-color: #f1f5f9;
+      }
+      
+      &:disabled {
+        color: #cbd5e1;
+      }
+    }
+    
+    .react-calendar__tile--active {
+      background: #2E7D32;
+      color: white;
+      
+      &:hover {
+        background: #1b5e20;
+      }
+    }
+    
+    .react-calendar__month-view__days__day--weekend {
+      color: #ef4444;
+    }
+  }
+`;
+
+const Dashboard = () => {
+  // Add with other state declarations
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  const navigate = useNavigate();
+  const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const handleMenuClick = (menuItem) => {
+    setActiveMenuItem(menuItem);
+  };
+
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
+  const userId = decodedToken?.userId;  // Extract userId from token
+
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        isAdmin ? API_ENDPOINTS.ADMIN_PROJECTS : API_ENDPOINTS.USER_PROJECTS(userId),
+        {
+          headers: {
+            'Authorization': token
+          }
+        }
+      );
+      const data = await response.json();
+      setProjects(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+
+
+  return (
+    <PageContainer>
+      {/* Sidebar 컴포넌트 제거하고 Navbar만 사용 */}
+      <Navbar 
+        activeMenuItem={activeMenuItem}
+        handleMenuClick={handleMenuClick}
+      />
+      <MainContent>
+
+        {/* 대시보드 내용 */}
+        {loading ? (
+          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+        ) : (
+          <ContentContainer>
+            <TopSection>
+              <StatisticsSection>
+                <SectionTitle>프로젝트 현황</SectionTitle>
+                <StatisticsGrid>
+                  <StatCard>
+                    <StatValue>{projects.length}</StatValue>
+                    <StatLabel>전체 프로젝트</StatLabel>
+                  </StatCard>
+                  <StatCard>
+                    <StatValue>{projects.filter(p => !p.deleted).length}</StatValue>
+                    <StatLabel>진행중인 프로젝트</StatLabel>
+                  </StatCard>
+                </StatisticsGrid>
+              </StatisticsSection>
+
+              <RecentProjectsSection>
+                <SectionTitle>최근 프로젝트</SectionTitle>
+                <ProjectsTable>
+                  <thead>
+                    <tr>
+                      <TableHeaderCell>프로젝트명</TableHeaderCell>
+                      <TableHeaderCell>종료일</TableHeaderCell>
+                      <TableHeaderCell>상태</TableHeaderCell>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projects.slice(0, 5).map((project) => (
+                      <TableRow 
+                        key={project.projectId}
+                        onClick={() => navigate(`/project/${project.projectId}`)}
+                      >
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>{project.endDate}</TableCell>
+                        <TableCell>
+                          <StatusBadge deleted={project.deleted}>
+                            {project.deleted ? '삭제됨' : '진행중'}
+                          </StatusBadge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </tbody>
+                </ProjectsTable>
+              </RecentProjectsSection>
+
+              <NotificationsSection>
+                <SectionTitle>최근 알림</SectionTitle>
+                <NotificationsList>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>프로젝트 A의 마감일이 3일 남았습니다.</NotificationText>
+                      <NotificationDate>2024.01.15</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>새로운 프로젝트가 할당되었습니다.</NotificationText>
+                      <NotificationDate>2024.01.14</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                  <NotificationItem>
+                    <NotificationContent>
+                      <NotificationText>프로젝트 B에 새로운 댓글이 있습니다.</NotificationText>
+                      <NotificationDate>2024.01.13</NotificationDate>
+                    </NotificationContent>
+                  </NotificationItem>
+                </NotificationsList>
+              </NotificationsSection>
+            </TopSection>
+            <BottomSection>
+              <CalendarSection>
+                <SectionTitle>일정</SectionTitle>
+                <Calendar
+                  onChange={setSelectedDate}
+                  value={selectedDate}
+                  locale="ko-KR"
+                  calendarType="gregory"
+                />
+              </CalendarSection>
+              {/* Add other sections here later */}
+            </BottomSection>
+          </ContentContainer>
+        )}
+      </MainContent>
+    </PageContainer>
+  );
+};
 
 export default Dashboard;

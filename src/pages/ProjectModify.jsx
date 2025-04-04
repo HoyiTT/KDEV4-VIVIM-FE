@@ -23,24 +23,7 @@ const ProjectModify = () => {
 
   // 프로젝트 데이터 불러오기 (실제 구현 시 API 호출로 대체)
   useEffect(() => {
-    // 여기서 API를 호출하여 프로젝트 데이터를 가져옵니다
-    // 예시 데이터로 대체
-    setTimeout(() => {
-      setProjectName('웹사이트 리뉴얼');
-      setClientName('가이던테크');
-      setStartDate('2025-01-15');
-      setEndDate('2025-04-15');
-      setProjectType('웹사이트');
-      setProjectStage('디자인');
-      setProjectStatus('진행중');
-      setDescription('가이던테크 웹사이트 리뉴얼 프로젝트입니다. 반응형 디자인으로 개선하고 사용자 경험을 향상시키는 것이 목표입니다.');
-      setTeamMembers([
-        { name: '김철수', role: '프로젝트 매니저', email: 'kim@example.com' },
-        { name: '이영희', role: '디자이너', email: 'lee@example.com' },
-        { name: '박지훈', role: '개발자', email: 'park@example.com' }
-      ]);
-      setLoading(false);
-    }, 1000);
+    
   }, [projectId]);
 
   const handleMenuClick = (menuItem) => {
