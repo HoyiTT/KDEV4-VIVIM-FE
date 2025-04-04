@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { API_BASE_URL } from '../config/api';
 
 const ChecklistComponent = ({ progressId }) => {
   const [checklists, setChecklists] = useState([]);
@@ -12,7 +13,7 @@ const ChecklistComponent = ({ progressId }) => {
   const fetchChecklists = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/progress/${progressId}/checklists`, {
+      const response = await fetch(`${API_BASE_URL}/progress/${progressId}/checklists`, {
         headers: {
           'Authorization': token
         }
@@ -34,10 +35,9 @@ const ChecklistComponent = ({ progressId }) => {
 
   const handleAddChecklist = async () => {
     if (!newChecklistName.trim()) return;
-    
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/progress/${progressId}/checklists`, {
+      const response = await fetch(`${API_BASE_URL}/progress/${progressId}/checklists`, {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -61,7 +61,7 @@ const ChecklistComponent = ({ progressId }) => {
   const handleDeleteChecklist = async (checklistId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/progress/${checklistId}`, {
+      const response = await fetch(`${API_BASE_URL}/progress/${checklistId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': token
@@ -78,10 +78,9 @@ const ChecklistComponent = ({ progressId }) => {
 
   const handleEditChecklist = async (checklistId) => {
     if (!editName.trim()) return;
-    
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/progress/${checklistId}?name=${encodeURIComponent(editName)}`, {
+      const response = await fetch(`${API_BASE_URL}/progress/${checklistId}?name=${encodeURIComponent(editName)}`, {
         method: 'PUT',
         headers: {
           'Authorization': token
