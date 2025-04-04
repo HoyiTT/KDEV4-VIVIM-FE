@@ -11,7 +11,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await fetch('https://dev.vivim.co.kr/api/auth/login', {
-        // 'https://dev.vivim.co.kr/api/login
+        // https://dev.vivim.co.kr/api/login
         // https://localhost/api/auth/login'
         method: 'POST',
         headers: {
