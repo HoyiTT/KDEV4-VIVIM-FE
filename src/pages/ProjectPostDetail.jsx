@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
+import CommentForm from '../components/CommentForm';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
@@ -11,10 +12,17 @@ const ProjectPostDetail = () => {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [files, setFiles] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editedComment, setEditedComment] = useState('');
 
   useEffect(() => {
     fetchPostDetail();
     fetchComments();
+    fetchFiles();
+    fetchLinks();
   }, [projectId, postId]);
 
   const fetchPostDetail = async () => {
@@ -50,10 +58,41 @@ const ProjectPostDetail = () => {
     }
   };
 
+  const fetchFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setFiles(data);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+
+  const fetchLinks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setLinks(data);
+    } catch (error) {
+      console.error('Error fetching links:', error);
+    }
+  };
+
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
+  // Update the AttachmentsSection in the return statement
   return (
     <PageContainer>
       <Navbar 
@@ -67,7 +106,12 @@ const ProjectPostDetail = () => {
           <ContentContainer>
             <PostContainer>
               <PostHeader>
-                <PostTitle>{post.title}</PostTitle>
+                <HeaderContent>
+                  <PostTitle>{post.title}</PostTitle>
+                  <EditButton onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}>
+                    수정
+                  </EditButton>
+                </HeaderContent>
               </PostHeader>
               <PostContent>{post.description}</PostContent>
             </PostContainer>
@@ -77,27 +121,85 @@ const ProjectPostDetail = () => {
               <AttachmentContainer>
                 <AttachmentGroup>
                   <GroupTitle>파일</GroupTitle>
-                  <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
+                  {files.length > 0 ? (
+                    <FileList>
+                      {files.map((file, index) => (
+                        <FileItem key={index}>
+                          <FileIcon>📎</FileIcon>
+                          <FileName>{file.fileName}</FileName>
+                        </FileItem>
+                      ))}
+                    </FileList>
+                  ) : (
+                    <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
+                  )}
                 </AttachmentGroup>
                 <AttachmentGroup>
                   <GroupTitle>링크</GroupTitle>
-                  <PlaceholderMessage>아직 등록된 링크가 없습니다.</PlaceholderMessage>
+                  {links.length > 0 ? (
+                    <LinkList>
+                      {links.map((link, index) => (
+                        <LinkItem key={index} onClick={() => window.open(link.url, '_blank')}>
+                          <LinkIcon>🔗</LinkIcon>
+                          <LinkTitle>{link.title}</LinkTitle>
+                        </LinkItem>
+                      ))}
+                    </LinkList>
+                  ) : (
+                    <PlaceholderMessage>아직 등록된 링크가 없습니다.</PlaceholderMessage>
+                  )}
                 </AttachmentGroup>
               </AttachmentContainer>
             </AttachmentsSection>
                         
             <CommentsSection>
               <CommentHeader>댓글 목록</CommentHeader>
+              <CommentForm 
+                postId={postId} 
+                onCommentSubmit={fetchComments}
+              />
               {comments.length > 0 ? (
                 <CommentList>
-                  {comments.map((comment, index) => (
-                    <CommentItem key={index}>
-                      <CommentText>{comment.comment}</CommentText>
-                      <CommentInfo>
-                        <CommentDate>
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </CommentDate>
-                      </CommentInfo>
+                  {comments.map((comment) => (
+                    <CommentItem key={comment.commentId}>
+                      <MoreOptionsContainer>
+                        <MoreOptionsButton onClick={() => setActiveDropdown(comment.Id)}>
+                          ⋮
+                        </MoreOptionsButton>
+                        {activeDropdown === comment.commentId && (
+                          <OptionsDropdown>
+                            <OptionButton onClick={() => {
+                              setEditingCommentId(comment.commentId);
+                              setEditedComment(comment.comment);
+                              setActiveDropdown(null);
+                            }}>
+                              수정
+                            </OptionButton>
+                            <OptionButton onClick={() => {
+                              setActiveDropdown(null);
+                            }}>
+                              삭제
+                            </OptionButton>
+                          </OptionsDropdown>
+                        )}
+                      </MoreOptionsContainer>
+                      {editingCommentId === comment.commentId ? (
+                        <EditCommentForm>
+                          <CommentInput
+                            value={editedComment}
+                            onChange={(e) => setEditedComment(e.target.value)}
+                          />
+                        </EditCommentForm>
+                      ) : (
+                        <>
+                          <CommentText>{comment.comment}</CommentText>
+                          <CommentInfo>
+                            <CommentDate>
+                              {new Date(comment.createdAt).toLocaleString()}
+                            </CommentDate>
+                          </CommentInfo>
+                        </>
+                      )}
                     </CommentItem>
                   ))}
                 </CommentList>
@@ -207,6 +309,13 @@ const CommentItem = styled.div`
   padding: 16px;
   background: #f8fafc;
   border-radius: 8px;
+  position: relative;
+`;
+
+const MoreOptionsContainer = styled.div`
+  position: absolute;
+  right: 16px;
+  top: 16px;
 `;
 
 const CommentText = styled.p`
@@ -221,6 +330,29 @@ const CommentInfo = styled.div`
   justify-content: flex-end;
 `;
 
+// Add these new styled components
+const EditCommentForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const CommentInput = styled.textarea`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+`;
+
 const CommentDate = styled.span`
   font-size: 12px;
   color: #64748b;
@@ -233,9 +365,34 @@ const NoComments = styled.p`
   margin: 16px 0;
 `;
 
-export default ProjectPostDetail;
+// Add these new styled components
+const FileList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
 
-// Add these styled components at the bottom with other styled components
+const FileItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: white;
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const FileIcon = styled.span`
+  font-size: 16px;
+`;
+
+const FileName = styled.span`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
 const AttachmentsSection = styled.div`
   width: 100%;
   background: white;
@@ -279,3 +436,111 @@ const PlaceholderMessage = styled.p`
   margin: 0;
   text-align: center;
 `;
+
+// 파일 맨 아래에 추가
+const LinkList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const LinkItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const LinkIcon = styled.span`
+  font-size: 16px;
+`;
+
+const LinkTitle = styled.span`
+  font-size: 14px;
+  color: #2563eb;
+  text-decoration: underline;
+`;
+
+// Move these styled components to the top
+const HeaderContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+
+const MoreOptionsButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  
+  &:hover {
+    color: #475569;
+  }
+`;
+
+const OptionsDropdown = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 80px;
+`;
+
+const OptionButton = styled.button`
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+
+  &:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+
+  &:last-child {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+`;
+
+const EditButton = styled.button`
+  padding: 8px 16px;
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #bbf7d0;
+    color: #15803d;
+  }
+`;
+
+export default ProjectPostDetail;
