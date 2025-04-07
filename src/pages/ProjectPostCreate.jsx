@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 
+const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
