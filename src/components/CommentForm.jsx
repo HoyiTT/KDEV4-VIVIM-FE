@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 
 const CommentForm = ({ postId, onCommentSubmit }) => {
-  const [comment, setComment] = useState('');
+  const [content, setComment] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,14 +16,14 @@ const CommentForm = ({ postId, onCommentSubmit }) => {
           'Authorization': token
         },
         body: JSON.stringify({
-          comment: comment,
+          content: content,  // Changed from 'comment' to 'content'
           parentId: 0
         })
       });
 
       if (response.ok) {
-        setComment(''); // Clear input after successful submission
-        onCommentSubmit(); // Refresh comment list
+        setComment('');
+        onCommentSubmit();
       } else {
         console.error('Failed to submit comment');
       }
@@ -35,7 +35,7 @@ const CommentForm = ({ postId, onCommentSubmit }) => {
   return (
     <FormContainer onSubmit={handleSubmit}>
       <CommentInput
-        value={comment}
+        value={content}  // Changed from 'content' to 'comment'
         onChange={(e) => setComment(e.target.value)}
         placeholder="댓글을 입력하세요..."
       />

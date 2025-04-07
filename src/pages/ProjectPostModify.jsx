@@ -26,7 +26,7 @@ const ProjectPostModify = () => {
   const fetchPostDetail = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
         headers: {
           'Authorization': `${token}`
         }
@@ -44,7 +44,7 @@ const ProjectPostModify = () => {
   const fetchFiles = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/posts/${postId}/files`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
         headers: {
           'Authorization': `${token}`,
           'Content-Type': 'application/json'
@@ -60,7 +60,7 @@ const ProjectPostModify = () => {
   const fetchLinks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost/api/posts/${postId}/links`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
         headers: {
           'Authorization': `${token}`
         }
@@ -75,49 +75,98 @@ const ProjectPostModify = () => {
   // Add new state variable near the top with other states
   const [projectPostStatus, setProjectPostStatus] = useState('NORMAL');
 
+  // handleSubmit 함수 수정
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-
-      // Delete files first
-      for (const fileId of filesToDelete) {
-        await fetch(`https://localhost/api/files/${fileId}`, {
-          method: 'DELETE',
+      e.preventDefault();
+      try {
+        const token = localStorage.getItem('token');
+  
+        // Delete files first
+        for (const fileId of filesToDelete) {
+          await fetch(`${API_BASE_URL}/files/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': token,
+            }
+          });
+        }
+  
+        // Delete links
+        for (const linkId of linksToDelete) {
+          await fetch(`${API_BASE_URL}/api/links/${linkId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': token,
+            }
+          });
+        }
+        
+        // Update the post
+        const requestBody = {
+          title: title,
+          content: content,
+          projectPostStatus: projectPostStatus,
+          parentId: null
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+          method: 'PUT',
           headers: {
             'Authorization': token,
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody),
         });
+  
+        if (response.ok) {
+          // Upload new files if any
+          for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+  
+            await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
+              method: 'POST',
+              headers: {
+                'Authorization': token,
+              },
+              body: formData,
+            });
+          }
+  
+          // Create new links if any
+          for (const link of links) {
+            await fetch(`${API_BASE_URL}/posts/${postId}/link`, {
+              method: 'POST',
+              headers: {
+                'Authorization': token,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                title: link.title,
+                url: link.url
+              }),
+            });
+          }
+  
+          navigate(`/project/${projectId}/post/${postId}`);
+        }
+      } catch (error) {
+        console.error('Error updating post:', error);
       }
-      
-      // Then update the post
-      const requestBody = {
-        title: title,
-        content: content,
-        projectPostStatus: projectPostStatus,
-        parentId: null
-      };
-      
-      const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (response.ok) {
-        navigate(`/project/${projectId}/post/${postId}`);
-      }
-    } catch (error) {
-      console.error('Error updating post:', error);
-    }
   };
 
   // Add new handlers
   const handleFileChange = (e) => {
     setFiles([...e.target.files]);
+  };
+
+  const handleLinkInputChange = (e, field) => {
+    const value = e.target.value;
+    if (field === 'title') {
+      setNewLink({ ...newLink, title: value });
+    } else if (field === 'url') {
+      setNewLink({ ...newLink, url: value });
+    }
   };
 
   const handleLinkAdd = () => {
@@ -204,13 +253,7 @@ const ProjectPostModify = () => {
                     ))}
                     
 
-                    {links.map((link, index) => (
-                      <LinkItem key={index}>
-                        <LinkIcon>🔗</LinkIcon>
-                        <LinkTitle>{link.title}</LinkTitle>
-                        <RemoveButton type="button" onClick={() => handleLinkRemove(index, link.id)}>✕</RemoveButton>
-                      </LinkItem>
-                    ))}
+            
                   </FileList>
                 ) : (
                   <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
@@ -223,18 +266,15 @@ const ProjectPostModify = () => {
                   <Input
                     type="text"
                     placeholder="링크 제목"
+                    onChange={(e) => handleLinkInputChange(e, 'title')}
                     value={newLink.title}
-                    onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
                   />
                   <Input
                     type="url"
                     placeholder="URL"
+                    onChange={(e) => handleLinkInputChange(e, 'url')}
                     value={newLink.url}
-                    onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                   />
-                  <AddLinkButton type="button" onClick={handleLinkAdd}>
-                    추가
-                  </AddLinkButton>
                 </LinkInputContainer>
                 {links.length > 0 && (
                   <LinkList>
@@ -242,7 +282,12 @@ const ProjectPostModify = () => {
                       <LinkItem key={index}>
                         <LinkIcon>🔗</LinkIcon>
                         <LinkTitle>{link.title}</LinkTitle>
-                        <RemoveButton>✕</RemoveButton>
+                        <RemoveButton 
+                          type="button" 
+                          onClick={() => handleLinkRemove(index, link.id)}
+                        >
+                          ✕
+                        </RemoveButton>
                       </LinkItem>
                     ))}
                   </LinkList>
