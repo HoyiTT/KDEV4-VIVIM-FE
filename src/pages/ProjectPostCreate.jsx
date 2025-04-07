@@ -35,7 +35,7 @@ const ProjectPostCreate = () => {
         parentId: 0
       };
       
-      const postResponse = await fetch(`https://localhost/api/projects/${projectId}/posts`, {
+      const postResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `${token}`,
@@ -57,7 +57,7 @@ const ProjectPostCreate = () => {
           url: linkUrl
         };
   
-        const linkResponse = await fetch(`https://localhost/api/posts/${postId}/link`, {
+        const linkResponse = await fetch(`${API_BASE_URL}/posts/${postId}/link`, {
           method: 'POST',
           headers: {
             'Authorization': `${token}`,
@@ -77,7 +77,7 @@ const ProjectPostCreate = () => {
           const formData = new FormData();
           formData.append('file', file);
   
-          const fileResponse = await fetch(`https://localhost/api/posts/${postId}/file/stream`, {
+          const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
             method: 'POST',
             headers: {
               'Authorization': `${token}`
