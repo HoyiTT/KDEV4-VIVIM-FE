@@ -14,7 +14,7 @@ const ProjectPostModify = () => {
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [content, setContent] = useState('');  // description -> content
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,12 +28,12 @@ const ProjectPostModify = () => {
       const token = localStorage.getItem('token');
       const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
         headers: {
-          // 'Authorization': `${token}`
+          'Authorization': `${token}`
         }
       });
       const data = await response.json();
       setTitle(data.title);
-      setDescription(data.description);
+      setContent(data.content);  // description -> content
       setLoading(false);
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -46,7 +46,7 @@ const ProjectPostModify = () => {
       const token = localStorage.getItem('token');
       const response = await fetch(`https://localhost/api/posts/${postId}/files`, {
         headers: {
-          // 'Authorization': `${token}`,
+          'Authorization': `${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -62,7 +62,7 @@ const ProjectPostModify = () => {
       const token = localStorage.getItem('token');
       const response = await fetch(`https://localhost/api/posts/${postId}/links`, {
         headers: {
-          // 'Authorization': `${token}`
+          'Authorization': `${token}`
         }
       });
       const data = await response.json();
@@ -72,28 +72,39 @@ const ProjectPostModify = () => {
     }
   };
 
+  // Add new state variable near the top with other states
+  const [projectPostStatus, setProjectPostStatus] = useState('NORMAL');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('description', description);
+
+      // Delete files first
+      for (const fileId of filesToDelete) {
+        await fetch(`https://localhost/api/files/${fileId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token,
+          }
+        });
+      }
       
-      // Append files
-      Array.from(files).forEach(file => {
-        formData.append('files', file);
-      });
-
-      // Append links
-      formData.append('links', JSON.stringify(links));
-
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/posts/${postId}`, {
+      // Then update the post
+      const requestBody = {
+        title: title,
+        content: content,
+        projectPostStatus: projectPostStatus,
+        parentId: null
+      };
+      
+      const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
         method: 'PUT',
         headers: {
           'Authorization': token,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
@@ -131,22 +142,6 @@ const ProjectPostModify = () => {
     setLinks(links.filter((_, i) => i !== index));
   };
   
-  // Update the file and link rendering in return statement
-  {files.map((file, index) => (
-    <FileItem key={index}>
-      <FileIcon>📎</FileIcon>
-      <FileName>{file.fileName}</FileName>
-      <RemoveButton onClick={() => console.log('Clicked file ID:', file.id)}>✕</RemoveButton>
-    </FileItem>
-  ))}
-  
-  {links.map((link, index) => (
-    <LinkItem key={index}>
-      <LinkIcon>🔗</LinkIcon>
-      <LinkTitle>{link.title}</LinkTitle>
-      <RemoveButton onClick={() => handleLinkRemove(index, link.id)}>✕</RemoveButton>
-    </LinkItem>
-  ))}
 
   return (
     <PageContainer>
@@ -172,10 +167,21 @@ const ProjectPostModify = () => {
                 />
               </InputGroup>
               <InputGroup>
+                <Label>게시글 상태</Label>
+                <Select
+                  value={projectPostStatus}
+                  onChange={(e) => setProjectPostStatus(e.target.value)}
+                >
+                  <option value="NORMAL">일반</option>
+                  <option value="NOTIFICATION">공지사항</option>
+                  <option value="QUESTION">질문</option>
+                </Select>
+              </InputGroup>
+              <InputGroup>
                 <Label>내용</Label>
                 <TextArea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
                   placeholder="내용을 입력하세요"
                   required
                 />
@@ -193,8 +199,17 @@ const ProjectPostModify = () => {
                       <FileItem key={index}>
                         <FileIcon>📎</FileIcon>
                         <FileName>{file.fileName}</FileName>
-                        <RemoveButton>✕</RemoveButton>
+                        <RemoveButton type="button" onClick={() => handleFileRemove(file.id)}>✕</RemoveButton>
                       </FileItem>
+                    ))}
+                    
+
+                    {links.map((link, index) => (
+                      <LinkItem key={index}>
+                        <LinkIcon>🔗</LinkIcon>
+                        <LinkTitle>{link.title}</LinkTitle>
+                        <RemoveButton type="button" onClick={() => handleLinkRemove(index, link.id)}>✕</RemoveButton>
+                      </LinkItem>
                     ))}
                   </FileList>
                 ) : (
@@ -479,3 +494,20 @@ const PlaceholderMessage = styled.p`
 `;
 
 export default ProjectPostModify;
+
+// Add this with other styled-components at the bottom
+const Select = styled.select`
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1e293b;
+  background-color: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #86efac;
+    box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.1);
+  }
+`;

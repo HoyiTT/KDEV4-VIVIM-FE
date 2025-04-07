@@ -17,6 +17,7 @@ const ProjectPostDetail = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedComment, setEditedComment] = useState('');
+  const [postOptionsDropdown, setPostOptionsDropdown] = useState(false);  // Add this line
 
   useEffect(() => {
     fetchPostDetail();
@@ -88,11 +89,28 @@ const ProjectPostDetail = () => {
     }
   };
 
+  const handleDeletePost = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      });
+    
+      if (response.ok) {
+        navigate(`/project/${projectId}`);
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
-  // Update the AttachmentsSection in the return statement
   return (
     <PageContainer>
       <Navbar 
@@ -108,9 +126,27 @@ const ProjectPostDetail = () => {
               <PostHeader>
                 <HeaderContent>
                   <PostTitle>{post.title}</PostTitle>
-                  <EditButton onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}>
-                    수정
-                  </EditButton>
+                  <PostMoreOptionsContainer>
+                    <MoreOptionsButton onClick={() => setPostOptionsDropdown(!postOptionsDropdown)}>
+                      ⋮
+                    </MoreOptionsButton>
+                    {postOptionsDropdown && (
+                      <OptionsDropdown>
+                        <OptionButton onClick={() => {
+                          navigate(`/project/${projectId}/post/${postId}/modify`);
+                          setPostOptionsDropdown(false);
+                        }}>
+                          수정
+                        </OptionButton>
+                        <OptionButton onClick={() => {
+                          handleDeletePost();
+                          setPostOptionsDropdown(false);
+                        }}>
+                          삭제
+                        </OptionButton>
+                      </OptionsDropdown>
+                    )}
+                  </PostMoreOptionsContainer>
                 </HeaderContent>
               </PostHeader>
               <PostContent>{post.description}</PostContent>
@@ -162,33 +198,49 @@ const ProjectPostDetail = () => {
                 <CommentList>
                   {comments.map((comment) => (
                     <CommentItem key={comment.commentId}>
-                      <MoreOptionsContainer>
-                        <MoreOptionsButton onClick={() => setActiveDropdown(comment.Id)}>
-                          ⋮
-                        </MoreOptionsButton>
-                        {activeDropdown === comment.commentId && (
-                          <OptionsDropdown>
-                            <OptionButton onClick={() => {
-                              setEditingCommentId(comment.commentId);
-                              setEditedComment(comment.comment);
-                              setActiveDropdown(null);
-                            }}>
-                              수정
-                            </OptionButton>
-                            <OptionButton onClick={() => {
-                              setActiveDropdown(null);
-                            }}>
-                              삭제
-                            </OptionButton>
-                          </OptionsDropdown>
-                        )}
-                      </MoreOptionsContainer>
+                      {editingCommentId !== comment.commentId && (
+                        <CommentMoreOptionsContainer>
+                          <MoreOptionsButton 
+                            onClick={(e) => {
+                              
+                              e.stopPropagation();
+                              setActiveDropdown(activeDropdown === comment.commentId ? null : comment.commentId);
+                            }}
+                          >
+                            ⋮
+                          </MoreOptionsButton>
+                          {activeDropdown === comment.commentId && (
+                            <OptionsDropdown onClick={(e) => e.stopPropagation()}>
+                              <OptionButton onClick={() => {
+                                setEditingCommentId(comment.commentId);
+                                setEditedComment(comment.comment);
+                                setActiveDropdown(null);
+                              }}>
+                                수정
+                              </OptionButton>
+                              <OptionButton onClick={() => {
+                                setActiveDropdown(null);
+                              }}>
+                                삭제
+                              </OptionButton>
+                            </OptionsDropdown>
+                          )}
+                        </CommentMoreOptionsContainer>
+                      )}
                       {editingCommentId === comment.commentId ? (
                         <EditCommentForm>
                           <CommentInput
                             value={editedComment}
                             onChange={(e) => setEditedComment(e.target.value)}
                           />
+                          <EditButtonContainer>
+                            <SaveButton onClick={() => {
+                              // TODO: Add save logic
+                              setEditingCommentId(null);
+                            }}>
+                              완료
+                            </SaveButton>
+                          </EditButtonContainer>
                         </EditCommentForm>
                       ) : (
                         <>
@@ -312,10 +364,24 @@ const CommentItem = styled.div`
   position: relative;
 `;
 
-const MoreOptionsContainer = styled.div`
+// Remove the JSX code from styled components section and keep only the styled component definitions
+const CommentMoreOptionsContainer = styled.div`
   position: absolute;
   right: 16px;
   top: 16px;
+  z-index: 1;
+`;
+
+const OptionsDropdown = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  min-width: 80px;
 `;
 
 const CommentText = styled.p`
@@ -335,7 +401,7 @@ const EditCommentForm = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
+  margin: 0 24px 0 0;  // Add right margin to prevent overlap with options button
 `;
 
 const CommentInput = styled.textarea`
@@ -346,10 +412,33 @@ const CommentInput = styled.textarea`
   font-size: 14px;
   resize: vertical;
   min-height: 60px;
+  max-height: 150px;  // Add max-height to prevent too large expansion
 
   &:focus {
     outline: none;
     border-color: #2563eb;
+  }
+`;
+
+// Add these new styled components
+const EditButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+`;
+
+const SaveButton = styled.button`
+  padding: 6px 12px;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
   }
 `;
 
@@ -475,6 +564,13 @@ const HeaderContent = styled.div`
 `;
 
 
+
+const PostMoreOptionsContainer = styled.div`
+  position: relative;
+`;
+
+
+
 const MoreOptionsButton = styled.button`
   background: none;
   border: none;
@@ -489,17 +585,7 @@ const MoreOptionsButton = styled.button`
   }
 `;
 
-const OptionsDropdown = styled.div`
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  min-width: 80px;
-`;
+
 
 const OptionButton = styled.button`
   width: 100%;
