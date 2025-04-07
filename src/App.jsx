@@ -4,6 +4,9 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
 import CompanyManagement from './pages/CompanyManagement';
+import ProjectPostCreate from './pages/ProjectPostCreate';
+import ProjectPostDetail from './pages/ProjectPostDetail';
+import ProjectPostModify from './pages/ProjectPostModify';
 
 function App() {
   return (
@@ -30,9 +33,22 @@ function App() {
             <CompanyManagement />
           </ProtectedRoute>
         } />
-
-        {/* Catch all route - redirect to login */}
-        <Route path="*" element={<Navigate to="/" />} />
+    
+        <Route path="/project/:projectId/post/:postId" element={
+          <ProtectedRoute>
+            <ProjectPostDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/project/:projectId/post/create" element={
+          <ProtectedRoute>
+            <ProjectPostCreate />
+          </ProtectedRoute>
+        } />
+        <Route path="/project/:projectId/post/:postId/modify" element={
+          <ProtectedRoute>
+            <ProjectPostModify />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

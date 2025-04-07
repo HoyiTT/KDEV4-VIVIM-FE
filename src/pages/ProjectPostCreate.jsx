@@ -2,62 +2,99 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
-import { API_ENDPOINTS } from '../config/api';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
+  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
+  
+  // Form states (removed links state)
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  const handleFileChange = (e) => {
-    setSelectedFiles(Array.from(e.target.files));
-  };
-
-  // 컴포넌트 최상단에 상태 추가
   const [postStatus, setPostStatus] = useState('NORMAL');
+  const [loading, setLoading] = useState(false);
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [files, setFiles] = useState([]);
+  
+  const handleFileChange = (e) => {
+    setFiles(Array.from(e.target.files));
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
       
-      // API 요청에 맞는 데이터 구조
+      // 1. 게시글 생성
       const postData = {
         title: title,
         content: content,
         projectPostStatus: postStatus,
         parentId: 0
       };
-  
-      // FormData에 JSON 데이터 추가
-      formData.append('post', new Blob([JSON.stringify(postData)], {
-        type: 'application/json'
-      }));
       
-      // 파일 추가
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-      });
-  
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/posts`, {
+      const postResponse = await fetch(`https://localhost/api/projects/${projectId}/posts`, {
         method: 'POST',
         headers: {
-          'Authorization': token,
+          'Authorization': `${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify(postData)
       });
   
-      if (response.ok) {
-        navigate(`/project/${projectId}`);
+      if (!postResponse.ok) {
+        throw new Error(`게시글 생성 실패: ${postResponse.status}`);
       }
+  
+      const postId = await postResponse.json();
+  
+      // 2. 링크가 입력된 경우에만 링크 생성
+      if (linkTitle && linkUrl) {
+        const linkData = {
+          title: linkTitle,
+          url: linkUrl
+        };
+  
+        const linkResponse = await fetch(`https://localhost/api/posts/${postId}/link`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(linkData)
+        });
+  
+        if (!linkResponse.ok) {
+          throw new Error(`링크 생성 실패: ${linkResponse.status}`);
+        }
+      }
+  
+      // 3. 파일 업로드
+      if (files.length > 0) {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('file', file);
+  
+          const fileResponse = await fetch(`https://localhost/api/posts/${postId}/file/stream`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `${token}`
+            },
+            body: formData
+          });
+  
+          if (!fileResponse.ok) {
+            throw new Error(`파일 업로드 실패: ${fileResponse.status}`);
+          }
+        }
+      }
+  
+      navigate(`/project/${projectId}`);
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('오류:', error);
+      alert('게시글 작성 중 오류가 발생했습니다: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -109,29 +146,34 @@ const ProjectPostCreate = () => {
               />
             </InputGroup>
 
-            <AttachmentsSection>
-              <SectionTitle>첨부파일 및 링크</SectionTitle>
-              <AttachmentContainer>
-                <AttachmentGroup>
-                  <GroupTitle>파일</GroupTitle>
-                  <FileInputLabel>
-                    <HiddenFileInput
-                      type="file"
-                      onChange={handleFileChange}
-                      multiple
-                    />
-                    <UploadButton type="button">파일 업로드</UploadButton>
-                  </FileInputLabel>
-                </AttachmentGroup>
-                <AttachmentGroup>
-                  <GroupTitle>링크</GroupTitle>
-                  <Input
-                    type="url"
-                    placeholder="URL을 입력하세요"
-                  />
-                </AttachmentGroup>
-              </AttachmentContainer>
-            </AttachmentsSection>
+            <InputGroup>
+              <Label>링크 제목 (선택사항)</Label>
+              <Input
+                type="text"
+                value={linkTitle}
+                onChange={(e) => setLinkTitle(e.target.value)}
+                placeholder="링크 제목을 입력하세요"
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label>URL (선택사항)</Label>
+              <Input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="URL을 입력하세요"
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label>파일 첨부 (선택사항)</Label>
+              <Input
+                type="file"
+                onChange={handleFileChange}
+                multiple
+              />
+            </InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
@@ -153,7 +195,6 @@ const PageContainer = styled.div`
   flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
 const MainContent = styled.div`
@@ -221,60 +262,16 @@ const TextArea = styled.textarea`
   }
 `;
 
-const AttachmentsSection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 16px 0;
-`;
-
-const AttachmentContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const AttachmentGroup = styled.div`
-  width: 100%;
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-  box-sizing: border-box;
-`;
-
-const GroupTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 500;
-  color: #1e293b;
-  margin: 0 0 12px 0;
-`;
-
-const FileInputLabel = styled.label`
-  cursor: pointer;
-`;
-
-const HiddenFileInput = styled.input`
-  display: none;
-`;
-
-const UploadButton = styled.div`
-  display: inline-block;
-  padding: 8px 16px;
-  background-color: #f1f5f9;
+const Select = styled.select`
+  padding: 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #1e293b;
+  border-radius: 8px;
   font-size: 14px;
+  background-color: white;
   cursor: pointer;
-  &:hover {
-    background-color: #e2e8f0;
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
   }
 `;
 
@@ -316,17 +313,3 @@ const SubmitButton = styled(Button)`
 `;
 
 export default ProjectPostCreate;
-
-// styled-components 섹션에 Select 스타일 추가
-const Select = styled.select`
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: white;
-  cursor: pointer;
-  &:focus {
-    outline: none;
-    border-color: #2563eb;
-  }
-`;
