@@ -100,7 +100,7 @@ const UserManagement = () => {
                   </TableCell>
                   <TableCell>
                     <ActionButtonContainer>
-                      <ActionButton>상세보기</ActionButton>
+                      <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정하기</ActionButton>
                       <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
                         삭제
                       </DeleteButton>
