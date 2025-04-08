@@ -3,9 +3,8 @@ import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
-
-// Add this import at the top of the file
 import ChecklistComponent from '../components/ChecklistComponent';
+import ProjectPostCreate from './ProjectPostCreate';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -172,7 +171,9 @@ const ProjectDetail = () => {
                                     <ActionCell className={post.parentId ? 'child-post' : ''}>
                                       <ReplyButton onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(`/project/${id}/post/create?parentId=${post.postId}`);
+                                        navigate(`/project/${id}/post/create`, {
+                                          state: { parentPost: post }
+                                        });
                                       }}>
                                         답글
                                       </ReplyButton>

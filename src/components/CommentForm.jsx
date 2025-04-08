@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
-const CommentForm = ({ postId, onCommentSubmit }) => {
+const CommentForm = ({ postId, comment, onCommentSubmit }) => {
   const [content, setComment] = useState('');
 
   const handleSubmit = async (e) => {
@@ -9,6 +9,9 @@ const CommentForm = ({ postId, onCommentSubmit }) => {
     
     try {
       const token = localStorage.getItem('token');
+      // comment가 없으면 최상위 댓글, 있으면 답글
+      const parentId = comment ? (comment.parentId === null ? comment.commentId : comment.parentId) : null;
+      
       const response = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
@@ -16,8 +19,8 @@ const CommentForm = ({ postId, onCommentSubmit }) => {
           'Authorization': token
         },
         body: JSON.stringify({
-          content: content,  // Changed from 'comment' to 'content'
-          parentId: 0
+          content: content,
+          parentId: parentId
         })
       });
 

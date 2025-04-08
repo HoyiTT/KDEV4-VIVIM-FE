@@ -50,10 +50,14 @@ const ProjectPostDetail = () => {
     }
   };
   
-  const handleReplyClick = (parentId) => {
-    // Implement reply functionality here
-    console.log(`Reply to comment ${parentId}`);
+  // Add new state at the top with other states
+  const [replyingToId, setReplyingToId] = useState(null);
+  
+  // Update handleReplyClick function
+  const handleReplyClick = (commentId) => {
+    setReplyingToId(prevId => prevId === commentId ? null : commentId);
   };
+  
   const handleDeleteComment = async (commentId) => {
     try {
       const token = localStorage.getItem('token');
@@ -239,6 +243,7 @@ const ProjectPostDetail = () => {
               <CommentHeader>댓글 목록</CommentHeader>
               <CommentForm 
                 postId={postId} 
+                comment={null}
                 onCommentSubmit={fetchComments}
               />
               {comments.length > 0 ? (
@@ -297,59 +302,86 @@ const ProjectPostDetail = () => {
                           )}
                         </CommentItem>
                         
+                        {replyingToId === parentComment.commentId && (
+                          <div style={{ marginLeft: '24px' }}>
+                            <CommentForm 
+                              postId={postId}
+                              comment={parentComment}
+                              onCommentSubmit={() => {
+                                fetchComments();
+                                setReplyingToId(null);
+                              }}
+                            />
+                          </div>
+                        )}
+
                         {/* Child Comments */}
                         {comments
                           .filter(comment => comment.parentId === parentComment.commentId)
-                          .map((childComment) => (
-                            <ChildCommentItem key={childComment.commentId}>
-                              <ReplyIcon>↳</ReplyIcon>
-                              {editingCommentId === childComment.commentId ? (
-                                <EditCommentForm>
-                                  <CommentInput
-                                    value={editedComment}
-                                    onChange={(e) => setEditedComment(e.target.value)}
+                          .map((childComment, index, array) => (
+                            <>
+                              <ChildCommentItem key={childComment.commentId}>
+                                <ReplyIcon>↳</ReplyIcon>
+                                {editingCommentId === childComment.commentId ? (
+                                  <EditCommentForm>
+                                    <CommentInput
+                                      value={editedComment}
+                                      onChange={(e) => setEditedComment(e.target.value)}
+                                    />
+                                    <EditButtonContainer>
+                                      <SaveButton onClick={() => handleUpdateComment(childComment.commentId)}>
+                                        완료
+                                      </SaveButton>
+                                    </EditButtonContainer>
+                                  </EditCommentForm>
+                                ) : (
+                                  <>
+                                    <CommentText>{childComment.content}</CommentText>
+                                    <CommentMoreOptionsContainer isChild={true}>
+                                      <MoreOptionsButton onClick={() => setActiveCommentOptions(childComment.commentId)}>
+                                        ⋮
+                                      </MoreOptionsButton>
+                                      {activeCommentOptions === childComment.commentId && (
+                                        <OptionsDropdown>
+                                          <OptionButton onClick={() => {
+                                            setEditingCommentId(childComment.commentId);
+                                            setEditedComment(childComment.content);
+                                            setActiveCommentOptions(null);
+                                          }}>
+                                            수정
+                                          </OptionButton>
+                                          <OptionButton onClick={() => handleDeleteComment(childComment.commentId)}>
+                                            삭제
+                                          </OptionButton>
+                                        </OptionsDropdown>
+                                      )}
+                                    </CommentMoreOptionsContainer>
+                                    <CommentActions>
+                                      <ActionButton onClick={() => handleReplyClick(childComment.commentId)}>
+                                        답글
+                                      </ActionButton>
+                                    </CommentActions>
+                                    <CommentInfo>
+                                      <CommentDate>
+                                        {new Date(childComment.createdAt).toLocaleString()}
+                                      </CommentDate>
+                                    </CommentInfo>
+                                  </>
+                                )}
+                              </ChildCommentItem>
+                              {replyingToId === childComment.commentId && (
+                                <div style={{ marginLeft: '48px', marginTop: '8px' }}>
+                                  <CommentForm 
+                                    postId={postId}
+                                    comment={childComment}
+                                    onCommentSubmit={() => {
+                                      fetchComments();
+                                      setReplyingToId(null);
+                                    }}
                                   />
-                                  <EditButtonContainer>
-                                    <SaveButton onClick={() => handleUpdateComment(childComment.commentId)}>
-                                      완료
-                                    </SaveButton>
-                                  </EditButtonContainer>
-                                </EditCommentForm>
-                              ) : (
-                                <>
-                                  <CommentText>{childComment.content}</CommentText>
-                                  <CommentMoreOptionsContainer isChild={true}>
-                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(childComment.commentId)}>
-                                      ⋮
-                                    </MoreOptionsButton>
-                                    {activeCommentOptions === childComment.commentId && (
-                                      <OptionsDropdown>
-                                        <OptionButton onClick={() => {
-                                          setEditingCommentId(childComment.commentId);
-                                          setEditedComment(childComment.content);
-                                          setActiveCommentOptions(null);
-                                        }}>
-                                          수정
-                                        </OptionButton>
-                                        <OptionButton onClick={() => handleDeleteComment(childComment.commentId)}>
-                                          삭제
-                                        </OptionButton>
-                                      </OptionsDropdown>
-                                    )}
-                                  </CommentMoreOptionsContainer>
-                                  <CommentActions>
-                                    <ActionButton onClick={() => handleReplyClick(childComment.commentId)}>
-                                      답글
-                                    </ActionButton>
-                                  </CommentActions>
-                                  <CommentInfo>
-                                    <CommentDate>
-                                      {new Date(childComment.createdAt).toLocaleString()}
-                                    </CommentDate>
-                                  </CommentInfo>
-                                </>
+                                </div>
                               )}
-                            </ChildCommentItem>
+                            </>
                           ))}
                       </CommentThread>
                     ))}

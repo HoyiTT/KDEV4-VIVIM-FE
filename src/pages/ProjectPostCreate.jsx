@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 
@@ -8,6 +8,8 @@ const API_BASE_URL = 'https://dev.vivim.co.kr/api';
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const parentPost = state?.parentPost;  // 라우터의 state에서 parentPost 가져오기
   const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
   
   // Form states (removed links state)
@@ -29,12 +31,11 @@ const ProjectPostCreate = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // 1. 게시글 생성
       const postData = {
         title: title,
         content: content,
         projectPostStatus: postStatus,
-        parentId: 0
+        parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null
       };
       
       const postResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/posts`, {
