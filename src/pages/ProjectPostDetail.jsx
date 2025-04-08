@@ -27,6 +27,52 @@ const ProjectPostDetail = () => {
     fetchLinks();
   }, [projectId, postId]);
 
+
+  const handleUpdateComment = async (commentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: editedComment }),
+      });
+  
+      if (response.ok) {
+        setEditingCommentId(null);
+        setEditedComment('');
+        fetchComments();
+      }
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  };
+  
+  const handleReplyClick = (parentId) => {
+    // Implement reply functionality here
+    console.log(`Reply to comment ${parentId}`);
+  };
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      });
+  
+      if (response.ok) {
+        fetchComments();
+        setActiveCommentOptions(null);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
   const fetchPostDetail = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -188,7 +234,7 @@ const ProjectPostDetail = () => {
                 </AttachmentGroup>
               </AttachmentContainer>
             </AttachmentsSection>
-                        
+
             <CommentsSection>
               <CommentHeader>댓글 목록</CommentHeader>
               <CommentForm 
@@ -197,107 +243,116 @@ const ProjectPostDetail = () => {
               />
               {comments.length > 0 ? (
                 <CommentList>
-                 {comments.map((comment) => (
-  <CommentItem key={comment.commentId}>
-    {editingCommentId !== comment.commentId && (
-      <CommentMoreOptionsContainer>
-        <MoreOptionsButton
-          onClick={(e) => {
-            e.stopPropagation();
-            // Toggle visibility for the specific comment
-            setActiveCommentOptions(
-              activeCommentOptions === comment.commentId ? null : comment.commentId
-            );
-          }}
-        >
-
-          ⋮
-        </MoreOptionsButton>
-        {activeCommentOptions === comment.commentId && (
-          <OptionsDropdown onClick={(e) => e.stopPropagation()}>
-            <OptionButton
-              onClick={() => {
-                setEditingCommentId(comment.commentId);
-                setEditedComment(comment.content);
-                setActiveCommentOptions(null);
-              }}
-            >
-              수정
-            </OptionButton>
-            <OptionButton
-              onClick={async () => {
-                try {
-                  const token = localStorage.getItem('token');
-                  const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${comment.commentId}`, {
-                    method: 'DELETE',
-                    headers: {
-                      'Authorization': token
-                    }
-                  });
-
-                  if (response.ok) {
-                    setActiveCommentOptions(null);
-                    fetchComments(); // 댓글 목록 새로고침
-                  }
-                } catch (error) {
-                  console.error('Error deleting comment:', error);
-                }
-              }}
-            >
-              삭제
-            </OptionButton>
-          </OptionsDropdown>
-        )}
-      </CommentMoreOptionsContainer>
-    )}
-    {editingCommentId === comment.commentId ? (
-      <EditCommentForm>
-        <CommentInput
-          value={editedComment}
-          onChange={(e) => setEditedComment(e.target.value)}
-        />
-        <EditButtonContainer>
-          <SaveButton
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${comment.commentId}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': token,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    content: editedComment,
-                    parentId: 0
-                  })
-                });
-    
-                if (response.ok) {
-                  setEditingCommentId(null);
-                  fetchComments();
-                }
-              } catch (error) {
-                console.error('Error updating comment:', error);
-              }
-            }}
-          >
-            완료
-          </SaveButton>
-        </EditButtonContainer>
-      </EditCommentForm>
-    ) : (
-      <>
-        <CommentText>{comment.content}</CommentText>
-        <CommentInfo>
-          <CommentDate>
-            {new Date(comment.createdAt).toLocaleString()}
-          </CommentDate>
-        </CommentInfo>
-      </>
-    )}
-  </CommentItem>
-))}
+                  {comments
+                    .filter(comment => comment.parentId === null)
+                    .map((parentComment) => (
+                      <CommentThread key={parentComment.commentId}>
+                        <CommentItem>
+                          {/* Parent Comment Content */}
+                          {editingCommentId === parentComment.commentId ? (
+                            <EditCommentForm>
+                              <CommentInput
+                                value={editedComment}
+                                onChange={(e) => setEditedComment(e.target.value)}
+                              />
+                              <EditButtonContainer>
+                                <SaveButton onClick={() => handleUpdateComment(parentComment.commentId)}>
+                                  완료
+                                </SaveButton>
+                              </EditButtonContainer>
+                            </EditCommentForm>
+                          ) : (
+                            <>
+                              <CommentText>{parentComment.content}</CommentText>
+                              <CommentMoreOptionsContainer>
+                                <MoreOptionsButton onClick={() => setActiveCommentOptions(parentComment.commentId)}>
+                                  ⋮
+                                </MoreOptionsButton>
+                                {activeCommentOptions === parentComment.commentId && (
+                                  <OptionsDropdown>
+                                    <OptionButton onClick={() => {
+                                      setEditingCommentId(parentComment.commentId);
+                                      setEditedComment(parentComment.content);
+                                      setActiveCommentOptions(null);
+                                    }}>
+                                      수정
+                                    </OptionButton>
+                                    <OptionButton onClick={() => handleDeleteComment(parentComment.commentId)}>
+                                      삭제
+                                    </OptionButton>
+                                  </OptionsDropdown>
+                                )}
+                              </CommentMoreOptionsContainer>
+                              <CommentActions>
+                                <ActionButton onClick={() => handleReplyClick(parentComment.commentId)}>
+                                  답글
+                                </ActionButton>
+                              </CommentActions>
+                              <CommentInfo>
+                                <CommentDate>
+                                  {new Date(parentComment.createdAt).toLocaleString()}
+                                </CommentDate>
+                              </CommentInfo>
+                            </>
+                          )}
+                        </CommentItem>
+                        
+                        {/* Child Comments */}
+                        {comments
+                          .filter(comment => comment.parentId === parentComment.commentId)
+                          .map((childComment) => (
+                            <ChildCommentItem key={childComment.commentId}>
+                              <ReplyIcon>↳</ReplyIcon>
+                              {editingCommentId === childComment.commentId ? (
+                                <EditCommentForm>
+                                  <CommentInput
+                                    value={editedComment}
+                                    onChange={(e) => setEditedComment(e.target.value)}
+                                  />
+                                  <EditButtonContainer>
+                                    <SaveButton onClick={() => handleUpdateComment(childComment.commentId)}>
+                                      완료
+                                    </SaveButton>
+                                  </EditButtonContainer>
+                                </EditCommentForm>
+                              ) : (
+                                <>
+                                  <CommentText>{childComment.content}</CommentText>
+                                  <CommentMoreOptionsContainer isChild={true}>
+                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(childComment.commentId)}>
+                                      ⋮
+                                    </MoreOptionsButton>
+                                    {activeCommentOptions === childComment.commentId && (
+                                      <OptionsDropdown>
+                                        <OptionButton onClick={() => {
+                                          setEditingCommentId(childComment.commentId);
+                                          setEditedComment(childComment.content);
+                                          setActiveCommentOptions(null);
+                                        }}>
+                                          수정
+                                        </OptionButton>
+                                        <OptionButton onClick={() => handleDeleteComment(childComment.commentId)}>
+                                          삭제
+                                        </OptionButton>
+                                      </OptionsDropdown>
+                                    )}
+                                  </CommentMoreOptionsContainer>
+                                  <CommentActions>
+                                    <ActionButton onClick={() => handleReplyClick(childComment.commentId)}>
+                                      답글
+                                    </ActionButton>
+                                  </CommentActions>
+                                  <CommentInfo>
+                                    <CommentDate>
+                                      {new Date(childComment.createdAt).toLocaleString()}
+                                    </CommentDate>
+                                  </CommentInfo>
+                                </>
+                              )}
+                            </ChildCommentItem>
+                          ))}
+                      </CommentThread>
+                    ))}
                 </CommentList>
               ) : (
                 <NoComments>댓글이 없습니다.</NoComments>
@@ -414,6 +469,8 @@ const CommentMoreOptionsContainer = styled.div`
   right: 16px;
   top: 16px;
   z-index: 1;
+  background: ${props => props.isChild ? '#f1f5f9' : '#f8fafc'}; // Match parent/child background
+  padding-left: 8px; // Add padding to create clean separation
 `;
 
 const OptionsDropdown = styled.div`
@@ -433,11 +490,47 @@ const CommentText = styled.p`
   font-size: 14px;
   color: #1e293b;
   line-height: 1.5;
+  padding-right: 32px; // Add padding for more options button
+  word-break: break-all; // Handle long text without overflow
 `;
+
 
 const CommentInfo = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: auto;
+  width: 100%;
+`;
+
+const CommentActions = styled.div`
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+`;
+
+const CommentDate = styled.span`
+  font-size: 12px;
+  color: #64748b;
+  margin-left: auto;
+`;
+
+const ChildCommentItem = styled(CommentItem)`
+  margin-left: 24px;
+  display: flex;
+  gap: 8px;
+  background-color: #f1f5f9;
+  flex-direction: column;
+  min-height: 80px;
+  position: relative;  // Add this
+`;
+
+const ReplyIcon = styled.span`
+  color: #64748b;
+  font-size: 16px;
+  position: absolute;
+  left: -20px;
+  top: 16px;
 `;
 
 // Add these new styled components
@@ -486,10 +579,7 @@ const SaveButton = styled.button`
   }
 `;
 
-const CommentDate = styled.span`
-  font-size: 12px;
-  color: #64748b;
-`;
+
 
 const NoComments = styled.p`
   text-align: center;
@@ -600,7 +690,35 @@ const LinkTitle = styled.span`
   text-decoration: underline;
 `;
 
-// Move these styled components to the top
+// Move these styled components before the ProjectPostDetail component
+const CommentThread = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+`;
+
+
+
+
+
+const ActionButton = styled.button`
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  
+  &:hover {
+    color: #2563eb;
+    border-color: #2563eb;
+    background-color: #f8fafc;
+  }
+`;
+
+
 const HeaderContent = styled.div`
   display: flex;
   justify-content: space-between;
@@ -672,5 +790,7 @@ const EditButton = styled.button`
     color: #15803d;
   }
 `;
+
+
 
 export default ProjectPostDetail;

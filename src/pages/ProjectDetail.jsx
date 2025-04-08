@@ -124,37 +124,64 @@ const ProjectDetail = () => {
                   ))}
               </StageGrid>
             </StageSection>
-            <BoardSection>
-              <BoardHeader>
-                <SectionTitle>게시판</SectionTitle>
-                <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
-                  글쓰기
-                </CreateButton>
-              </BoardHeader>
-              <BoardTable>
-                <thead>
-                  <tr>
-                    <BoardHeaderCell>제목</BoardHeaderCell>
-                    <BoardHeaderCell>작성자</BoardHeaderCell>
-                    <BoardHeaderCell>작성일</BoardHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
-                  {posts.map((post) => (
-                    <BoardRow 
-                      key={post.postId}
-                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
-                    >
-                      <BoardCell>{post.title}</BoardCell>
-                      <BoardCell>작성자 {post.creatorId}</BoardCell>
-                      <BoardCell>
-                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                      </BoardCell>
-                    </BoardRow>
-                  ))}
-                </tbody>
-              </BoardTable>
-            </BoardSection>
+            
+                        <BoardSection>
+                          <BoardHeader>
+                            <SectionTitle>게시판</SectionTitle>
+                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                              글쓰기
+                            </CreateButton>
+                          </BoardHeader>
+                          <BoardTable>
+                            <thead>
+                              <tr>
+                                <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>작성자</BoardHeaderCell>
+                                <BoardHeaderCell>작성일</BoardHeaderCell>
+                                <BoardHeaderCell></BoardHeaderCell>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {posts
+                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                .reduce((acc, post) => {
+                                  if (!post.parentId) {  // 부모 게시글인 경우
+                                    acc.push(post);
+                                    // 현재 부모 게시글의 모든 자식 댓글을 찾아서 추가
+                                    const replies = posts.filter(reply => reply.parentId === post.postId);
+                                    acc.push(...replies);
+                                  }
+                                  return acc;
+                                }, [])
+                                .map((post) => (
+                                  <BoardRow key={post.postId}>
+                                    <BoardCell 
+                                      className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                                    >
+                                      {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                                      {post.title}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      작성자 {post.creatorId}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
+    
+                                    <ActionCell className={post.parentId ? 'child-post' : ''}>
+                                      <ReplyButton onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/project/${id}/post/create?parentId=${post.postId}`);
+                                      }}>
+                                        답글
+                                      </ReplyButton>
+                                    </ActionCell>
+                                  </BoardRow>
+                                ))}
+                            </tbody>
+                          </BoardTable>
+                        </BoardSection>
           </ContentContainer>
         ) : (
           <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
@@ -258,6 +285,26 @@ const StatusBadge = styled.span`
   `}
 `;
 
+
+
+
+const ReplyButton = styled.button`
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+`;
+
+// Then, replace the BoardSection content with:
+
 const StageSection = styled.div`
   background: white;
   border-radius: 12px;
@@ -352,8 +399,31 @@ const CreateButton = styled.button`
 
 const BoardTable = styled.table`
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;  // separate를 collapse로 변경
   border-spacing: 0;
+`;
+
+const BoardCell = styled.td`
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  min-height: 30px;
+  white-space: normal;
+  word-break: break-word;
+  background: transparent;
+  vertical-align: middle; /* 수직 정렬 추가 */
+  line-height: 1.5; /* 줄 높이 추가 */
+
+  &.title-cell {
+    display: table-cell; /* flex에서 table-cell로 변경 */
+    align-items: center;
+    max-width: 400px;
+  }
+
+  &.child-post {
+    padding-left: 40px;
+  }
 `;
 
 const BoardHeaderCell = styled.th`
@@ -374,12 +444,14 @@ const BoardRow = styled.tr`
   }
 `;
 
-const BoardCell = styled.td`
-  padding: 16px 12px;
+// Add this new styled component
+const ReplyIndicator = styled.span`
+  color: #64748b;
+  margin-right: 8px;
   font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
 `;
+
+
 
 const InfoItemFull = styled(InfoItem)`
   grid-column: 1 / -1;
@@ -427,4 +499,13 @@ const DateValue = styled.span`
 
 const StatusContainer = styled.div`
   margin-top: 8px;
+`;
+const ActionCell = styled(BoardCell)`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-right: 24px;
+  min-width: 100px;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
 `;
