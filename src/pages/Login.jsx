@@ -11,7 +11,7 @@ const LoginContainer = styled.div`
 
 const LeftPanel = styled.div`
   flex: 1;
-  background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(135deg, #2E7D32 0%, #81C784 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +194,7 @@ const Input = styled.input`
 const LoginButton = styled.button`
   width: 100%;
   padding: 14px;
-  background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(90deg, #2E7D32 0%, #81C784 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -319,7 +319,7 @@ const CancelButton = styled.button`
 const SubmitButton = styled.button`
   flex: 1;
   padding: 12px;
-  background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(90deg, #2E7D32 0%, #81C784 100%);
   color: white;
   border: none;
   border-radius: 4px;
