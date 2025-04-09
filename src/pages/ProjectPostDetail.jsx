@@ -268,6 +268,10 @@ const ProjectPostDetail = () => {
                             </EditCommentForm>
                           ) : (
                             <>
+                              <CommentAuthor>
+                                      <AuthorName>{parentComment.creatorName}</AuthorName>
+                                      <AuthorRole>{parentComment.creatorRole}</AuthorRole>
+                              </CommentAuthor>
                               <CommentText>{parentComment.content}</CommentText>
                               <CommentMoreOptionsContainer>
                                 <MoreOptionsButton onClick={() => setActiveCommentOptions(parentComment.commentId)}>
@@ -336,6 +340,10 @@ const ProjectPostDetail = () => {
                                   </EditCommentForm>
                                 ) : (
                                   <>
+                                      <CommentAuthor>
+                                      <AuthorName>{childComment.creatorName}</AuthorName>
+                                      <AuthorRole>{childComment.creatorRole}</AuthorRole>
+                                     </CommentAuthor>
                                     <CommentText>{childComment.content}</CommentText>
                                     <CommentMoreOptionsContainer isChild={true}>
                                       <MoreOptionsButton onClick={() => setActiveCommentOptions(childComment.commentId)}>
@@ -398,6 +406,28 @@ const ProjectPostDetail = () => {
     </PageContainer>
   );
 };
+
+
+const CommentAuthor = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const AuthorName = styled.span`
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 14px;
+`;
+
+const AuthorRole = styled.span`
+  padding: 2px 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #64748b;
+`;
 
 const PageContainer = styled.div`
   display: flex;

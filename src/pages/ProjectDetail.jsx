@@ -59,6 +59,7 @@ const ProjectDetail = () => {
   const fetchProjectPosts = async () => {
     try {
       const token = localStorage.getItem('token');
+      
       const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
         headers: {
           'Authorization': token
@@ -135,8 +136,11 @@ const ProjectDetail = () => {
                             <thead>
                               <tr>
                                 <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>상태</BoardHeaderCell>
                                 <BoardHeaderCell>작성자</BoardHeaderCell>
+                                <BoardHeaderCell>역할</BoardHeaderCell>
                                 <BoardHeaderCell>작성일</BoardHeaderCell>
+                                <BoardHeaderCell>수정일</BoardHeaderCell>
                                 <BoardHeaderCell></BoardHeaderCell>
                               </tr>
                             </thead>
@@ -144,9 +148,8 @@ const ProjectDetail = () => {
                               {posts
                                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                                 .reduce((acc, post) => {
-                                  if (!post.parentId) {  // 부모 게시글인 경우
+                                  if (!post.parentId) {
                                     acc.push(post);
-                                    // 현재 부모 게시글의 모든 자식 댓글을 찾아서 추가
                                     const replies = posts.filter(reply => reply.parentId === post.postId);
                                     acc.push(...replies);
                                   }
@@ -162,12 +165,21 @@ const ProjectDetail = () => {
                                       {post.title}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      작성자 {post.creatorId}
+                                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                                       post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.creatorName}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.creatorRole}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
                                     </BoardCell>
-    
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
                                     <ActionCell className={post.parentId ? 'child-post' : ''}>
                                       <ReplyButton onClick={(e) => {
                                         e.stopPropagation();
