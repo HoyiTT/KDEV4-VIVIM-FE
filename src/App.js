@@ -11,6 +11,7 @@ import UserCreate from './pages/UserCreate';
 import CompanyEdit from './pages/CompanyEdit';
 import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
+import UserEdit from './pages/UserEdit';
 
 
 import UserProjectList from './pages/UserProjectList';
@@ -94,6 +95,7 @@ function App() {
             <ProjectPostModify />
           </ProtectedRoute>
         } />
+        <Route path="/user-edit/:userId" element={<UserEdit />} />
       </Routes>
     </BrowserRouter>
   );

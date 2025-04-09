@@ -192,7 +192,7 @@ const ProjectCreate = () => {
     .then(data => {
       console.log('Success:', data);
       // Navigate back to dashboard on success
-      navigate('/dashboard2');
+      navigate('/dashboard');
     })
     .catch(error => {
       console.error('Error:', error);
