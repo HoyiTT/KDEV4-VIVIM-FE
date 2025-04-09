@@ -33,7 +33,8 @@ const ProjectPostModify = () => {
   const fetchPostDetail = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+      //const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+        const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
         headers: {
           'Authorization': `${token}`
         }
