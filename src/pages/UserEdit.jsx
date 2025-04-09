@@ -168,6 +168,20 @@ const Select = styled.select`
 const UserEdit = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
+  
+  // Add token decoding logic
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
+
   const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [userData, setUserData] = useState({
     name: '',
@@ -456,19 +470,25 @@ const UserEdit = () => {
 
           <FormGroup>
             <Label>소속 회사</Label>
-            <Select
-              name="companyId"
-              value={userData.companyId || ''}
-              onChange={handleChange}
-              required
-            >
-              <option value="">회사 선택</option>
-              {companies.map(company => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </Select>
+            {isAdmin ? (
+              <Select
+                name="companyId"
+                value={userData.companyId || ''}
+                onChange={handleChange}
+                required
+              >
+                <option value="">회사 선택</option>
+                {companies.map(company => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <ReadOnlyField>
+                {userData.companyName}
+              </ReadOnlyField>
+            )}
           </FormGroup>
 
           <FormGroup>
