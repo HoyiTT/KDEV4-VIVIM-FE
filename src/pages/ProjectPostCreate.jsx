@@ -5,6 +5,8 @@ import Navbar from '../components/Navbar';
 
 const API_BASE_URL = 'https://dev.vivim.co.kr/api';
 
+
+
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -20,11 +22,32 @@ const ProjectPostCreate = () => {
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [files, setFiles] = useState([]);
+  const [fileError, setFileError] = useState('');
   
+  const allowedMimeTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
+    'application/pdf', 'application/rtf', 'text/plain',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/gzip',
+    'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
+  ];
+
   const handleFileChange = (e) => {
-    setFiles(Array.from(e.target.files));
+    const selectedFiles = Array.from(e.target.files);
+    const invalidFiles = selectedFiles.filter(file => !allowedMimeTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      setFileError('지원하지 않는 파일 형식이 포함되어 있습니다.');
+      e.target.value = ''; // Reset file input
+      setFiles([]);
+    } else {
+      setFileError('');
+      setFiles(selectedFiles);
+    }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -121,10 +144,18 @@ const ProjectPostCreate = () => {
               <Input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 60) {
+                    setTitle(e.target.value);
+                  }
+                }}
                 placeholder="제목을 입력하세요"
+                maxLength={60}
                 required
               />
+              <CharacterCount>
+                {title.length}/60
+              </CharacterCount>
             </InputGroup>
 
             <InputGroup>
@@ -143,10 +174,18 @@ const ProjectPostCreate = () => {
               <Label>내용</Label>
               <TextArea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 10000) {
+                    setContent(e.target.value);
+                  }
+                }}
                 placeholder="내용을 입력하세요"
+                maxLength={10000}
                 required
               />
+              <CharacterCount>
+                {content.length}/10000
+              </CharacterCount>
             </InputGroup>
 
             <InputGroup>
@@ -154,9 +193,17 @@ const ProjectPostCreate = () => {
               <Input
                 type="text"
                 value={linkTitle}
-                onChange={(e) => setLinkTitle(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 60) {
+                    setLinkTitle(e.target.value);
+                  }
+                }}
                 placeholder="링크 제목을 입력하세요"
+                maxLength={60}
               />
+              <CharacterCount>
+                {linkTitle.length}/60
+              </CharacterCount>
             </InputGroup>
 
             <InputGroup>
@@ -164,19 +211,29 @@ const ProjectPostCreate = () => {
               <Input
                 type="url"
                 value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 1000) {
+                    setLinkUrl(e.target.value);
+                  }
+                }}
                 placeholder="URL을 입력하세요"
+                maxLength={1000}
               />
+              <CharacterCount>
+                {linkUrl.length}/1000
+              </CharacterCount>
             </InputGroup>
 
             <InputGroup>
-              <Label>파일 첨부 (선택사항)</Label>
-              <Input
-                type="file"
-                onChange={handleFileChange}
-                multiple
-              />
-            </InputGroup>
+      <Label>파일 첨부 (선택사항)</Label>
+      <Input
+        type="file"
+        onChange={handleFileChange}
+        multiple
+        accept={allowedMimeTypes.join(',')}
+      />
+      {fileError && <ErrorMessage>{fileError}</ErrorMessage>}
+    </InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
@@ -192,6 +249,12 @@ const ProjectPostCreate = () => {
     </PageContainer>
   );
 };
+
+const ErrorMessage = styled.span`
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+`;
 
 const PageContainer = styled.div`
   display: flex;
@@ -313,6 +376,13 @@ const SubmitButton = styled(Button)`
     background-color: #93c5fd;
     cursor: not-allowed;
   }
+`;
+
+const CharacterCount = styled.span`
+  font-size: 12px;
+  color: ${props => props.theme.isNearLimit ? '#ef4444' : '#64748b'};
+  text-align: right;
+  margin-top: 4px;
 `;
 
 export default ProjectPostCreate;

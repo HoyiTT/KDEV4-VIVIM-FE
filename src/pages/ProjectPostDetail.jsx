@@ -203,6 +203,7 @@ const ProjectPostDetail = () => {
                     <PostCreatorInfo>
                       <CreatorName>{post.creatorName}</CreatorName>
                       <CreatorRole>{post.creatorRole}</CreatorRole>
+                      <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
                     </PostCreatorInfo>
                   </div>
                   <div>
@@ -227,9 +228,6 @@ const ProjectPostDetail = () => {
                         </OptionsDropdown>
                       )}
                     </PostMoreOptionsContainer>
-                    <DateInfo>
-                      <DateText>작성일: {new Date(post.createdAt).toLocaleString()}</DateText>
-                    </DateInfo>
                   </div>
                 </HeaderContent>
               </PostHeader>
@@ -443,17 +441,29 @@ const ProjectPostDetail = () => {
     </PageContainer>
   );
 };
-const DateInfo = styled.div`
+const PostTitle = styled.h1`
+  font-size: 32px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  text-align: left;
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
+`;
+
+const PostCreatorInfo = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   margin-top: 8px;
-  text-align: right;
+  justify-content: center;  // Add this to center the creator info
 `;
 
 const DateText = styled.span`
   font-size: 12px;
   color: #64748b;
+  display: inline-block;
+  margin-left: 4px;
 `;
 
 const CommentAuthor = styled.div`
@@ -505,11 +515,7 @@ const PostHeader = styled.div`
   margin-bottom: 24px;
 `;
 
-const PostTitle = styled.h1`
-  font-size: 24px;
-  color: #1e293b;
-  margin: 0;
-`;
+
 
 const PostContent = styled.div`
   font-size: 16px;
@@ -703,13 +709,6 @@ const FileList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-`;
-
-const PostCreatorInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
 `;
 
 const CreatorName = styled.span`
