@@ -60,8 +60,7 @@ const ProjectDetail = () => {
     try {
       const token = localStorage.getItem('token');
       
-      //const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
-        const response = await fetch(`https://localhost/api/projects/${id}/posts`, {
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
         headers: {
           'Authorization': token
         }
