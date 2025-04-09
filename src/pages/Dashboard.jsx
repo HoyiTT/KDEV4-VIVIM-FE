@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar'; // Add this import
+import Sidebar from '../components/Sidebar';
 import { API_ENDPOINTS } from '../config/api';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [projectProgress, setProjectProgress] = useState({});
 
   const mockData = [
     { month: '1월', value: 65 },
@@ -66,7 +67,23 @@ const Dashboard = () => {
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
   const isAdmin = decodedToken?.role === 'ADMIN';
-  const userId = decodedToken?.userId;  // Extract userId from token
+  const userId = decodedToken?.userId;
+
+  const fetchProjectProgress = async (projectId) => {
+    try {
+      const response = await fetch(`https://dev.vivim.co.kr/api/projects/${projectId}/progress`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch progress');
+      const data = await response.json();
+      return data.progressList.sort((a, b) => a.position - b.position);
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+      return [];
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -76,7 +93,6 @@ const Dashboard = () => {
       if (isAdmin) {
         endpoint = API_ENDPOINTS.ADMIN_PROJECTS;
       } else {
-        // Make sure we have a valid userId before making the request
         if (!userId) {
           console.error('User ID not found in token');
           setLoading(false);
@@ -85,7 +101,7 @@ const Dashboard = () => {
         endpoint = API_ENDPOINTS.USER_PROJECTS(userId);
       }
       
-      console.log('Fetching projects from:', endpoint); // Debug log
+      console.log('Fetching projects from:', endpoint);
       
       const response = await fetch(endpoint, {
         headers: {
@@ -98,24 +114,40 @@ const Dashboard = () => {
       }
       
       const data = await response.json();
-      console.log('Projects data:', data); // Debug log
+      console.log('Projects data:', data);
       setProjects(data);
-      setLoading(false);
+      return data;
     } catch (error) {
       console.error('Error fetching projects:', error);
+      return [];
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) { // Only fetch if we have a token
-      fetchProjects();
-    } else {
-      setLoading(false);
-    }
-  }, [userId, isAdmin]); // Add dependencies to re-fetch when these change
-
-
+    const loadData = async () => {
+      if (token) {
+        const projectsData = await fetchProjects();
+        if (projectsData && projectsData.length > 0) {
+          const progressData = {};
+          // Get all non-deleted projects first
+          const activeProjects = projectsData.filter(project => !project.deleted);
+          // Then take the first 3 for progress data
+          const projectsToShow = activeProjects.slice(0, 3);
+          
+          for (const project of projectsToShow) {
+            progressData[project.projectId] = await fetchProjectProgress(project.projectId);
+          }
+          setProjectProgress(progressData);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [userId, isAdmin]);
 
   return (
     <PageContainer>
@@ -126,7 +158,6 @@ const Dashboard = () => {
       <ContentWrapper>
         <Sidebar isAdmin={isAdmin} />
         <MainContent>
-          {/* Dashboard content */}
           {loading ? (
             <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
           ) : (
@@ -135,7 +166,7 @@ const Dashboard = () => {
                 <StatisticsSection>
                   <SectionTitle>프로젝트 현황</SectionTitle>
                   <StatisticsGrid>
-                    <StatCard>
+                    <StatCard onClick={() => navigate(isAdmin ? '/admin-projects' : '/project-list')}>
                       <StatValue>{projects.length}</StatValue>
                       <StatLabel>전체 프로젝트</StatLabel>
                     </StatCard>
@@ -174,30 +205,6 @@ const Dashboard = () => {
                     </tbody>
                   </ProjectsTable>
                 </RecentProjectsSection>
-
-                <NotificationsSection>
-                  <SectionTitle>최근 알림</SectionTitle>
-                  <NotificationsList>
-                    <NotificationItem>
-                      <NotificationContent>
-                        <NotificationText>프로젝트 A의 마감일이 3일 남았습니다.</NotificationText>
-                        <NotificationDate>2024.01.15</NotificationDate>
-                      </NotificationContent>
-                    </NotificationItem>
-                    <NotificationItem>
-                      <NotificationContent>
-                        <NotificationText>새로운 프로젝트가 할당되었습니다.</NotificationText>
-                        <NotificationDate>2024.01.14</NotificationDate>
-                      </NotificationContent>
-                    </NotificationItem>
-                    <NotificationItem>
-                      <NotificationContent>
-                        <NotificationText>프로젝트 B에 새로운 댓글이 있습니다.</NotificationText>
-                        <NotificationDate>2024.01.13</NotificationDate>
-                      </NotificationContent>
-                    </NotificationItem>
-                  </NotificationsList>
-                </NotificationsSection>
               </TopSection>
               
               <BottomSection>
@@ -210,37 +217,6 @@ const Dashboard = () => {
                     calendarType="gregory"
                   />
                 </CalendarSection>
-                
-                <KPISection>
-                  <SectionTitle>생산성 지표 (KPI)</SectionTitle>
-                  <div className="kpi-grid">
-                    <KPICard>
-                      <h3>평균 업무 완료 시간</h3>
-                      <div className="value">4.2일</div>
-                    </KPICard>
-                    <KPICard>
-                      <h3>프로젝트 완료율</h3>
-                      <div className="value">78%</div>
-                    </KPICard>
-                  </div>
-                  <div className="chart-container" style={{ height: '200px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mockData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke="#2E7D32" 
-                          strokeWidth={2}
-                          name="업무 처리량"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </KPISection>
                 
                 <RecentPostsSection>
                   <SectionTitle>최근 게시글</SectionTitle>
@@ -256,6 +232,32 @@ const Dashboard = () => {
                     ))}
                   </div>
                 </RecentPostsSection>
+              
+                <ProjectProgressSection>
+                  <SectionTitle>프로젝트 진행 단계</SectionTitle>
+                  <ProgressContainer>
+                    {projects
+                      .filter(project => !project.deleted)
+                      .slice(0, 3)
+                      .map(project => (
+                        <ProgressItem key={project.projectId} onClick={() => navigate(`/project/${project.projectId}`)}>
+                          <ProgressTitle>{project.name}</ProgressTitle>
+                          <ProgressSteps>
+                            {projectProgress[project.projectId]?.map((step, index) => (
+                              <ProgressStep 
+                                key={step.id}
+                                active={true}
+                                stepIndex={index}
+                              >
+                                {step.name}
+                              </ProgressStep>
+                            ))}
+                          </ProgressSteps>
+                        </ProgressItem>
+                      ))}
+                  </ProgressContainer>
+                </ProjectProgressSection>
+
               </BottomSection>
             </ContentContainer>
           )}
@@ -316,8 +318,6 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
-// 기존 스타일 컴포넌트 아래에 추가
-
 const SectionTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
@@ -332,44 +332,9 @@ const StatisticsSection = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
-const NotificationsSection = styled(StatisticsSection)``;
-
-const NotificationsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const NotificationItem = styled.div`
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const NotificationContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const NotificationText = styled.div`
-  font-size: 14px;
-  color: #1e293b;
-`;
-
-const NotificationDate = styled.div`
-  font-size: 12px;
-  color: #64748b;
-`;
-
 const TopSection = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 2fr;
   gap: 24px;
   margin-bottom: 24px;
 `;
@@ -381,10 +346,16 @@ const StatisticsGrid = styled.div`
 `;
 
 const StatCard = styled.div`
+  background-color: white;
   padding: 20px;
-  background: #f8fafc;
   border-radius: 8px;
-  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 `;
 
 const StatValue = styled.div`
@@ -453,7 +424,6 @@ const StatusBadge = styled.span`
   `}
 `;
 
-// Add after other styled components, before Dashboard component
 const BottomSection = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -524,7 +494,6 @@ const KPICard = styled.div`
   }
 `;
 
-// 먼저 styled-components를 추가합니다 (KPICard 컴포넌트 아래에 추가)
 const RecentPostsSection = styled(StatisticsSection)`
   .posts-list {
     display: flex;
@@ -556,4 +525,75 @@ const PostMeta = styled.div`
   justify-content: space-between;
   font-size: 12px;
   color: #64748b;
+`;
+
+const ProjectProgressSection = styled(StatisticsSection)`
+  overflow: hidden;
+`;
+
+const ProgressContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+`;
+
+const ProgressItem = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const ProgressTitle = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+`;
+
+const ProgressSteps = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const ProgressStep = styled.div`
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: ${props => props.active ? '600' : '400'};
+  
+  ${props => {
+    // Define different colors for each step
+    const colors = [
+      { bg: 'rgba(46, 125, 50, 0.1)', text: '#2E7D32' },   // Green
+      { bg: 'rgba(25, 118, 210, 0.1)', text: '#1976D2' },  // Blue
+      { bg: 'rgba(245, 124, 0, 0.1)', text: '#F57C00' },   // Orange
+      { bg: 'rgba(156, 39, 176, 0.1)', text: '#9C27B0' },  // Purple
+      { bg: 'rgba(211, 47, 47, 0.1)', text: '#D32F2F' },   // Red
+    ];
+    
+    // Use modulo to cycle through colors if there are more steps than colors
+    const colorIndex = props.stepIndex % colors.length;
+    const color = colors[colorIndex];
+    
+    if (props.active) {
+      return `
+        background: ${color.bg};
+        color: ${color.text};
+      `;
+    } else {
+      return `
+        background: #f1f5f9;
+        color: #64748b;
+      `;
+    }
+  }}
 `;
