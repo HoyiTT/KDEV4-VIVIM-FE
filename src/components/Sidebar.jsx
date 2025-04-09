@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 
-const Sidebar = ({ isAdmin }) => {
+const Sidebar = ({ isAdmin, currentProjectId }) => {  // Add currentProjectId prop
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -17,9 +17,13 @@ const Sidebar = ({ isAdmin }) => {
       const token = localStorage.getItem('token');
       let endpoint;
       
+      console.log('Sidebar isAdmin value:', isAdmin);  // Add this
+      
       if (isAdmin) {
         endpoint = API_ENDPOINTS.ADMIN_PROJECTS;
+        console.log('Using admin endpoint');  // Add this
       } else {
+        console.log('Using user endpoint');  // Add this
         // Get current user ID from token instead of localStorage
         const userId = localStorage.getItem('userId');
         
@@ -88,6 +92,7 @@ const Sidebar = ({ isAdmin }) => {
               <ProjectItem 
                 key={project.projectId} 
                 onClick={() => navigate(`/project/${project.projectId}`)}
+                isActive={project.projectId === Number(currentProjectId)}
               >
                 <ProjectName>{project.name}</ProjectName>
                 <ProjectStatus deleted={project.deleted}>
@@ -149,9 +154,10 @@ const ProjectItem = styled.div`
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #e2e8f0;
+  background-color: ${props => props.isActive ? '#f1f5f9' : 'transparent'};
   
   &:hover {
-    background-color: #f8fafc;
+    background-color: ${props => props.isActive ? '#f1f5f9' : '#f8fafc'};
   }
   
   &:last-child {

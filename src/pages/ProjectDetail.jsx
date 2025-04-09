@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar'; // Add this import
 import { API_ENDPOINTS } from '../config/api';
 import ChecklistComponent from '../components/ChecklistComponent';
 import ProjectPostCreate from './ProjectPostCreate';
@@ -76,16 +77,45 @@ const ProjectDetail = () => {
     setActiveMenuItem(menuItem);
   };
 
+  // Add adminCheckLoading state
+    const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(null);
+  
+    useEffect(() => {
+      const checkAdminStatus = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            console.log('Token decoded:', decodedToken);
+            const isAdminUser = decodedToken.role === 'ADMIN';
+            console.log('Is admin?:', isAdminUser);
+            setIsAdmin(isAdminUser);
+          } catch (error) {
+            console.error('Error decoding token:', error);
+            setIsAdmin(false);
+          }
+        }
+        setAdminCheckLoading(false);
+      };
+      
+      checkAdminStatus();
+    }, []);
+  
   return (
     <PageContainer>
       <Navbar 
         activeMenuItem={activeMenuItem}
         handleMenuClick={handleMenuClick}
       />
-      <MainContent>
-        <Header>
-          <PageTitle>프로젝트 상세</PageTitle>
-        </Header>
+      <ContentWrapper>
+        {!adminCheckLoading && (
+          <Sidebar isAdmin={isAdmin} currentProjectId={id} />
+        )}
+        <MainContent>
+          <Header>
+            <PageTitle>프로젝트 상세</PageTitle>
+          </Header>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -94,8 +124,8 @@ const ProjectDetail = () => {
             <ProjectInfoSection>
               <ProjectHeader>
                 <ProjectTitle>{project.name}</ProjectTitle>
-                <StatusBadge deleted={project.deleted}>
-                  {project.deleted ? '삭제됨' : '진행중'}
+                <StatusBadge isDeleted={project.isDeleted}>
+                  {project.isDeleted ? '삭제됨' : '진행중'}
                 </StatusBadge>
               </ProjectHeader>
               <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
@@ -200,11 +230,12 @@ const ProjectDetail = () => {
           <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
         )}
       </MainContent>
+    </ContentWrapper>
     </PageContainer>
   );
 };
 
-// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
+
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -219,6 +250,7 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-left: 250px; // Add this to make space for sidebar
 `;
 
 const Header = styled.div`
@@ -283,13 +315,11 @@ const InfoValue = styled.span`
 `;
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
   
-  ${props => props.deleted ? `
+  ${props => props.isDeleted ? `
     background: rgba(239, 68, 68, 0.1);
     color: #EF4444;
   ` : `
@@ -521,4 +551,8 @@ const ActionCell = styled(BoardCell)`
   min-width: 100px;
   border-bottom: 1px solid #e2e8f0;
   align-items: center;
+`;
+const ContentWrapper = styled.div`
+  display: flex;
+  flex: 1;
 `;
