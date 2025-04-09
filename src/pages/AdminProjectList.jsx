@@ -35,6 +35,33 @@ const AdminProjectList = () => {
     setActiveMenuItem(menuItem);
   };
 
+  // Add delete project function
+  const handleDeleteProject = async (projectId) => {
+    if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        
+        if (response.ok) {
+          alert('프로젝트가 삭제되었습니다.');
+          fetchProjects(); // Refresh the project list
+        } else {
+          alert('프로젝트 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -83,6 +110,9 @@ const AdminProjectList = () => {
                       <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
                         수정하기
                       </ActionButton>
+                      <DeleteButton onClick={() => handleDeleteProject(project.projectId)}>
+                        삭제하기
+                      </DeleteButton>
                     </ActionButtonContainer>
                   </TableCell>
                 </TableRow>
@@ -216,6 +246,22 @@ const ActionButton = styled.button`
 
   &:hover {
     background: rgba(79, 106, 255, 0.1);
+  }
+`;
+
+// Add DeleteButton styled component
+const DeleteButton = styled.button`
+  padding: 6px 12px;
+  background: transparent;
+  color: #EF4444;
+  border: 1px solid #EF4444;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.1);
   }
 `;
 
