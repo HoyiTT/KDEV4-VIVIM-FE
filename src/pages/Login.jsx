@@ -11,7 +11,7 @@ const LoginContainer = styled.div`
 
 const LeftPanel = styled.div`
   flex: 1;
-  background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(135deg, #2E7D32 0%, #81C784 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +194,7 @@ const Input = styled.input`
 const LoginButton = styled.button`
   width: 100%;
   padding: 14px;
-  background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(90deg, #2E7D32 0%, #81C784 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -316,10 +316,50 @@ const CancelButton = styled.button`
   }
 `;
 
+const DemoCredentials = styled.div`
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  text-align: left;
+  border-left: 4px solid #2E7D32;
+`;
+
+const DemoTitle = styled.h3`
+  font-size: 16px;
+  color: #2E7D32;
+  margin: 0 0 12px 0;
+`;
+
+const CredentialGroup = styled.div`
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CredentialLabel = styled.span`
+  font-weight: 600;
+  margin-right: 8px;
+  color: #333;
+`;
+
+const CredentialText = styled.span`
+  color: #666;
+  font-family: monospace;
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+`;
+
 const SubmitButton = styled.button`
   flex: 1;
   padding: 12px;
-  background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+  background: linear-gradient(90deg, #2E7D32 0%, #81C784 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -420,6 +460,18 @@ const Login = () => {
       </LeftPanel>
       <LoginBox>
         <LogoImage src="logo.png" alt="logo" />
+        
+        <DemoCredentials>
+          <DemoTitle>체험용 계정</DemoTitle>
+          <CredentialGroup>
+            <CredentialLabel>관리자:</CredentialLabel>
+            <CredentialText>admin@naver.com / 1234</CredentialText>
+          </CredentialGroup>
+          <CredentialGroup>
+            <CredentialLabel>개발사:</CredentialLabel>
+            <CredentialText>developer@naver.com / 1234</CredentialText>
+          </CredentialGroup>
+        </DemoCredentials>
         
         <Form onSubmit={handleSubmit}>
           <InputGroup>

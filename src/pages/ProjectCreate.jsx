@@ -18,6 +18,25 @@ const ProjectCreate = () => {
   const [selectedClientCompany, setSelectedClientCompany] = useState('');
   const [selectedDevCompany, setSelectedDevCompany] = useState('');
   
+  // Add date change handlers
+  const handleStartDateChange = (e) => {
+    const newStartDate = e.target.value;
+    if (endDate && newStartDate > endDate) {
+      alert('시작일은 종료일보다 늦을 수 없습니다.');
+      return;
+    }
+    setStartDate(newStartDate);
+  };
+  
+  const handleEndDateChange = (e) => {
+    const newEndDate = e.target.value;
+    if (startDate && newEndDate < startDate) {
+      alert('종료일은 시작일보다 빠를 수 없습니다.');
+      return;
+    }
+    setEndDate(newEndDate);
+  };
+  
   // Selected users
   const [clientManagers, setClientManagers] = useState([]);
   const [clientUsers, setClientUsers] = useState([]);
@@ -243,7 +262,7 @@ const ProjectCreate = () => {
                 <Input 
                   type="date" 
                   value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={handleStartDateChange}
                   required
                 />
               </FormGroup>
@@ -252,7 +271,8 @@ const ProjectCreate = () => {
                 <Input 
                   type="date" 
                   value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={handleEndDateChange}
+                  min={startDate} // Add min attribute
                   required
                 />
               </FormGroup>
@@ -310,8 +330,14 @@ const ProjectCreate = () => {
                               id={`client-user-${user.userId}`}
                               checked={clientUsers.some(item => item.userId === user.userId)}
                               onChange={(e) => handleUserSelection(user.userId, 'clientUser', e.target.checked)}
+                              disabled={clientManagers.some(item => item.userId === user.userId)}
                             />
-                            <CheckboxLabel htmlFor={`client-user-${user.userId}`}>
+                            <CheckboxLabel 
+                              htmlFor={`client-user-${user.userId}`}
+                              style={{ 
+                                color: clientManagers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
+                              }}
+                            >
                               {user.name}
                             </CheckboxLabel>
                           </UserCheckboxItem>
@@ -373,8 +399,14 @@ const ProjectCreate = () => {
                           id={`dev-user-${user.userId}`}
                           checked={devUsers.some(item => item.userId === user.userId)}
                           onChange={(e) => handleUserSelection(user.userId, 'devUser', e.target.checked)}
+                          disabled={devManagers.some(item => item.userId === user.userId)}
                         />
-                        <CheckboxLabel htmlFor={`dev-user-${user.userId}`}>
+                        <CheckboxLabel 
+                          htmlFor={`dev-user-${user.userId}`}
+                          style={{ 
+                            color: devManagers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
+                          }}
+                        >
                           {user.name}
                         </CheckboxLabel>
                       </UserCheckboxItem>

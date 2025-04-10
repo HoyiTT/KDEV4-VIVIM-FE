@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
 
   const decodeToken = (token) => {
     try {
@@ -16,6 +17,34 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
   const isAdmin = decodedToken?.role === 'ADMIN';
+  const userId = decodedToken?.userId;
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        const data = await response.json();
+        if (data.statusCode === 200) {
+          setUserInfo(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    if (userId) {
+      fetchUserInfo();
+    }
+  }, [userId, token]);
+
+  const userName = decodedToken?.username || '사용자';  // Changed from name to username
+  const companyName = decodedToken?.companyName || '';  // This should match the JWT field name
+
+  console.log('Decoded token:', decodedToken); // For debugging
 
   const menuItems = [
     { name: '대시보드', path: '/dashboard', showFor: 'all' },
@@ -55,15 +84,36 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
             </NavItem>
           ))}
         </NavList>
-        <LogoutButtonContainer>
+        <UserSection>
+          {userInfo && (
+            <UserInfo>
+              <UserName onClick={() => navigate(`/user-edit/${userId}`)}>
+                {userInfo.name}
+              </UserName>
+              <CompanyInfo>
+                {userInfo.companyName} · {
+                  userInfo.companyRole === 'CUSTOMER' ? '고객사' : 
+                  userInfo.companyRole === 'DEVELOPER' ? '개발사' : 
+                  userInfo.companyRole === 'ADMIN' ? '관리자' : ''
+                }
+              </CompanyInfo>
+            </UserInfo>
+          )}
           <LogoutButton onClick={handleLogout}>
             로그아웃
           </LogoutButton>
-        </LogoutButtonContainer>
+        </UserSection>
       </NavContent>
     </NavbarContainer>
   );
 };
+
+// Update or add these styled components
+const CompanyInfo = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  text-align: right;
+`;
 
 // Update NavbarContainer and add NavContent
 const NavbarContainer = styled.nav`
@@ -147,10 +197,36 @@ const MenuItem = styled.div`
   }
 `;
 
+// Add or update these styled components
 const UserSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  margin-left: auto;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+`;
+
+const UserName = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: color 0.2s;
+  
+  &:hover {
+    color: #2E7D32;
+  }
+`;
+
+const CompanyName = styled.div`
+  font-size: 12px;
+  color: #64748b;
 `;
 
 const UserAvatar = styled.div`
@@ -160,17 +236,6 @@ const UserAvatar = styled.div`
   background-color: #e2e8f0;
 `;
 
-const UserName = styled.div`
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const UserInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
 
 const UserEmail = styled.div`
   font-size: 12px;
