@@ -110,7 +110,10 @@ const AdminProjectList = () => {
                       <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
                         수정하기
                       </ActionButton>
-                      <DeleteButton onClick={() => handleDeleteProject(project.projectId)}>
+                      <DeleteButton 
+                        onClick={() => handleDeleteProject(project.projectId)}
+                        disabled={project.deleted}
+                      >
                         삭제하기
                       </DeleteButton>
                     </ActionButtonContainer>
@@ -249,19 +252,18 @@ const ActionButton = styled.button`
   }
 `;
 
-// Add DeleteButton styled component
 const DeleteButton = styled.button`
   padding: 6px 12px;
   background: transparent;
-  color: #EF4444;
-  border: 1px solid #EF4444;
+  color: ${props => props.disabled ? '#94a3b8' : '#EF4444'};
+  border: 1px solid ${props => props.disabled ? '#94a3b8' : '#EF4444'};
   border-radius: 6px;
   font-size: 13px;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: ${props => props.disabled ? 'transparent' : 'rgba(239, 68, 68, 0.1)'};
   }
 `;
 
