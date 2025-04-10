@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
-import CommentForm from '../components/CommentForm';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
@@ -19,6 +18,7 @@ const ProjectPostDetail = () => {
   const [editedComment, setEditedComment] = useState('');
   const [postOptionsDropdown, setPostOptionsDropdown] = useState(false);  // Add this line
   const [activeCommentOptions, setActiveCommentOptions] = useState(null);
+  const [commentContent, setCommentContent] = useState('');
 
   useEffect(() => {
     fetchPostDetail();
@@ -26,6 +26,19 @@ const ProjectPostDetail = () => {
     fetchFiles();
     fetchLinks();
   }, [projectId, postId]);
+
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
+  const userId = decodedToken?.userId;
 
   const handleFileDownload = async (fileId, fileName) => {
     try {
@@ -114,7 +127,45 @@ const ProjectPostDetail = () => {
       setLoading(false);
     }
   };
-
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'DEVELOPER':
+        return {
+          background: '#dbeafe',  // Light blue background
+          border: '#93c5fd',      // Blue border
+          text: '#2563eb'         // Blue text
+        };
+      case 'CLIENT':
+        return {
+          background: '#fef9c3',  // Light yellow background
+          border: '#fde047',      // Yellow border
+          text: '#ca8a04'         // Yellow text
+        };
+      case 'ADMIN':
+        return {
+          background: '#fee2e2',  // Light red background
+          border: '#fca5a5',      // Red border
+          text: '#dc2626'         // Red text
+        };
+      default:
+        return {
+          background: '#f1f5f9',  // Default light gray
+          border: '#e2e8f0',      // Default border
+          text: '#64748b'         // Default text
+        };
+    }
+  };
+  const RoleTag = styled.span`
+  padding: 2px 6px;  // 4px 8px에서 축소
+  border-radius: 4px;
+  font-size: 11px;   // 12px에서 축소
+  font-weight: 500;
+  background-color: ${props => getRoleColor(props.role).background};
+  border: 1px solid ${props => getRoleColor(props.role).border};
+  color: ${props => getRoleColor(props.role).text};
+  display: inline-block;  // 추가
+  line-height: 1.4;      // 추가
+`;
   const fetchComments = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -124,7 +175,6 @@ const ProjectPostDetail = () => {
         }
       });
       const data = await response.json();
-      console.log('Fetched comments:', data);
       setComments(data);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -178,11 +228,40 @@ const ProjectPostDetail = () => {
       console.error('Error deleting post:', error);
     }
   };
-
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
+  const handleCommentSubmit = async (e, parentComment = null) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem('token');
+      const parentId = parentComment ? (parentComment.parentId === null ? parentComment.commentId : parentComment.parentId) : null;
+
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          content: commentContent,
+          parentId: parentId
+        })
+      });
+
+      if (response.ok) {
+        setCommentContent('');
+        fetchComments();
+        if (parentComment) {
+          setReplyingToId(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+    }
+  };
   return (
     <PageContainer>
       <Navbar 
@@ -201,15 +280,16 @@ const ProjectPostDetail = () => {
                     <PostTitle>{post.title}</PostTitle>
                     <PostCreatorInfo>
                       <CreatorName>{post.creatorName}</CreatorName>
-                      <CreatorRole>{post.creatorRole}</CreatorRole>
+                      <RoleTag role={post.creatorRole}>{post.creatorRole}</RoleTag>
                       <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
                     </PostCreatorInfo>
                   </div>
+                  {(isAdmin || userId === post.creatorId)  && (
                   <div>
                     <PostMoreOptionsContainer>
-                      <MoreOptionsButton onClick={() => setPostOptionsDropdown(!postOptionsDropdown)}>
-                        ⋮
-                      </MoreOptionsButton>
+                    <MoreOptionsButton onClick={() => setPostOptionsDropdown(prev => !prev)}>
+                      ⋮
+                    </MoreOptionsButton>
                       {postOptionsDropdown && (
                         <OptionsDropdown>
                           <OptionButton onClick={() => {
@@ -228,6 +308,7 @@ const ProjectPostDetail = () => {
                       )}
                     </PostMoreOptionsContainer>
                   </div>
+                  )}
                 </HeaderContent>
               </PostHeader>
               <PostContent>{post.content}</PostContent>
@@ -275,11 +356,21 @@ const ProjectPostDetail = () => {
 
             <CommentsSection>
               <CommentHeader>댓글 목록</CommentHeader>
-              <CommentForm 
-                postId={postId} 
-                comment={null}
-                onCommentSubmit={fetchComments}
-              />
+              <FormContainer onSubmit={(e) => handleCommentSubmit(e)}>
+                <CommentInput
+                  value={commentContent}
+                  onChange={(e) => setCommentContent(e.target.value)}
+                  maxLength={1000}
+                />
+                <CharacterCount>
+                  {commentContent.length}/1000
+                </CharacterCount>
+                <ButtonContainer>
+                  <SubmitButton type="submit">
+                    댓글 작성
+                  </SubmitButton>
+                </ButtonContainer>
+              </FormContainer>
               {comments.length > 0 ? (
                 <CommentList>
                   {comments
@@ -293,6 +384,8 @@ const ProjectPostDetail = () => {
                               <CommentInput
                                 value={editedComment}
                                 onChange={(e) => setEditedComment(e.target.value)}
+                                maxLength={1000}  // Add this line
+                                placeholder="댓글을 입력하세요 (최대 1000자)"  // Add this line
                               />
                               <EditButtonContainer>
                                 <SaveButton onClick={() => handleUpdateComment(parentComment.commentId)}>
@@ -303,14 +396,18 @@ const ProjectPostDetail = () => {
                           ) : (
                             <>
                               <CommentAuthor>
-                                      <AuthorName>{parentComment.creatorName}</AuthorName>
-                                      <AuthorRole>{parentComment.creatorRole}</AuthorRole>
+                                <AuthorName>{parentComment.creatorName}</AuthorName>
+                                <RoleTag role={parentComment.creatorRole}>{parentComment.creatorRole}</RoleTag>
                               </CommentAuthor>
                               <CommentText>{parentComment.content}</CommentText>
-                              <CommentMoreOptionsContainer>
-                                <MoreOptionsButton onClick={() => setActiveCommentOptions(parentComment.commentId)}>
+                              <CommentMoreOptionsContainer $isChild={true}>
+                              {(isAdmin || userId === parentComment.creatorId) && (
+                              <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
+                                  prev === parentComment.commentId ? null : parentComment.commentId
+                                )}>
                                   ⋮
-                                </MoreOptionsButton>
+                              </MoreOptionsButton>
+                              )}
                                 {activeCommentOptions === parentComment.commentId && (
                                   <OptionsDropdown>
                                     <OptionButton onClick={() => {
@@ -342,14 +439,21 @@ const ProjectPostDetail = () => {
                         
                         {replyingToId === parentComment.commentId && (
                           <div style={{ marginLeft: '24px' }}>
-                            <CommentForm 
-                              postId={postId}
-                              comment={parentComment}
-                              onCommentSubmit={() => {
-                                fetchComments();
-                                setReplyingToId(null);
-                              }}
+                            <FormContainer onSubmit={(e) => handleCommentSubmit(e, parentComment)}>
+                            <CommentInput
+                              value={commentContent}
+                              onChange={(e) => setCommentContent(e.target.value)}
+                              maxLength={1000}
                             />
+                            <CharacterCount>
+                              {commentContent.length}/1000
+                            </CharacterCount>
+                            <ButtonContainer>
+                              <SubmitButton type="submit">
+                                답글 작성
+                              </SubmitButton>
+                            </ButtonContainer>
+                          </FormContainer>
                           </div>
                         )}
 
@@ -357,8 +461,8 @@ const ProjectPostDetail = () => {
                         {comments
                           .filter(comment => comment.parentId === parentComment.commentId)
                           .map((childComment, index, array) => (
-                            <>
-                              <ChildCommentItem key={childComment.commentId}>
+                            <React.Fragment key={childComment.commentId}>
+                              <ChildCommentItem>
                                 <ReplyIcon>↳</ReplyIcon>
                                 {editingCommentId === childComment.commentId ? (
                                   <EditCommentForm>
@@ -376,13 +480,17 @@ const ProjectPostDetail = () => {
                                   <>
                                       <CommentAuthor>
                                       <AuthorName>{childComment.creatorName}</AuthorName>
-                                      <AuthorRole>{childComment.creatorRole}</AuthorRole>
+                                      <RoleTag role={childComment.creatorRole}>{childComment.creatorRole}</RoleTag>
                                      </CommentAuthor>
                                     <CommentText>{childComment.content}</CommentText>
-                                    <CommentMoreOptionsContainer isChild={true}>
-                                      <MoreOptionsButton onClick={() => setActiveCommentOptions(childComment.commentId)}>
-                                        ⋮
-                                      </MoreOptionsButton>
+                                    <CommentMoreOptionsContainer $isChild={true}>
+                                      {(isAdmin || userId === childComment.creatorId) && (
+                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
+                                      prev === childComment.commentId ? null : childComment.commentId
+                                    )}>
+                                      ⋮
+                                    </MoreOptionsButton>
+                                      )}
                                       {activeCommentOptions === childComment.commentId && (
                                         <OptionsDropdown>
                                           <OptionButton onClick={() => {
@@ -411,19 +519,26 @@ const ProjectPostDetail = () => {
                                   </>
                                 )}
                               </ChildCommentItem>
-                              {replyingToId === childComment.commentId && (
-                                <div style={{ marginLeft: '48px', marginTop: '8px' }}>
-                                  <CommentForm 
-                                    postId={postId}
-                                    comment={childComment}
-                                    onCommentSubmit={() => {
-                                      fetchComments();
-                                      setReplyingToId(null);
-                                    }}
+                                {replyingToId === childComment.commentId && (
+                                  <div style={{ marginLeft: '48px', marginTop: '8px' }}>
+                                <FormContainer onSubmit={(e) => handleCommentSubmit(e, childComment)}>
+                                  <CommentInput
+                                    value={commentContent}
+                                    onChange={(e) => setCommentContent(e.target.value)}
+                                    maxLength={1000}
                                   />
-                                </div>
-                              )}
-                            </>
+                                  <CharacterCount>
+                                    {commentContent.length}/1000
+                                  </CharacterCount>
+                                  <ButtonContainer>
+                                    <SubmitButton type="submit">
+                                      답글 작성
+                                    </SubmitButton>
+                                  </ButtonContainer>
+                                </FormContainer>
+                              </div>
+                            )}
+                            </React.Fragment>
                           ))}
                       </CommentThread>
                     ))}
@@ -440,6 +555,57 @@ const ProjectPostDetail = () => {
     </PageContainer>
   );
 };
+
+const FormContainer = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+`;
+
+const CommentInput = styled.input`
+  width: 98%;
+  font-size: 14px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const SubmitButton = styled.button`
+  padding: 8px 16px;
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #bbf7d0;
+    color: #15803d;
+  }
+`;
+
+const CharacterCount = styled.div`
+  text-align: right;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+`;
+
+
 const PostTitle = styled.h1`
   font-size: 32px;
   font-weight: 600;
@@ -455,7 +621,7 @@ const PostCreatorInfo = styled.div`
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  justify-content: center;  // Add this to center the creator info
+  justify-content: left;  // Add this to center the creator info
 `;
 
 const DateText = styled.span`
@@ -476,14 +642,6 @@ const AuthorName = styled.span`
   font-weight: 500;
   color: #1e293b;
   font-size: 14px;
-`;
-
-const AuthorRole = styled.span`
-  padding: 2px 6px;
-  background: #e2e8f0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #64748b;
 `;
 
 const PageContainer = styled.div`
@@ -578,14 +736,12 @@ const CommentItem = styled.div`
   position: relative;
 `;
 
-// Remove the JSX code from styled components section and keep only the styled component definitions
 const CommentMoreOptionsContainer = styled.div`
   position: absolute;
   right: 16px;
   top: 16px;
   z-index: 1;
-  background: ${props => props.isChild ? '#f1f5f9' : '#f8fafc'}; // Match parent/child background
-  padding-left: 8px; // Add padding to create clean separation
+  padding-left: 8px;
 `;
 
 const OptionsDropdown = styled.div`
@@ -653,24 +809,10 @@ const EditCommentForm = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 0 24px 0 0;  // Add right margin to prevent overlap with options button
+  margin: 0 0 0 0;  // Add right margin to prevent overlap with options button
 `;
 
-const CommentInput = styled.textarea`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  resize: vertical;
-  min-height: 60px;
-  max-height: 150px;  // Add max-height to prevent too large expansion
 
-  &:focus {
-    outline: none;
-    border-color: #2563eb;
-  }
-`;
 
 // Add these new styled components
 const EditButtonContainer = styled.div`
@@ -703,7 +845,6 @@ const NoComments = styled.p`
   margin: 16px 0;
 `;
 
-// Add these new styled components
 const FileList = styled.div`
   display: flex;
   flex-direction: column;
@@ -714,14 +855,6 @@ const CreatorName = styled.span`
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
-`;
-
-const CreatorRole = styled.span`
-  padding: 2px 6px;
-  background: #e2e8f0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #64748b;
 `;
 
 const FileItem = styled.div`
@@ -819,7 +952,6 @@ const LinkTitle = styled.span`
   text-decoration: underline;
 `;
 
-// Move these styled components before the ProjectPostDetail component
 const CommentThread = styled.div`
   display: flex;
   flex-direction: column;
@@ -866,14 +998,11 @@ const MoreOptionsButton = styled.button`
   background: none;
   border: none;
   font-size: 20px;
-  color: #64748b;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
   
-  &:hover {
-    color: #475569;
-  }
+
 `;
 
 
@@ -900,23 +1029,6 @@ const OptionButton = styled.button`
   &:last-child {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
-  }
-`;
-
-const EditButton = styled.button`
-  padding: 8px 16px;
-  background-color: #dcfce7;
-  border: 1px solid #86efac;
-  border-radius: 6px;
-  color: #16a34a;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #bbf7d0;
-    color: #15803d;
   }
 `;
 
