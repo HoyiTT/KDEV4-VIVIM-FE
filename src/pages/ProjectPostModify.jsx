@@ -5,8 +5,7 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 
 const ProjectPostModify = () => {
-  // Add new state variables
-  // Add newFiles state
+  const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
   const [links, setLinks] = useState([]);
@@ -20,15 +19,27 @@ const ProjectPostModify = () => {
   const { projectId, postId } = useParams();
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
+  // 초기 상태 설정 수정
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');  // description -> content
-  const [loading, setLoading] = useState(true);
-
+  const [content, setContent] = useState('');
+  
+  // fetchPostDetail 함수 수정
   useEffect(() => {
-    fetchPostDetail();
-    fetchFiles();
-    fetchLinks();
-  }, [projectId, postId]);
+    const fetchData = async () => {
+      try {
+        await Promise.all([
+          fetchPostDetail(),
+          fetchFiles(),
+          fetchLinks()
+        ]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const fetchPostDetail = async () => {
     try {
@@ -38,13 +49,17 @@ const ProjectPostModify = () => {
           'Authorization': `${token}`
         }
       });
+      if (!response.ok) {
+        throw new Error('Failed to fetch post details');
+      }
       const data = await response.json();
-      setTitle(data.title);
-      setContent(data.content);  // description -> content
-      setLoading(false);
+      setTitle(data?.title || '');
+      setContent(data?.content || '');
+      setProjectPostStatus(data?.projectPostStatus || 'NORMAL');
     } catch (error) {
       console.error('Error fetching post:', error);
-      setLoading(false);
+      setTitle('');
+      setContent('');
     }
   };
 
@@ -183,7 +198,12 @@ const ProjectPostModify = () => {
       setNewLinks({ ...newLinks, url: value });
     }
   };
-
+  const handleAddLink = () => {
+    if (newLinks.title && newLinks.url) {
+      setLinks([...links, { ...newLinks, id: Date.now() }]);
+      setNewLinks({ title: '', url: '' }); // Reset input fields
+    }
+  };
   
   // Update the handlers
   const handleFileRemove = (fileId) => {
@@ -215,11 +235,20 @@ const ProjectPostModify = () => {
                 <Input
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 60) {
+                      setTitle(e.target.value);
+                    }
+                  }}
                   placeholder="제목을 입력하세요"
+                  maxLength={60}
                   required
                 />
+                <CharacterCount>
+                  {title.length}/60
+                </CharacterCount>
               </InputGroup>
+              
               <InputGroup>
                 <Label>게시글 상태</Label>
                 <Select
@@ -235,10 +264,18 @@ const ProjectPostModify = () => {
                 <Label>내용</Label>
                 <TextArea
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 10000) {
+                      setContent(e.target.value);
+                    }
+                  }}
                   placeholder="내용을 입력하세요"
+                  maxLength={10000}
                   required
                 />
+                <CharacterCount>
+                  {content.length}/10000
+                </CharacterCount>
               </InputGroup>
               <InputGroup>
                 <Label>첨부 파일</Label>
@@ -264,22 +301,41 @@ const ProjectPostModify = () => {
                   <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
                 )}
               </InputGroup>
-
-              <InputGroup>
+              <LinkInputGroup>
                 <Label>링크</Label>
                 <LinkInputContainer>
-                  <Input
-                    type="text"
-                    placeholder="링크 제목"
-                    onChange={(e) => handleLinkInputChange(e, 'title')}
-                    value={newLinks.title}
-                  />
-                  <Input
-                    type="url"
-                    placeholder="URL"
-                    onChange={(e) => handleLinkInputChange(e, 'url')}
-                    value={newLinks.url}
-                  />
+                  <LinkInputWrapper>
+                    <LinkInput
+                      type="text"
+                      placeholder="링크 제목"
+                      onChange={(e) => {
+                        if (e.target.value.length <= 60) {
+                          handleLinkInputChange(e, 'title');
+                        }
+                      }}
+                      value={newLinks.title}
+                      maxLength={60}
+                    />
+                    <CharacterCount>{newLinks.title.length}/60</CharacterCount>
+                  </LinkInputWrapper>
+                  <LinkInputWrapper>
+ 
+                      <LinkInput
+                        type="url"
+                        placeholder="URL"
+                        onChange={(e) => {
+                          if (e.target.value.length <= 1000) {
+                            handleLinkInputChange(e, 'url');
+                          }
+                        }}
+                        value={newLinks.url}
+                        maxLength={1000}
+                      />
+                      <CharacterCount>{newLinks.url.length}/1000</CharacterCount>
+                    </LinkInputWrapper>
+                  <AddLinkButton type="button" onClick={handleAddLink}>
+                    추가
+                  </AddLinkButton>
                 </LinkInputContainer>
                 {links.length > 0 && (
                   <LinkList>
@@ -297,7 +353,7 @@ const ProjectPostModify = () => {
                     ))}
                   </LinkList>
                 )}
-              </InputGroup>
+              </LinkInputGroup>
 
               <ButtonGroup>
                 <CancelButton type="button" onClick={() => navigate(`/project/${projectId}/post/${postId}`)}>
@@ -314,6 +370,21 @@ const ProjectPostModify = () => {
     </PageContainer>
   );
 };
+
+const Input = styled.input`
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1e293b;
+  
+  &:focus {
+    outline: none;
+    border-color: #86efac;
+    box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.1);
+  }
+`;
 
 // Add new styled components
 const FileInput = styled.input`
@@ -362,12 +433,45 @@ const RemoveButton = styled.button`
     color: #dc2626;
   }
 `;
-
-const LinkInputContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-`;
+              // Replace LinkInputGroup styled component
+              const LinkInputGroup = styled.div`
+                margin-bottom: 20px;
+                max-width: 100%;
+              `;
+              
+              const LinkInputContainer = styled.div`
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+                width: 100%;
+              `;
+              
+              // Add new style for link input wrapper
+              const LinkInputWrapper = styled.div`
+                width: 100%;
+                max-width: 45%;  // Adjust the width of each input field
+                
+                ${Input} {
+                  width: 100%;
+                }
+              `;
+                        // Add new styled component for link input
+                        const LinkInput = styled.input`
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        color: #1e293b;
+                        max-width: 90%;
+                        
+                        &:focus {
+                          outline: none;
+                          border-color: #86efac;
+                          box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.1);
+                        }
+                      `;
+              // Update the JSX part
 
 const AddLinkButton = styled.button`
   padding: 10px 20px;
@@ -447,6 +551,7 @@ const FormHeader = styled.h1`
 
 const InputGroup = styled.div`
   margin-bottom: 20px;
+  max-width: 95%;
 `;
 
 const Label = styled.label`
@@ -457,20 +562,6 @@ const Label = styled.label`
   color: #1e293b;
 `;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #1e293b;
-  
-  &:focus {
-    outline: none;
-    border-color: #86efac;
-    box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.1);
-  }
-`;
 
 const TextArea = styled.textarea`
   width: 100%;
@@ -547,7 +638,7 @@ export default ProjectPostModify;
 
 // Add this with other styled-components at the bottom
 const Select = styled.select`
-  width: 100%;
+  width: 103%;
   padding: 10px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -560,4 +651,12 @@ const Select = styled.select`
     border-color: #86efac;
     box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.1);
   }
+`;
+
+const CharacterCount = styled.span`
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  text-align: right;
+  margin-top: 4px;
 `;

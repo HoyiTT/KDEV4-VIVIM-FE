@@ -27,7 +27,28 @@ const ProjectPostDetail = () => {
     fetchLinks();
   }, [projectId, postId]);
 
-
+  const handleFileDownload = async (fileId, fileName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}/download`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
   const handleUpdateComment = async (commentId) => {
     try {
       const token = localStorage.getItem('token');
@@ -176,31 +197,40 @@ const ProjectPostDetail = () => {
             <PostContainer>
               <PostHeader>
                 <HeaderContent>
-                  <PostTitle>{post.title}</PostTitle>
-                  <PostMoreOptionsContainer>
-                    <MoreOptionsButton onClick={() => setPostOptionsDropdown(!postOptionsDropdown)}>
-                      ⋮
-                    </MoreOptionsButton>
-                    {postOptionsDropdown && (
-                      <OptionsDropdown>
-                        <OptionButton onClick={() => {
-                          navigate(`/project/${projectId}/post/${postId}/modify`);
-                          setPostOptionsDropdown(false);
-                        }}>
-                          수정
-                        </OptionButton>
-                        <OptionButton onClick={() => {
-                          handleDeletePost();
-                          setPostOptionsDropdown(false);
-                        }}>
-                          삭제
-                        </OptionButton>
-                      </OptionsDropdown>
-                    )}
-                  </PostMoreOptionsContainer>
+                  <div>
+                    <PostTitle>{post.title}</PostTitle>
+                    <PostCreatorInfo>
+                      <CreatorName>{post.creatorName}</CreatorName>
+                      <CreatorRole>{post.creatorRole}</CreatorRole>
+                      <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
+                    </PostCreatorInfo>
+                  </div>
+                  <div>
+                    <PostMoreOptionsContainer>
+                      <MoreOptionsButton onClick={() => setPostOptionsDropdown(!postOptionsDropdown)}>
+                        ⋮
+                      </MoreOptionsButton>
+                      {postOptionsDropdown && (
+                        <OptionsDropdown>
+                          <OptionButton onClick={() => {
+                            navigate(`/project/${projectId}/post/${postId}/modify`);
+                            setPostOptionsDropdown(false);
+                          }}>
+                            수정
+                          </OptionButton>
+                          <OptionButton onClick={() => {
+                            handleDeletePost();
+                            setPostOptionsDropdown(false);
+                          }}>
+                            삭제
+                          </OptionButton>
+                        </OptionsDropdown>
+                      )}
+                    </PostMoreOptionsContainer>
+                  </div>
                 </HeaderContent>
               </PostHeader>
-              <PostContent>{post.description}</PostContent>
+              <PostContent>{post.content}</PostContent>
             </PostContainer>
             
             <AttachmentsSection>
@@ -210,13 +240,17 @@ const ProjectPostDetail = () => {
                   <GroupTitle>파일</GroupTitle>
                   {files.length > 0 ? (
                     <FileList>
-                      {files.map((file, index) => (
-                        <FileItem key={index}>
-                          <FileIcon>📎</FileIcon>
-                          <FileName>{file.fileName}</FileName>
-                        </FileItem>
-                      ))}
-                    </FileList>
+                    {files.map((file) => (
+                      <FileItem 
+                        key={file.id} 
+                        onClick={() => handleFileDownload(file.id, file.fileName)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <FileIcon>📎</FileIcon>
+                        <FileName>{file.fileName}</FileName>
+                      </FileItem>
+                    ))}
+                  </FileList>
                   ) : (
                     <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
                   )}
@@ -406,7 +440,30 @@ const ProjectPostDetail = () => {
     </PageContainer>
   );
 };
+const PostTitle = styled.h1`
+  font-size: 32px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  text-align: left;
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
+`;
 
+const PostCreatorInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;  // Add this to center the creator info
+`;
+
+const DateText = styled.span`
+  font-size: 12px;
+  color: #64748b;
+  display: inline-block;
+  margin-left: 4px;
+`;
 
 const CommentAuthor = styled.div`
   display: flex;
@@ -457,11 +514,7 @@ const PostHeader = styled.div`
   margin-bottom: 24px;
 `;
 
-const PostTitle = styled.h1`
-  font-size: 24px;
-  color: #1e293b;
-  margin: 0;
-`;
+
 
 const PostContent = styled.div`
   font-size: 16px;
@@ -655,6 +708,20 @@ const FileList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+`;
+
+const CreatorName = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const CreatorRole = styled.span`
+  padding: 2px 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #64748b;
 `;
 
 const FileItem = styled.div`
@@ -856,3 +923,4 @@ const EditButton = styled.button`
 
 
 export default ProjectPostDetail;
+
