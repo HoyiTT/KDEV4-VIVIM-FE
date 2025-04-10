@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const decodeToken = (token) => {
     try {
@@ -70,7 +72,15 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   return (
     <NavbarContainer>
       <NavContent>
-        <NavList>
+        <LogoContainer onClick={() => navigate('/dashboard')}>
+          <LogoImage src="/logo_only.png" alt="Vivim Logo" />
+        </LogoContainer>
+        <HamburgerMenu onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </HamburgerMenu>
+        <NavList isMobile={isMobileMenuOpen}>
           {filteredMenuItems.map((item) => (
             <NavItem
               key={item.name}
@@ -78,6 +88,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
               onClick={() => {
                 handleMenuClick(item.name);
                 navigate(item.path);
+                setIsMobileMenuOpen(false);
               }}
             >
               {item.name}
@@ -85,6 +96,15 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
           ))}
         </NavList>
         <UserSection>
+          <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
+            <BellImage src="/bell.png" alt="notifications" />
+          </NotificationIcon>
+          {showNotifications && (
+            <NotificationPanel>
+              <NotificationHeader>알림</NotificationHeader>
+              <NotificationEmpty>최근 알림이 없습니다</NotificationEmpty>
+            </NotificationPanel>
+          )}
           {userInfo && (
             <UserInfo>
               <UserName onClick={() => navigate(`/user-edit/${userId}`)}>
@@ -107,6 +127,133 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     </NavbarContainer>
   );
 };
+
+// Update NavbarContainer
+
+
+// Add HamburgerMenu component
+const HamburgerMenu = styled.div`
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 24px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 1001;
+
+  span {
+    width: 100%;
+    height: 2px;
+    background: #2E7D32;
+    transition: all 0.3s;
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+`;
+
+// Update NavList for mobile
+const NavList = styled.div`
+  display: flex;
+  gap: 48px;
+  align-items: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 60px;
+    left: ${props => props.isMobile ? '0' : '-100%'};
+    transform: none;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100vh - 60px);
+    background: white;
+    padding: 20px;
+    gap: 20px;
+    transition: left 0.3s ease-in-out;
+    z-index: 1000;
+  }
+`;
+
+// Update UserSection
+const UserSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+  }
+`;
+
+// Update NavItem
+const NavItem = styled.div`
+  font-size: 14px;
+  font-weight: ${props => props.active ? '600' : '400'};
+  color: ${props => props.active ? '#2E7D32' : '#64748b'};
+  cursor: pointer;
+  padding: 8px 0;
+  border-bottom: ${props => props.active ? '2px solid #2E7D32' : 'none'};
+  
+  &:hover {
+    color: #2E7D32;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    text-align: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+`;
+
+const NotificationIcon = styled.div`
+  font-size: 20px;
+  color: #2E7D32;  // Changed to green by default
+  cursor: pointer;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f1f5f9;
+    opacity: 0.8;
+  }
+`;
+
+const NotificationPanel = styled.div`
+  position: absolute;
+  top: 60px;
+  right: 120px;
+  width: 300px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+`;
+
+const NotificationHeader = styled.div`
+  padding: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const NotificationEmpty = styled.div`
+  padding: 24px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+`;
 
 // Update or add these styled components
 const CompanyInfo = styled.div`
@@ -145,32 +292,13 @@ const NavContent = styled.div`
   position: relative;  // 추가
 `;
 
-const NavList = styled.div`
-  display: flex;
-  gap: 48px;
-  align-items: center;
-  position: absolute;  // 추가
-  left: 50%;  // 추가
-  transform: translateX(-50%);  // 추가
-`;
 
 const LogoutButtonContainer = styled.div`
   display: flex;
   margin-left: auto;
 `;
 
-const NavItem = styled.div`
-  font-size: 14px;
-  font-weight: ${props => props.active ? '600' : '400'};
-  color: ${props => props.active ? '#2E7D32' : '#64748b'};
-  cursor: pointer;
-  padding: 8px 0;
-  border-bottom: ${props => props.active ? '2px solid #2E7D32' : 'none'};
-  
-  &:hover {
-    color: #2E7D32;
-  }
-`;
+
 
 const Logo = styled.div`
   font-size: 20px;
@@ -197,13 +325,7 @@ const MenuItem = styled.div`
   }
 `;
 
-// Add or update these styled components
-const UserSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: auto;
-`;
+
 
 const UserInfo = styled.div`
   display: flex;
@@ -274,3 +396,27 @@ const LogoutButton = styled.button`
 `;
 
 export default Navbar;
+
+
+// Add these new styled components
+const LogoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 24px;
+`;
+
+const BellImage = styled.img`
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+`;
+
+const LogoImage = styled.img`
+  height: 32px;
+  width: auto;
+  
+  @media (max-width: 768px) {
+    height: 28px;
+  }
+`;

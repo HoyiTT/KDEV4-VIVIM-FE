@@ -13,8 +13,9 @@ function App() {
     <Router>
       <Routes>
         {/* Public route */}
-        <Route path="/" element={<Login />} />
-        
+        <ProtectedRoute authRequired={false}>
+          <Login />
+        </ProtectedRoute>
         {/* Protected routes */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
