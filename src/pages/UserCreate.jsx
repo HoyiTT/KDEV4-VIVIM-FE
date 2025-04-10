@@ -109,7 +109,7 @@ const UserCreate = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="전화번호를 입력하세요" 
+              placeholder="010-0000-0000" 
               required
             />
           </FormGroup>
