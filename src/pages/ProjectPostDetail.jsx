@@ -114,8 +114,7 @@ const ProjectPostDetail = () => {
   const fetchPostDetail = async () => {
     try {
       const token = localStorage.getItem('token');
-      //const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/posts/${postId}`, {
-      const response = await fetch(`https://localhost/api/projects/${projectId}/posts/${postId}`, {
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/posts/${postId}`, {
         headers: {
           'Authorization': token
         }
@@ -170,8 +169,7 @@ const ProjectPostDetail = () => {
   const fetchComments = async () => {
     try {
       const token = localStorage.getItem('token');
-      //const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
-      const response = await fetch(`https://localhost/api/posts/${postId}/comments`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
         headers: {
           'Authorization': token
         }
