@@ -356,16 +356,28 @@ const StageSection = styled.div`
 `;
 
 const StageGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
   gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
   
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(4, 1fr);
+  /* Add styling for the scrollbar */
+  &::-webkit-scrollbar {
+    height: 8px;
   }
   
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
   }
 `;
 
@@ -378,6 +390,8 @@ const StageItem = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 200px;
+  min-width: 200px;
+  flex: 0 0 auto;
 `;
 
 const StageHeader = styled.div`
