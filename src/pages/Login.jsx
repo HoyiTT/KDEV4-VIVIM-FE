@@ -468,8 +468,8 @@ const Login = () => {
             <CredentialText>admin@naver.com / 1234</CredentialText>
           </CredentialGroup>
           <CredentialGroup>
-            <CredentialLabel>일반 개발사:</CredentialLabel>
-            <CredentialText>jinju@naver.com / 1234</CredentialText>
+            <CredentialLabel>개발사:</CredentialLabel>
+            <CredentialText>developer@naver.com / 1234</CredentialText>
           </CredentialGroup>
         </DemoCredentials>
         
