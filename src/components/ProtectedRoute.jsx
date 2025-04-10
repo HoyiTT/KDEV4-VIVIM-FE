@@ -1,11 +1,15 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, authRequired = true }) => {
   const token = localStorage.getItem('token');
 
-  if (!token) {
+  if (!token && authRequired) {
     return <Navigate to="/" replace />;
+  }
+
+  if (token && !authRequired) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

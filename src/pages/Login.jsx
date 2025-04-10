@@ -526,7 +526,7 @@ const Login = () => {
                   취소
                 </CancelButton>
                 <SubmitButton type="submit">
-                  재설정 링크 받기
+                  비밀번호 재설정
                 </SubmitButton>
               </ModalButtonGroup>
             </ModalForm>
