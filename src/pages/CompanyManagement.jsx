@@ -97,8 +97,8 @@ const CompanyManagement = () => {
                     {company.name}
                   </TableCell>
                   <TableCell>{company.businessNumber}</TableCell>
-                  <TableCell>{company.representative}</TableCell>
-                  <TableCell>{company.phoneNumber}</TableCell>
+                  <TableCell>{company.coOwner}</TableCell>
+                  <TableCell>{company.phone}</TableCell>
                   <TableCell>
                     <ActionButtonContainer>
                       <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>

@@ -171,6 +171,18 @@ const ProjectCreate = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Add validation for project name and description
+    if (!projectName.trim()) {
+      alert('프로젝트 이름을 입력해주세요.');
+      return;
+    }
+    
+    if (!description.trim()) {
+      alert('프로젝트 설명을 입력해주세요.');
+      return;
+    }
+    
     const token = localStorage.getItem('token');
     
     // Create project data object
@@ -311,8 +323,14 @@ const ProjectCreate = () => {
                               id={`client-manager-${user.userId}`}
                               checked={clientManagers.some(item => item.userId === user.userId)}
                               onChange={(e) => handleUserSelection(user.userId, 'clientManager', e.target.checked)}
+                              disabled={clientUsers.some(item => item.userId === user.userId)}
                             />
-                            <CheckboxLabel htmlFor={`client-manager-${user.userId}`}>
+                            <CheckboxLabel 
+                              htmlFor={`client-manager-${user.userId}`}
+                              style={{ 
+                                color: clientUsers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
+                              }}
+                            >
                               {user.name}
                             </CheckboxLabel>
                           </UserCheckboxItem>
@@ -380,8 +398,14 @@ const ProjectCreate = () => {
                           id={`dev-manager-${user.userId}`}
                           checked={devManagers.some(item => item.userId === user.userId)}
                           onChange={(e) => handleUserSelection(user.userId, 'devManager', e.target.checked)}
+                          disabled={devUsers.some(item => item.userId === user.userId)}
                         />
-                        <CheckboxLabel htmlFor={`dev-manager-${user.userId}`}>
+                        <CheckboxLabel 
+                          htmlFor={`dev-manager-${user.userId}`}
+                          style={{ 
+                            color: devUsers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
+                          }}
+                        >
                           {user.name}
                         </CheckboxLabel>
                       </UserCheckboxItem>
