@@ -18,15 +18,49 @@ const ProjectPostModify = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postStatus, setPostStatus] = useState('NORMAL');
-  const [loading, setLoading] = useState(false);
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-  const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
+  // Change the initial loading state from true to false
+  const [loading, setLoading] = useState(false);  // Changed from useState(true)
+  const [newFiles, setNewFiles] = useState([]);
+  const [filesToDelete, setFilesToDelete] = useState([]);
+  const [linksToDelete, setLinksToDelete] = useState([]);
+  const [existingLinks, setExistingLinks] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
+  const [newLinks, setNewLinks] = useState([]);
+
+  useEffect(() => {
+    const fetchPostDetail = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+          headers: {
+            'Authorization': `${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch post details');
+        }
+        const data = await response.json();
+        setTitle(data?.title || '');
+        setContent(data?.content || '');
+        setPostStatus(data?.projectPostStatus || 'NORMAL');
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        setTitle('');
+        setContent('');
+      }
+    };
+  
+    fetchPostDetail();
+    fetchLinks();
+    fetchFiles();
+  }, [projectId, postId]);
   
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
-    'application/pdf', 'application/rtf', 'text/plain',
+    'application/pdf', 'application/rtf', 'text/plain', 'text/rtf',
     'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -34,55 +68,88 @@ const ProjectPostModify = () => {
     'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
   ];
 
-
-  const handleFileDelete = (indexToDelete) => {
-    setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
-  };
-
-  const handleFileChange = (e) => {
+ 
+  const handleAddFile = (e) => {
     const selectedFiles = Array.from(e.target.files);
     const invalidFiles = selectedFiles.filter(file => !allowedMimeTypes.includes(file.type));
     
     if (invalidFiles.length > 0) {
       setFileError('지원하지 않는 파일 형식이 포함되어 있습니다.');
-      e.target.value = ''; // Reset file input
+      e.target.value = '';
     } else {
       setFileError('');
-      setFiles(prevFiles => [...prevFiles, ...selectedFiles]); // 기존 파일 목록에 새 파일들 추가
+      setNewFiles(prevFiles => [...prevFiles, ...selectedFiles]);
     }
   };
-
-  // 기존 게시글 데이터 불러오기
-  useEffect(() => {
-    const fetchPostDetail = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
-          headers: {
-            'Authorization': token
-          }
-        });
-        const data = await response.json();
-        
-        // 기존 데이터로 상태 초기화
-        setTitle(data.title);
-        setContent(data.content);
-        setPostStatus(data.projectPostStatus);
-        
-        // 링크 데이터가 있는 경우
-        if (data.links && data.links.length > 0) {
-          setLinkTitle(data.links[0].title);
-          setLinkUrl(data.links[0].url);
+  
+  const handleFileDelete = (index, isExisting) => {
+    if (isExisting) {
+      const fileToDelete = existingFiles[index];  // Changed from filesToDelete to existingFiles
+      setFilesToDelete(prev => [...prev, fileToDelete.id]);
+      setExistingFiles(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setNewFiles(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+  const fetchFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
+        headers: {
+          'Authorization': token
         }
-      } catch (error) {
-        console.error('게시글 조회 중 오류 발생:', error);
-      }
-    };
+      });
+      const data = await response.json();
+      setExistingFiles(data.map(file => ({
+        id: file.id,
+        name: file.fileName
+      })));
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+  // Update fetchLinks function
+  const fetchLinks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setExistingLinks(data.map(link => ({
+        id: link.id,  // Changed from linkId to id
+        title: link.title,
+        url: link.url
+      })));
+    } catch (error) {
+      console.error('Error fetching links:', error);
+    }
+  };
+  
+  // Update handleAddLink
+  const handleAddLink = () => {
+    if (linkTitle && linkUrl) {
+      setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
+      setLinkTitle('');
+      setLinkUrl('');
+    }
+  };
+  
+  // Update handleLinkDelete
+  const handleLinkDelete = (index, isExisting) => {
+    if (isExisting) {
+      const linkToDelete = existingLinks[index];
+      setLinksToDelete(prev => [...prev, linkToDelete.id]);
+      setExistingLinks(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setNewLinks(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+  
+  
 
-    fetchPostDetail();
-  }, [projectId, postId]);
-
-  // handleSubmit 수정
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -108,16 +175,42 @@ const ProjectPostModify = () => {
       if (!postResponse.ok) {
         throw new Error(`게시글 수정 실패: ${postResponse.status}`);
       }
+  
+      // Delete links that were marked for deletion
+      for (const linkId of linksToDelete) {
+        const deleteLinkResponse = await fetch(`${API_BASE_URL}/links/${linkId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `${token}`
+          }
+        });
+  
+        if (!deleteLinkResponse.ok) {
+          throw new Error(`링크 삭제 실패: ${deleteLinkResponse.status}`);
+        }
+      }
+      for (const fileId of filesToDelete) {
+        const deleteFileResponse = await fetch(`${API_BASE_URL}/files/${fileId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `${token}`
+          }
+        });
 
-      // 링크 수정
-      if (linkTitle && linkUrl) {
+        if (!deleteFileResponse.ok) {
+          throw new Error(`파일 삭제 실패: ${deleteFileResponse.status}`);
+        }
+      }
+  
+      // Add new links
+      for (const link of newLinks) {
         const linkData = {
-          title: linkTitle,
-          url: linkUrl
+          title: link.title,
+          url: link.url
         };
   
         const linkResponse = await fetch(`${API_BASE_URL}/posts/${postId}/link`, {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Authorization': `${token}`,
             'Content-Type': 'application/json'
@@ -126,27 +219,26 @@ const ProjectPostModify = () => {
         });
   
         if (!linkResponse.ok) {
-          throw new Error(`링크 수정 실패: ${linkResponse.status}`);
+          throw new Error(`링크 추가 실패: ${linkResponse.status}`);
         }
       }
   
-      // 파일 업로드
-      if (files.length > 0) {
-        for (const file of files) {
-          const formData = new FormData();
-          formData.append('file', file);
+      // Inside handleSubmit function, after handling links
+      // Add new files
+      for (const file of newFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
   
-          const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `${token}`
-            },
-            body: formData
-          });
+        const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `${token}`
+          },
+          body: formData
+        });
   
-          if (!fileResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${fileResponse.status}`);
-          }
+        if (!fileResponse.ok) {
+          throw new Error(`파일 업로드 실패: ${fileResponse.status}`);
         }
       }
   
@@ -155,7 +247,7 @@ const ProjectPostModify = () => {
       console.error('오류:', error);
       alert('게시글 수정 중 오류가 발생했습니다: ' + error.message);
     } finally {
-      setLoading(false);
+      setLoading(false);  // Make sure loading is set to false when everything is done
     }
   };
 
@@ -221,74 +313,135 @@ const ProjectPostModify = () => {
               </CharacterCount>
             </InputGroup>
 
-            <InputGroup>
-              <Label>링크 제목 (선택사항)</Label>
-              <Input
-                type="text"
-                value={linkTitle}
-                onChange={(e) => {
-                  if (e.target.value.length <= 60) {
-                    setLinkTitle(e.target.value);
-                  }
-                }}
-                placeholder="링크 제목을 입력하세요"
-                maxLength={60}
-              />
-              <CharacterCount>
-                {linkTitle.length}/60
-              </CharacterCount>
-            </InputGroup>
-
-            <InputGroup>
-              <Label>URL (선택사항)</Label>
-              <Input
-                type="url"
-                value={linkUrl}
-                onChange={(e) => {
-                  if (e.target.value.length <= 1000) {
-                    setLinkUrl(e.target.value);
-                  }
-                }}
-                placeholder="URL을 입력하세요"
-                maxLength={1000}
-              />
-              <CharacterCount>
-                {linkUrl.length}/1000
-              </CharacterCount>
-            </InputGroup>
-
-            <InputGroup>
-                <Label>파일 첨부 (선택사항)</Label>
-                <FileInputContainer>
-                  <HiddenFileInput
-                    type="file"
-                    onChange={handleFileChange}
-                    multiple
-                    accept={allowedMimeTypes.join(',')}
-                    id="fileInput"
-                  />
-                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
-                    파일 선택
-                  </FileButton>
-                </FileInputContainer>
-                {files.length > 0 && (
-                  <FileList>
-                    {Array.from(files).map((file, index) => (
-                      <FileItem key={index}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          📎 {file.name}
-                        </div>
-                        <DeleteButton
-                          type="button"
-                          onClick={() => handleFileDelete(index)}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
-              </InputGroup>
+  <InputGroup>
+    <Label>링크 (선택사항)</Label>
+    <LinkInputContainer>
+      <LinkInputGroup>
+        <Input
+          type="text"
+          value={linkTitle}
+          onChange={(e) => {
+            if (e.target.value.length <= 60) {
+              setLinkTitle(e.target.value);
+            }
+          }}
+          placeholder="링크 제목을 입력하세요"
+          maxLength={60}
+        />
+        <CharacterCount>
+          {linkTitle.length}/60
+        </CharacterCount>
+      </LinkInputGroup>
+      
+      <LinkInputGroup>
+        <Input
+          type="url"
+          value={linkUrl}
+          onChange={(e) => {
+            if (e.target.value.length <= 1000) {
+              setLinkUrl(e.target.value);
+            }
+          }}
+          placeholder="URL을 입력하세요"
+          maxLength={1000}
+        />
+        <CharacterCount>
+          {linkUrl.length}/1000
+        </CharacterCount>
+      </LinkInputGroup>
+      <AddButton
+        type="button"
+        onClick={handleAddLink}
+        disabled={!linkTitle || !linkUrl}
+      >
+        추가
+      </AddButton>
+    </LinkInputContainer>
+    
+    {(existingLinks.length > 0 || newLinks.length > 0) && (
+      <LinkList>
+        {existingLinks.map((link, index) => (
+          <LinkItem key={`existing-${index}`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🔗 {link.title}
+              <span style={{ color: '#64748b', marginLeft: '8px' }}>
+                ({link.url})
+              </span>
+            </div>
+            <DeleteButton
+              type="button"
+              onClick={() => handleLinkDelete(index, true)}
+            >
+              ✕
+            </DeleteButton>
+          </LinkItem>
+        ))}
+        {newLinks.map((link, index) => (
+          <LinkItem key={`new-${index}`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🔗 {link.title}
+              <span style={{ color: '#64748b', marginLeft: '8px' }}>
+                ({link.url})
+              </span>
+            </div>
+            <DeleteButton
+              type="button"
+              onClick={() => handleLinkDelete(index, false)}
+            >
+              ✕
+            </DeleteButton>
+          </LinkItem>
+        ))}
+      </LinkList>
+    )}
+  </InputGroup>
+  <InputGroup>
+  <Label>파일 첨부 (선택사항)</Label>
+  <FileInputContainer>
+    <div style={{ display: 'flex', gap: '12px' }}>
+      <HiddenFileInput
+        type="file"
+        onChange={handleAddFile}
+        multiple
+        accept={allowedMimeTypes.join(',')}
+        id="fileInput"
+      />
+      <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
+        파일 선택
+      </FileButton>
+    </div>
+    {(existingFiles.length > 0 || newFiles.length > 0) && (
+      <FileList>
+                      {existingFiles.map((file, index) => (
+                        <FileItem key={`existing-${index}`}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            📎 {file.name}
+                          </div>
+                          <DeleteButton
+                            type="button"
+                            onClick={() => handleFileDelete(index, true)}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+                      {newFiles.map((file, index) => (
+                        <FileItem key={`new-${index}`}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            📎 {file.name}
+                          </div>
+                          <DeleteButton
+                            type="button"
+                            onClick={() => handleFileDelete(index, false)}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+      </FileList>
+    )}
+  </FileInputContainer>
+</InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
@@ -305,6 +458,74 @@ const ProjectPostModify = () => {
   );
 };
 
+
+const FileInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const Button = styled.button`
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+`;
+
+const LinkInputContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+`;
+
+const LinkInputGroup = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const AddButton = styled(Button)`
+  background-color: #2E7D32;
+  border: none;
+  color: white;
+  padding: 16px 20px;  // Increased vertical padding
+  margin-top: 2px;
+  height: 65px;        // Added fixed height
+  
+  &:hover {
+    background-color: #1B5E20;
+  }
+  
+  &:disabled {
+    background-color: #e2e8f0;
+    cursor: not-allowed;
+  }
+`;
+
+const LinkList = styled.ul`
+  list-style: none;
+  padding: 8px 16px;
+  margin: 8px 0 0 0;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+`;
+
+const LinkItem = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+`;
 const FileList = styled.ul`
   list-style: none;
   padding: 8px 16px;
@@ -347,12 +568,7 @@ const InputGroup = styled.div`
   gap: 8px;
 `;
 
-// Add these new styled components
-const FileInputContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
+
 
 const HiddenFileInput = styled.input`
   display: none;
@@ -466,13 +682,6 @@ const ButtonContainer = styled.div`
   margin-top: 24px;
 `;
 
-const Button = styled.button`
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-`;
 
 const CancelButton = styled(Button)`
   border: 1px solid #e2e8f0;

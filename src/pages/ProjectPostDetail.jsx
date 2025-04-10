@@ -811,7 +811,7 @@ const EditCommentForm = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 0 24px 0 0;  // Add right margin to prevent overlap with options button
+  margin: 0 0 0 0;  // Add right margin to prevent overlap with options button
 `;
 
 

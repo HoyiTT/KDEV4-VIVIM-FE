@@ -7,6 +7,8 @@ import { API_ENDPOINTS } from '../config/api';
 import ChecklistComponent from '../components/ChecklistComponent';
 import ProjectPostCreate from './ProjectPostCreate';
 
+
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,6 +26,46 @@ const ProjectDetail = () => {
     fetchProjectProgress(); // Add new fetch call
   }, [id]);
 
+    // Add this near the other styled components
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'DEVELOPER':
+        return {
+          background: '#dbeafe',
+          border: '#93c5fd',
+          text: '#2563eb'
+        };
+      case 'CLIENT':
+        return {
+          background: '#fef9c3',
+          border: '#fde047',
+          text: '#ca8a04'
+        };
+      case 'ADMIN':
+        return {
+          background: '#fee2e2',
+          border: '#fca5a5',
+          text: '#dc2626'
+        };
+      default:
+        return {
+          background: '#f1f5f9',
+          border: '#e2e8f0',
+          text: '#64748b'
+        };
+    }
+  };
+  const RoleTag = styled.span`
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: ${props => getRoleColor(props.role).background};
+  border: 1px solid ${props => getRoleColor(props.role).border};
+  color: ${props => getRoleColor(props.role).text};
+  display: inline-block;
+  line-height: 1.4;
+`;
   // Add new fetch function for progress
   const fetchProjectProgress = async () => {
     try {
@@ -87,9 +129,7 @@ const ProjectDetail = () => {
         if (token) {
           try {
             const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            console.log('Token decoded:', decodedToken);
             const isAdminUser = decodedToken.role === 'ADMIN';
-            console.log('Is admin?:', isAdminUser);
             setIsAdmin(isAdminUser);
           } catch (error) {
             console.error('Error decoding token:', error);
@@ -202,7 +242,7 @@ const ProjectDetail = () => {
                                       {post.creatorName}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.creatorRole}
+                                      <RoleTag role={post.creatorRole}>{post.creatorRole}</RoleTag>
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
@@ -570,3 +610,6 @@ const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
 `;
+
+
+

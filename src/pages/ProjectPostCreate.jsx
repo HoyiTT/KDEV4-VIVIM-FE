@@ -205,50 +205,49 @@ const handleLinkDelete = (indexToDelete) => {
             </InputGroup>
 
             <InputGroup>
-
-  <LinkInputContainer>
-    <LinkInputGroup>
-      <Input
-        type="text"
-        value={linkTitle}
-        onChange={(e) => {
-          if (e.target.value.length <= 60) {
-            setLinkTitle(e.target.value);
-          }
-        }}
-        placeholder="링크 제목을 입력하세요"
-        maxLength={60}
-      />
-      <CharacterCount>
-        {linkTitle.length}/60
-      </CharacterCount>
-    </LinkInputGroup>
-    
-    <LinkInputGroup>
-      <Input
-        type="url"
-        value={linkUrl}
-        onChange={(e) => {
-          if (e.target.value.length <= 1000) {
-            setLinkUrl(e.target.value);
-          }
-        }}
-        placeholder="URL을 입력하세요"
-        maxLength={1000}
-      />
-      <CharacterCount>
-        {linkUrl.length}/1000
-      </CharacterCount>
-    </LinkInputGroup>
-    <AddButton
-      type="button"
-      onClick={handleAddLink}
-      disabled={!linkTitle || !linkUrl}
-    >
-      추가
-    </AddButton>
-  </LinkInputContainer>
-  
+              <Label>링크 (선택사항)</Label>
+              <LinkInputContainer>
+                <LinkInputGroup>
+                  <Input
+                    type="text"
+                    value={linkTitle}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 60) {
+                        setLinkTitle(e.target.value);
+                      }
+                    }}
+                    placeholder="링크 제목을 입력하세요"
+                    maxLength={60}
+                  />
+                  <CharacterCount>
+                    {linkTitle.length}/60
+                  </CharacterCount>
+                </LinkInputGroup>
+                
+                <LinkInputGroup>
+                  <Input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 1000) {
+                        setLinkUrl(e.target.value);
+                      }
+                    }}
+                    placeholder="URL을 입력하세요"
+                    maxLength={1000}
+                  />
+                  <CharacterCount>
+                    {linkUrl.length}/1000
+                  </CharacterCount>
+                </LinkInputGroup>
+                <AddButton
+                  type="button"
+                  onClick={handleAddLink}
+                  disabled={!linkTitle || !linkUrl}
+                >
+                  추가
+                </AddButton>
+              </LinkInputContainer>
   {links.length > 0 && (
     <LinkList>
       {links.map((link, index) => (
@@ -266,7 +265,7 @@ const handleLinkDelete = (indexToDelete) => {
       ))}
     </LinkList>
   )}
-</InputGroup>
+   </InputGroup>
 
               <InputGroup>
                 <Label>파일 첨부 (선택사항)</Label>
@@ -318,6 +317,15 @@ const handleLinkDelete = (indexToDelete) => {
   );
 };
 
+
+const Button = styled.button`
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+`;
+
 const FileButton = styled.button`
   padding: 8px 16px;
   background-color: white;
@@ -354,30 +362,40 @@ font-size: 14px;
   margin-bottom: 8px;
 }
 `;
+
+const LinkInputContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+`;
+
+const LinkInputGroup = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
 const LinkList = styled(FileList)``;
 
 const LinkItem = styled(FileItem)``;
 
-const AddButton = styled(FileButton)`
-  min-width: 80px;
+const AddButton = styled(Button)`
+  background-color: #2E7D32;
+  border: none;
+  color: white;
+  padding: 12px 20px;
+  margin-top: 2px;
+  height: 65px;
+  &:hover {
+    background-color: #1B5E20;
+  }
   
   &:disabled {
-    background-color: #f1f5f9;
+    background-color: #e2e8f0;
     cursor: not-allowed;
   }
 `;
 
-const LinkInputContainer = styled.div`
-display: flex;
-gap: 12px;
-`;
-
-const LinkInputGroup = styled.div`
-flex: 1;
-display: flex;
-flex-direction: column;
-gap: 4px;
-`;
 
 
 
@@ -509,13 +527,7 @@ const ButtonContainer = styled.div`
   margin-top: 24px;
 `;
 
-const Button = styled.button`
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-`;
+
 
 const CancelButton = styled(Button)`
   background-color: white;
