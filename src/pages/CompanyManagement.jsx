@@ -91,7 +91,7 @@ const CompanyManagement = () => {
               {companies.map((company) => (
                 <TableRow key={company.id}>
                   <TableCell 
-                    onClick={() => navigate(`/company/${company.id}`)}
+                    onClick={() => navigate(`/company-edit/${company.id}`)}
                     style={{ cursor: 'pointer', color: '#2E7D32' }}
                   >
                     {company.name}

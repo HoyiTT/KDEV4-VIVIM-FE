@@ -16,6 +16,32 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false); // Add this line
+  
+  // Add delete project function
+  const handleDeleteProject = async () => {
+    if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token,
+          }
+        });
+        
+        if (response.ok) {
+          alert('프로젝트가 삭제되었습니다.');
+          navigate('/dashboard');
+        } else {
+          alert('프로젝트 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
 
   // Add new state for progress list
   const [progressList, setProgressList] = useState([]);
@@ -164,9 +190,28 @@ const ProjectDetail = () => {
             <ProjectInfoSection>
               <ProjectHeader>
                 <ProjectTitle>{project.name}</ProjectTitle>
-                <StatusBadge isDeleted={project.isDeleted}>
-                  {project.isDeleted ? '삭제됨' : '진행중'}
-                </StatusBadge>
+                <StatusContainer>
+                  <StatusBadge isDeleted={project.isDeleted}>
+                    {project.isDeleted ? '삭제됨' : '진행중'}
+                  </StatusBadge>
+                  {isAdmin && (
+                    <DropdownContainer>
+                      <DropdownButton onClick={() => setShowDropdown(!showDropdown)}>
+                        ⋮
+                      </DropdownButton>
+                      {showDropdown && (
+                        <DropdownMenu>
+                          <DropdownItem onClick={() => navigate(`/projectModify/${id}`)}>
+                            수정하기
+                          </DropdownItem>
+                          <DropdownItem onClick={() => handleDeleteProject()} className="delete">
+                            삭제하기
+                          </DropdownItem>
+                        </DropdownMenu>
+                      )}
+                    </DropdownContainer>
+                  )}
+                </StatusContainer>
               </ProjectHeader>
               <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
               <DateContainer>
@@ -594,9 +639,6 @@ const DateValue = styled.span`
   font-weight: 500;
 `;
 
-const StatusContainer = styled.div`
-  margin-top: 8px;
-`;
 const ActionCell = styled(BoardCell)`
   display: flex;
   gap: 8px;
@@ -609,6 +651,62 @@ const ActionCell = styled(BoardCell)`
 const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
+`;
+
+// Add these styled components at the bottom of the file
+const DropdownContainer = styled.div`
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+`;
+
+const DropdownButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 120px;
+  z-index: 1000;
+`;
+
+const DropdownItem = styled.div`
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  &.delete {
+    color: #dc2626;
+    
+    &:hover {
+      background: #fee2e2;
+    }
+  }
+`;
+
+const StatusContainer = styled.div`
+  display: flex;
+  align-items: center;
 `;
 
 

@@ -69,8 +69,10 @@ const ProjectModify = () => {
           setDescription(data.description);
           setStartDate(data.startDate);
           setEndDate(data.endDate);
-          setSelectedClientCompany(data.clientCompanyId);
-          setSelectedDevCompany(data.devCompanyId);
+          
+          // Pre-select companies
+          setSelectedClientCompany(data.clientCompanyId.toString());
+          setSelectedDevCompany(data.devCompanyId.toString());
           
           setLoading(false);
         })
@@ -191,6 +193,28 @@ const ProjectModify = () => {
 
   const handleUserSelection = (userId, role, isSelected) => {
     const userIdInt = parseInt(userId);
+    
+    // Check if user is already selected in another role
+    const isUserSelectedElsewhere = (excludeRole) => {
+      switch(excludeRole) {
+        case 'clientManager':
+          return clientUsers.some(item => item.userId === userIdInt);
+        case 'clientUser':
+          return clientManagers.some(item => item.userId === userIdInt);
+        case 'devManager':
+          return devUsers.some(item => item.userId === userIdInt);
+        case 'devUser':
+          return devManagers.some(item => item.userId === userIdInt);
+        default:
+          return false;
+      }
+    };
+
+    // If trying to select and user is already selected elsewhere, prevent selection
+    if (isSelected && isUserSelectedElsewhere(role)) {
+      alert('이미 다른 역할로 선택된 사용자입니다.');
+      return;
+    }
     
     switch(role) {
       case 'clientManager':
@@ -375,38 +399,46 @@ const ProjectModify = () => {
                   <FormGroup>
                     <Label>고객사 담당자</Label>
                     <UserSelectionContainer>
-                      {clientCompanyUsers.map(user => (
-                        <UserCheckboxItem key={`manager-${user.userId}`}>
-                          <Checkbox 
-                            type="checkbox"
-                            id={`client-manager-${user.userId}`}
-                            checked={clientManagers.some(item => item.userId === user.userId)}
-                            onChange={(e) => handleUserSelection(user.userId, 'clientManager', e.target.checked)}
-                          />
-                          <CheckboxLabel htmlFor={`client-manager-${user.userId}`}>
-                            {user.name}
-                          </CheckboxLabel>
-                        </UserCheckboxItem>
-                      ))}
+                      {clientCompanyUsers.map(user => {
+                        const isSelectedAsUser = clientUsers.some(item => item.userId === user.userId);
+                        return (
+                          <UserCheckboxItem key={`manager-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`client-manager-${user.userId}`}
+                              checked={clientManagers.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleUserSelection(user.userId, 'clientManager', e.target.checked)}
+                              disabled={isSelectedAsUser}
+                            />
+                            <CheckboxLabel htmlFor={`client-manager-${user.userId}`}>
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        );
+                      })}
                     </UserSelectionContainer>
                   </FormGroup>
 
                   <FormGroup>
                     <Label>고객사 일반 사용자</Label>
                     <UserSelectionContainer>
-                      {clientCompanyUsers.map(user => (
-                        <UserCheckboxItem key={`user-${user.userId}`}>
-                          <Checkbox 
-                            type="checkbox"
-                            id={`client-user-${user.userId}`}
-                            checked={clientUsers.some(item => item.userId === user.userId)}
-                            onChange={(e) => handleUserSelection(user.userId, 'clientUser', e.target.checked)}
-                          />
-                          <CheckboxLabel htmlFor={`client-user-${user.userId}`}>
-                            {user.name}
-                          </CheckboxLabel>
-                        </UserCheckboxItem>
-                      ))}
+                      {clientCompanyUsers.map(user => {
+                        const isSelectedAsManager = clientManagers.some(item => item.userId === user.userId);
+                        return (
+                          <UserCheckboxItem key={`user-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`client-user-${user.userId}`}
+                              checked={clientUsers.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleUserSelection(user.userId, 'clientUser', e.target.checked)}
+                              disabled={isSelectedAsManager}
+                            />
+                            <CheckboxLabel htmlFor={`client-user-${user.userId}`}>
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        );
+                      })}
                     </UserSelectionContainer>
                   </FormGroup>
                 </>
@@ -438,38 +470,46 @@ const ProjectModify = () => {
                   <FormGroup>
                     <Label>개발 담당자</Label>
                     <UserSelectionContainer>
-                      {devCompanyUsers.map(user => (
-                        <UserCheckboxItem key={`dev-manager-${user.userId}`}>
-                          <Checkbox 
-                            type="checkbox"
-                            id={`dev-manager-${user.userId}`}
-                            checked={devManagers.some(item => item.userId === user.userId)}
-                            onChange={(e) => handleUserSelection(user.userId, 'devManager', e.target.checked)}
-                          />
-                          <CheckboxLabel htmlFor={`dev-manager-${user.userId}`}>
-                            {user.name}
-                          </CheckboxLabel>
-                        </UserCheckboxItem>
-                      ))}
+                      {devCompanyUsers.map(user => {
+                        const isSelectedAsUser = devUsers.some(item => item.userId === user.userId);
+                        return (
+                          <UserCheckboxItem key={`dev-manager-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`dev-manager-${user.userId}`}
+                              checked={devManagers.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleUserSelection(user.userId, 'devManager', e.target.checked)}
+                              disabled={isSelectedAsUser}
+                            />
+                            <CheckboxLabel htmlFor={`dev-manager-${user.userId}`}>
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        );
+                      })}
                     </UserSelectionContainer>
                   </FormGroup>
 
                   <FormGroup>
                     <Label>개발자</Label>
                     <UserSelectionContainer>
-                      {devCompanyUsers.map(user => (
-                        <UserCheckboxItem key={`dev-user-${user.userId}`}>
-                          <Checkbox 
-                            type="checkbox"
-                            id={`dev-user-${user.userId}`}
-                            checked={devUsers.some(item => item.userId === user.userId)}
-                            onChange={(e) => handleUserSelection(user.userId, 'devUser', e.target.checked)}
-                          />
-                          <CheckboxLabel htmlFor={`dev-user-${user.userId}`}>
-                            {user.name}
-                          </CheckboxLabel>
-                        </UserCheckboxItem>
-                      ))}
+                      {devCompanyUsers.map(user => {
+                        const isSelectedAsManager = devManagers.some(item => item.userId === user.userId);
+                        return (
+                          <UserCheckboxItem key={`dev-user-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`dev-user-${user.userId}`}
+                              checked={devUsers.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleUserSelection(user.userId, 'devUser', e.target.checked)}
+                              disabled={isSelectedAsManager}
+                            />
+                            <CheckboxLabel htmlFor={`dev-user-${user.userId}`}>
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        );
+                      })}
                     </UserSelectionContainer>
                   </FormGroup>
                 </>
