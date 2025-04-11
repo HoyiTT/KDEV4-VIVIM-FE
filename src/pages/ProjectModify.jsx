@@ -297,9 +297,7 @@ const ProjectModify = () => {
       <MainContent>
         <Header>
           <PageTitle>프로젝트 수정</PageTitle>
-          <ProfileContainer>
-            <ProfileImage src="https://via.placeholder.com/40" alt="Profile" />
-          </ProfileContainer>
+
         </Header>
 
         {loading ? (
