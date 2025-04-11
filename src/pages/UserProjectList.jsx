@@ -40,10 +40,14 @@ const UserProjectList = () => {
 
   const getRoleBadgeText = (role) => {
     switch (role) {
-      case 'DEVELOPER_USER':
-        return '개발자';
+      case 'CLIENT_USER':
+        return '고객사(일반)';
       case 'CLIENT_MANAGER':
-        return '고객사 관리자';
+        return '고객사(담당자)';
+      case 'DEVELOPER_USER':
+        return '개발자(일반)';
+      case 'DEVELOPER_MANAGER':
+        return '개발자(담당자)';
       default:
         return role;
     }

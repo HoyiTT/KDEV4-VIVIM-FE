@@ -240,9 +240,6 @@ const ProjectCreate = () => {
       <MainContent>
         <Header>
           <PageTitle>프로젝트 생성</PageTitle>
-          <ProfileContainer>
-            <ProfileImage src="https://via.placeholder.com/40" alt="Profile" />
-          </ProfileContainer>
         </Header>
 
         <FormSection>
