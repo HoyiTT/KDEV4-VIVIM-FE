@@ -131,7 +131,6 @@ const ChecklistComponent = ({ progressId }) => {
                       setEditName(item.name);
                     }}>수정</EditButton>
                     <DeleteButton onClick={() => handleDeleteChecklist(item.id)}>삭제</DeleteButton>
-                    <CompleteButton>승인완료</CompleteButton>
                   </>
                 )}
               </ChecklistActions>
@@ -178,25 +177,14 @@ const AddChecklistForm = styled.div`
 `;
 
 const AddChecklistButton = styled.button`
-  background: none;
-  border: 1px dashed #cbd5e1;
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 24px;
-  min-height: 90px;  // Matched with AddChecklistForm
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-top: 24px;
-  height: 41px;
-  
-  &:hover {
-    background-color: #f1f5f9;
-    color: #334155;
-  }
+    padding: 8px 16px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
 `;
 
 const ChecklistInput = styled.input`
@@ -234,19 +222,6 @@ const ButtonGroup = styled.div`
   justify-content: flex-end;
 `;
 
-const SaveButton = styled.button`
-  padding: 6px 12px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #1B5E20;
-  }
-`;
 
 const CancelButton = styled.button`
   padding: 6px 12px;
@@ -325,49 +300,39 @@ export default ChecklistComponent;
 
 // Add these new styled components
 const EditButton = styled.button`
-  padding: 6px 12px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  min-width: 50px;
-  
-  &:hover {
-    background-color: #e2e8f0;
-  }
+    padding: 6px 12px;
+    background: transparent;
+    color: #4F6AFF;
+    border: 1px solid #4F6AFF;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
 `;
 
 const DeleteButton = styled.button`
-  padding: 6px 12px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  min-width: 50px;
-  
-  &:hover {
-    background-color: #e2e8f0;
-  }
+    padding: 6px 12px;
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid #dc2626;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
 `;
 
-const CompleteButton = styled.button`
-  padding: 4px 8px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  min-width: 50px;
+const SaveButton = styled.button`
+    padding: 8px 16px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
   
   &:hover {
-    background-color: #1B5E20;
+    background-color: #2E7D32;
   }
 `;
