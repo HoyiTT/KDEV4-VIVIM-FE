@@ -53,6 +53,19 @@ const ProjectDetail = () => {
     fetchProjectProgress(); // Add new fetch call
   }, [id]);
 
+  const translateRole = (role) => {
+    switch (role) {
+      case 'DEVELOPER':
+        return '개발사';
+      case 'CLIENT':
+        return '의뢰인';
+      case 'ADMIN':
+        return '관리자';
+      default:
+        return '일반';
+    }
+  };
+  
     // Add this near the other styled components
   const getRoleColor = (role) => {
     switch (role) {
@@ -288,7 +301,7 @@ const ProjectDetail = () => {
                                       {post.creatorName}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      <RoleTag role={post.creatorRole}>{post.creatorRole}</RoleTag>
+                                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}

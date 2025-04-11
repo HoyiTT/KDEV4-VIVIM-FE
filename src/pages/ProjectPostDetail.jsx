@@ -63,6 +63,11 @@ const ProjectPostDetail = () => {
     }
   };
   const handleUpdateComment = async (commentId) => {
+    if (!editedComment.trim()) {
+      alert('댓글 내용을 입력해주세요.');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
@@ -93,21 +98,27 @@ const ProjectPostDetail = () => {
   };
   
   const handleDeleteComment = async (commentId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token
+    if (window.confirm('댓글을 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
+        });
+    
+        if (response.ok) {
+          alert('댓글이 삭제되었습니다.');
+          fetchComments();
+          setActiveCommentOptions(null);
+        } else {
+          alert('댓글 삭제에 실패했습니다.');
         }
-      });
-  
-      if (response.ok) {
-        fetchComments();
-        setActiveCommentOptions(null);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('댓글 삭제 중 오류가 발생했습니다.');
       }
-    } catch (error) {
-      console.error('Error deleting comment:', error);
     }
   };
 
@@ -127,6 +138,19 @@ const ProjectPostDetail = () => {
       setLoading(false);
     }
   };
+  const translateRole = (role) => {
+    switch (role) {
+      case 'DEVELOPER':
+        return '개발사';
+      case 'CLIENT':
+        return '의뢰인';
+      case 'ADMIN':
+        return '관리자';
+      default:
+        return '일반';
+    }
+  };
+  
   const getRoleColor = (role) => {
     switch (role) {
       case 'DEVELOPER':
@@ -212,20 +236,26 @@ const ProjectPostDetail = () => {
   };
 
   const handleDeletePost = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token
+    if (window.confirm('게시글을 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
+        });
+      
+        if (response.ok) {
+          alert('게시글이 삭제되었습니다.');
+          navigate(`/project/${projectId}`);
+        } else {
+          alert('게시글 삭제에 실패했습니다.');
         }
-      });
-    
-      if (response.ok) {
-        navigate(`/project/${projectId}`);
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('게시글 삭제 중 오류가 발생했습니다.');
       }
-    } catch (error) {
-      console.error('Error deleting post:', error);
     }
   };
   const handleMenuClick = (menuItem) => {
@@ -234,6 +264,10 @@ const ProjectPostDetail = () => {
 
   const handleCommentSubmit = async (e, parentComment = null) => {
     e.preventDefault();
+    if (!commentContent.trim()) {
+      alert('댓글 내용을 입력해주세요.');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -280,7 +314,7 @@ const ProjectPostDetail = () => {
                     <PostTitle>{post.title}</PostTitle>
                     <PostCreatorInfo>
                       <CreatorName>{post.creatorName}</CreatorName>
-                      <RoleTag role={post.creatorRole}>{post.creatorRole}</RoleTag>
+                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
                       <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
                     </PostCreatorInfo>
                   </div>
@@ -397,7 +431,7 @@ const ProjectPostDetail = () => {
                             <>
                               <CommentAuthor>
                                 <AuthorName>{parentComment.creatorName}</AuthorName>
-                                <RoleTag role={parentComment.creatorRole}>{parentComment.creatorRole}</RoleTag>
+                                <RoleTag role={parentComment.creatorRole}>{translateRole(parentComment.creatorRole)}</RoleTag>
                               </CommentAuthor>
                               <CommentText>{parentComment.content}</CommentText>
                               <CommentMoreOptionsContainer $isChild={true}>
@@ -480,7 +514,7 @@ const ProjectPostDetail = () => {
                                   <>
                                       <CommentAuthor>
                                       <AuthorName>{childComment.creatorName}</AuthorName>
-                                      <RoleTag role={childComment.creatorRole}>{childComment.creatorRole}</RoleTag>
+                                      <RoleTag role={childComment.creatorRole}>{translateRole(childComment.creatorRole)}</RoleTag>
                                      </CommentAuthor>
                                     <CommentText>{childComment.content}</CommentText>
                                     <CommentMoreOptionsContainer $isChild={true}>
