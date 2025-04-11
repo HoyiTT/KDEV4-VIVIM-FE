@@ -152,17 +152,29 @@ const ProjectPostModify = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 제목과 내용의 공백 검증
+    if (!title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+
+    if (!content.trim()) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       
       // 게시글 수정
       const postData = {
-        title: title,
-        content: content,
+        title: title.trim(),  // 앞뒤 공백 제거
+        content: content.trim(),  // 앞뒤 공백 제거
         projectPostStatus: postStatus
       };
-      
+
       const postResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
         method: 'PUT',
         headers: {

@@ -64,13 +64,25 @@ const handleLinkDelete = (indexToDelete) => {
 };
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 제목과 내용의 공백 검증
+    if (!title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+
+    if (!content.trim()) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       
       const postData = {
-        title: title,
-        content: content,
+        title: title.trim(),  // 앞뒤 공백 제거
+        content: content.trim(),  // 앞뒤 공백 제거
         projectPostStatus: postStatus,
         parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null
       };
