@@ -17,8 +17,6 @@ const ProjectDetail = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false); // Add this line
-  
-  // Add delete project function
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
@@ -27,7 +25,10 @@ const ProjectDetail = () => {
           method: 'DELETE',
           headers: {
             'Authorization': token,
-          }
+            'accept': '*/*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
         });
         
         if (response.ok) {
