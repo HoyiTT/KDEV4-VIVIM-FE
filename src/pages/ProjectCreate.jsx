@@ -128,6 +128,100 @@ const ProjectCreate = () => {
     }
   }, [selectedDevCompany]);
 
+  // 개발사 다중 선택을 위한 상태 수정
+  const [devCompanySelections, setDevCompanySelections] = useState([
+    { id: 1, companyId: '', managers: [], users: [], companyUsers: [] }
+  ]);
+
+  // 개발사 추가 함수 수정
+  const handleAddDevCompany = () => {
+    setDevCompanySelections([
+      ...devCompanySelections,
+      {
+        id: devCompanySelections.length + 1,
+        companyId: '',
+        managers: [],
+        users: [],
+        companyUsers: []
+      }
+    ]);
+  };
+
+  // 개발사 제거 함수 수정
+  const handleRemoveDevCompany = (selectionId) => {
+    if (devCompanySelections.length === 1) {
+      alert('최소 한 개의 개발사는 필요합니다.');
+      return;
+    }
+    setDevCompanySelections(devCompanySelections.filter(selection => selection.id !== selectionId));
+  };
+
+  // 개발사 선택 핸들러
+  const handleDevCompanyChange = async (selectionId, companyId) => {
+    // 이미 선택된 개발사인지 확인
+    const isAlreadySelected = devCompanySelections.some(
+      selection => selection.id !== selectionId && selection.companyId === companyId
+    );
+
+    if (isAlreadySelected) {
+      alert('이미 선택된 개발사입니다.');
+      return;
+    }
+
+    // 사용자 정보 가져오기
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const result = await response.json();
+      
+      if (result.statusCode === 200) {
+        const employeeData = result.data.map(employee => ({
+          userId: employee.id,
+          name: employee.name,
+          email: employee.email,
+          companyName: employee.companyName
+        }));
+
+        setDevCompanySelections(prev => prev.map(selection => 
+          selection.id === selectionId
+            ? { ...selection, companyId, companyUsers: employeeData, managers: [], users: [] }
+            : selection
+        ));
+      }
+    } catch (error) {
+      console.error('Error fetching dev company users:', error);
+    }
+  };
+
+  // 개발사 사용자 선택 핸들러 수정
+  const handleDevUserSelection = (selectionId, userId, role, isSelected) => {
+    const userIdInt = parseInt(userId);
+    
+    setDevCompanySelections(prev => prev.map(selection => {
+      if (selection.id !== selectionId) return selection;
+      
+      if (role === 'devManager') {
+        return {
+          ...selection,
+          managers: isSelected 
+            ? [...selection.managers, { userId: userIdInt }]
+            : selection.managers.filter(item => item.userId !== userIdInt)
+        };
+      } else {
+        return {
+          ...selection,
+          users: isSelected
+            ? [...selection.users, { userId: userIdInt }]
+            : selection.users.filter(item => item.userId !== userIdInt)
+        };
+      }
+    }));
+  };
+
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
@@ -169,10 +263,10 @@ const ProjectCreate = () => {
     }
   };
 
+  // 제출 핸들러 수정
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Add validation for project name and description
     if (!projectName.trim()) {
       alert('프로젝트 이름을 입력해주세요.');
       return;
@@ -182,10 +276,19 @@ const ProjectCreate = () => {
       alert('프로젝트 설명을 입력해주세요.');
       return;
     }
+
+    // 모든 개발사가 선택되었는지 확인
+    if (devCompanySelections.some(selection => !selection.companyId)) {
+      alert('모든 개발사를 선택해주세요.');
+      return;
+    }
     
     const token = localStorage.getItem('token');
     
-    // Create project data object
+    // 모든 개발사의 담당자와 개발자 정보를 하나의 배열로 합치기
+    const allDevManagers = devCompanySelections.flatMap(selection => selection.managers);
+    const allDevUsers = devCompanySelections.flatMap(selection => selection.users);
+    
     const projectData = {
       name: projectName,
       description: description,
@@ -193,8 +296,8 @@ const ProjectCreate = () => {
       endDate: endDate,
       clientManagers: clientManagers,
       clientUsers: clientUsers,
-      devManagers: devManagers,
-      devUsers: devUsers
+      devManagers: allDevManagers,
+      devUsers: allDevUsers
     };
     
     console.log('Project data to be sent to server:', projectData);
@@ -364,78 +467,112 @@ const ProjectCreate = () => {
 
             <SectionDivider>개발사 정보</SectionDivider>
 
-            <FormGroup>
-              <Label>개발사</Label>
-              <Select 
-                value={selectedDevCompany} 
-                onChange={(e) => setSelectedDevCompany(e.target.value)}
-                required
-              >
-                <option value="">개발사 선택</option>
-                {companies
-                  .filter(company => company.companyRole === 'DEVELOPER')
-                  .map(company => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))
-                }
-              </Select>
-            </FormGroup>
+            {devCompanySelections.map((selection, index) => (
+              <FormGroup key={selection.id}>
+                <FormRow>
+                  <Select 
+                    value={selection.companyId} 
+                    onChange={(e) => handleDevCompanyChange(selection.id, e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">개발사 선택</option>
+                    {companies
+                      .filter(company => 
+                        company.companyRole === 'DEVELOPER' && 
+                        (!company.id || 
+                          company.id === selection.companyId || 
+                          !devCompanySelections.some(s => s.companyId === company.id))
+                      )
+                      .map(company => (
+                        <option key={company.id} value={company.id}>
+                          {company.name}
+                        </option>
+                      ))
+                    }
+                  </Select>
+                  {devCompanySelections.length > 1 && (
+                    <RemoveButton 
+                      type="button" 
+                      onClick={() => handleRemoveDevCompany(selection.id)}
+                    >
+                      삭제
+                    </RemoveButton>
+                  )}
+                </FormRow>
 
-            {selectedDevCompany && (
-              <>
-                <FormGroup>
-                  <Label>개발 담당자</Label>
-                  <UserSelectionContainer>
-                    {devCompanyUsers.map(user => (
-                      <UserCheckboxItem key={`dev-manager-${user.userId}`}>
-                        <Checkbox 
-                          type="checkbox"
-                          id={`dev-manager-${user.userId}`}
-                          checked={devManagers.some(item => item.userId === user.userId)}
-                          onChange={(e) => handleUserSelection(user.userId, 'devManager', e.target.checked)}
-                          disabled={devUsers.some(item => item.userId === user.userId)}
-                        />
-                        <CheckboxLabel 
-                          htmlFor={`dev-manager-${user.userId}`}
-                          style={{ 
-                            color: devUsers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
-                          }}
-                        >
-                          {user.name}
-                        </CheckboxLabel>
-                      </UserCheckboxItem>
-                    ))}
-                  </UserSelectionContainer>
-                </FormGroup>
+                {selection.companyId && (
+                  <>
+                    <FormGroup>
+                      <Label>개발 담당자</Label>
+                      <UserSelectionContainer>
+                        {selection.companyUsers.map(user => (
+                          <UserCheckboxItem key={`dev-manager-${selection.id}-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`dev-manager-${selection.id}-${user.userId}`}
+                              checked={selection.managers.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleDevUserSelection(
+                                selection.id,
+                                user.userId,
+                                'devManager',
+                                e.target.checked
+                              )}
+                              disabled={selection.users.some(item => item.userId === user.userId)}
+                            />
+                            <CheckboxLabel 
+                              htmlFor={`dev-manager-${selection.id}-${user.userId}`}
+                              style={{ 
+                                color: selection.users.some(item => item.userId === user.userId) 
+                                  ? '#94a3b8' 
+                                  : '#1e293b' 
+                              }}
+                            >
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        ))}
+                      </UserSelectionContainer>
+                    </FormGroup>
 
-                <FormGroup>
-                  <Label>개발자</Label>
-                  <UserSelectionContainer>
-                    {devCompanyUsers.map(user => (
-                      <UserCheckboxItem key={`dev-user-${user.userId}`}>
-                        <Checkbox 
-                          type="checkbox"
-                          id={`dev-user-${user.userId}`}
-                          checked={devUsers.some(item => item.userId === user.userId)}
-                          onChange={(e) => handleUserSelection(user.userId, 'devUser', e.target.checked)}
-                          disabled={devManagers.some(item => item.userId === user.userId)}
-                        />
-                        <CheckboxLabel 
-                          htmlFor={`dev-user-${user.userId}`}
-                          style={{ 
-                            color: devManagers.some(item => item.userId === user.userId) ? '#94a3b8' : '#1e293b' 
-                          }}
-                        >
-                          {user.name}
-                        </CheckboxLabel>
-                      </UserCheckboxItem>
-                    ))}
-                  </UserSelectionContainer>
-                </FormGroup>
-              </>
-            )}
+                    <FormGroup>
+                      <Label>개발자</Label>
+                      <UserSelectionContainer>
+                        {selection.companyUsers.map(user => (
+                          <UserCheckboxItem key={`dev-user-${selection.id}-${user.userId}`}>
+                            <Checkbox 
+                              type="checkbox"
+                              id={`dev-user-${selection.id}-${user.userId}`}
+                              checked={selection.users.some(item => item.userId === user.userId)}
+                              onChange={(e) => handleDevUserSelection(
+                                selection.id,
+                                user.userId,
+                                'devUser',
+                                e.target.checked
+                              )}
+                              disabled={selection.managers.some(item => item.userId === user.userId)}
+                            />
+                            <CheckboxLabel 
+                              htmlFor={`dev-user-${selection.id}-${user.userId}`}
+                              style={{ 
+                                color: selection.managers.some(item => item.userId === user.userId) 
+                                  ? '#94a3b8' 
+                                  : '#1e293b' 
+                              }}
+                            >
+                              {user.name}
+                            </CheckboxLabel>
+                          </UserCheckboxItem>
+                        ))}
+                      </UserSelectionContainer>
+                    </FormGroup>
+                  </>
+                )}
+              </FormGroup>
+            ))}
+
+            <AddDevCompanyButton type="button" onClick={handleAddDevCompany}>
+              + 개발사 추가
+            </AddDevCompanyButton>
 
             <ButtonGroup>
               <CancelButton type="button" onClick={() => navigate('/dashboard')}>취소</CancelButton>
@@ -461,7 +598,11 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-top: 60px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 const Header = styled.div`
@@ -659,6 +800,62 @@ const SectionDivider = styled.div`
   background-color: #e2e8f0;
   margin: 24px 0;
   width: 100%;
+`;
+
+// Add these new styled components
+const DevCompanySection = styled.div`
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+`;
+
+const DevCompanyHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const DevCompanyTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const AddDevCompanyButton = styled.button`
+  padding: 12px 24px;
+  background: white;
+  color: #2E7D32;
+  border: 1px dashed #2E7D32;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 16px;
+  
+  &:hover {
+    background: #f0fdf4;
+  }
+`;
+
+const RemoveButton = styled.button`
+  padding: 12px 24px;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 8px;
+  
+  &:hover {
+    background: #fee2e2;
+  }
 `;
 
 export default ProjectCreate;
