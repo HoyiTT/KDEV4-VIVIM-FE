@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DashboardAdmin from './pages/DashboardAdmin';
 import ProjectCreate from './pages/ProjectCreate';
 import ProjectModify from './pages/ProjectModify';
 import CompanyManagement from './pages/CompanyManagement';
@@ -30,6 +31,12 @@ function App() {
             <Dashboard />
           </ProtectedRoute>
         } />
+        <Route path="/dashboard-admin" element={
+          <ProtectedRoute>
+            <DashboardAdmin />
+          </ProtectedRoute>
+        } />
+
         <Route path="/projectCreate" element={
           <ProtectedRoute>
             <ProjectCreate />

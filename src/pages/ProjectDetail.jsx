@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar'; // Add this import
 import { API_ENDPOINTS } from '../config/api';
 import ChecklistComponent from '../components/ChecklistComponent';
 import ProjectPostCreate from './ProjectPostCreate';
-
-
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -189,9 +186,6 @@ const ProjectDetail = () => {
         handleMenuClick={handleMenuClick}
       />
       <ContentWrapper>
-        {!adminCheckLoading && (
-          <Sidebar isAdmin={isAdmin} currentProjectId={id} />
-        )}
         <MainContent>
           <Header>
             <PageTitle>프로젝트 상세</PageTitle>
@@ -349,7 +343,6 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
-  margin-left: 250px; // Add this to make space for sidebar
 `;
 
 const Header = styled.div`
