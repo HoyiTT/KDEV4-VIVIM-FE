@@ -49,7 +49,11 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   console.log('Decoded token:', decodedToken); // For debugging
 
   const menuItems = [
-    { name: '대시보드', path: '/dashboard', showFor: 'all' },
+    { 
+      name: '대시보드', 
+      path: isAdmin ? '/dashboard-admin' : '/dashboard', 
+      showFor: 'all' 
+    },
     { 
       name: '프로젝트 관리', 
       path: isAdmin ? '/admin-projects' : '/project-list',
@@ -72,29 +76,26 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   return (
     <NavbarContainer>
       <NavContent>
-        <LogoContainer onClick={() => navigate('/dashboard')}>
-          <LogoImage src="/logo_only.png" alt="Vivim Logo" />
-        </LogoContainer>
-        <HamburgerMenu onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </HamburgerMenu>
-        <NavList isMobile={isMobileMenuOpen}>
-          {filteredMenuItems.map((item) => (
-            <NavItem
-              key={item.name}
-              active={activeMenuItem === item.name}
-              onClick={() => {
-                handleMenuClick(item.name);
-                navigate(item.path);
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              {item.name}
-            </NavItem>
-          ))}
-        </NavList>
+        <LeftSection>
+          <LogoContainer onClick={() => navigate(isAdmin ? '/dashboard-admin' : '/dashboard')}>
+            <LogoImage src="/logo_only.png" alt="Vivim Logo" />
+          </LogoContainer>
+          <NavList isMobile={isMobileMenuOpen}>
+            {filteredMenuItems.map((item) => (
+              <NavItem
+                key={item.name}
+                active={activeMenuItem === item.name}
+                onClick={() => {
+                  handleMenuClick(item.name);
+                  navigate(item.path);
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                {item.name}
+              </NavItem>
+            ))}
+          </NavList>
+        </LeftSection>
         <UserSection>
           <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
             <BellImage src="/bell.png" alt="notifications" />
@@ -156,20 +157,18 @@ const HamburgerMenu = styled.div`
 // Update NavList for mobile
 const NavList = styled.div`
   display: flex;
-  gap: 48px;
+  gap: 32px;
   align-items: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  height: 100%;
 
   @media (max-width: 768px) {
     position: fixed;
-    top: 60px;
+    top: 64px;
     left: ${props => props.isMobile ? '0' : '-100%'};
     transform: none;
     flex-direction: column;
     width: 100%;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 64px);
     background: white;
     padding: 20px;
     gap: 20px;
@@ -182,84 +181,76 @@ const NavList = styled.div`
 const UserSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   margin-left: auto;
-
-  @media (max-width: 768px) {
-    gap: 8px;
-  }
+  padding-right: 24px;
 `;
 
 // Update NavItem
 const NavItem = styled.div`
-  font-size: 14px;
-  font-weight: ${props => props.active ? '600' : '400'};
-  color: ${props => props.active ? '#2E7D32' : '#64748b'};
+  font-size: 15px;
+  font-weight: 500;
+  color: ${props => props.active ? '#000' : '#666'};
   cursor: pointer;
   padding: 8px 0;
-  border-bottom: ${props => props.active ? '2px solid #2E7D32' : 'none'};
-  
-  &:hover {
-    color: #2E7D32;
+  position: relative;
+
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #000;
+    opacity: ${props => props.active ? '1' : '0'};
+    transition: opacity 0.2s ease;
   }
 
-  @media (max-width: 768px) {
-    width: 100%;
-    text-align: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #e2e8f0;
+  &:hover {
+    color: #000;
   }
 `;
 
 const NotificationIcon = styled.div`
-  font-size: 20px;
-  color: #2E7D32;  // Changed to green by default
   cursor: pointer;
-  position: relative;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: #f1f5f9;
-    opacity: 0.8;
-  }
 `;
 
 const NotificationPanel = styled.div`
   position: absolute;
-  top: 60px;
-  right: 120px;
-  width: 300px;
+  top: 100%;
+  right: 0;
+  width: 320px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
   z-index: 1000;
-  overflow: hidden;
 `;
 
 const NotificationHeader = styled.div`
   padding: 16px;
+  font-size: 14px;
   font-weight: 600;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #eee;
 `;
 
 const NotificationEmpty = styled.div`
-  padding: 24px 16px;
+  padding: 32px 16px;
   text-align: center;
-  color: #94a3b8;
+  color: #666;
   font-size: 14px;
 `;
 
 // Update or add these styled components
 const CompanyInfo = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  text-align: right;
+  font-size: 13px;
+  color: #666;
 `;
 
 // Update NavbarContainer and add NavContent
@@ -268,37 +259,40 @@ const NavbarContainer = styled.nav`
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 64px;
   background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   z-index: 1000;
-`;
-const MenuContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 24px;
 `;
 
 const NavContent = styled.div`
+  height: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 100%;
-  padding: 0;
-  position: relative;  // 추가
 `;
 
+const LeftSection = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const LogoContainer = styled.div`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 16px;
+`;
+
+const LogoImage = styled.img`
+  height: 24px;
+  object-fit: contain;
+`;
 
 const LogoutButtonContainer = styled.div`
   display: flex;
   margin-left: auto;
 `;
-
-
 
 const Logo = styled.div`
   font-size: 20px;
@@ -325,24 +319,20 @@ const MenuItem = styled.div`
   }
 `;
 
-
-
 const UserInfo = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 2px;
 `;
 
 const UserName = styled.div`
   font-size: 14px;
   font-weight: 500;
-  color: #1e293b;
+  color: #000;
   cursor: pointer;
-  transition: color 0.2s;
-  
+
   &:hover {
-    color: #2E7D32;
+    text-decoration: underline;
   }
 `;
 
@@ -357,7 +347,6 @@ const UserAvatar = styled.div`
   border-radius: 50%;
   background-color: #e2e8f0;
 `;
-
 
 const UserEmail = styled.div`
   font-size: 12px;
@@ -380,43 +369,31 @@ const LoginButton = styled.button`
 
 // Add styled component for logout button
 const LogoutButton = styled.button`
-  // margin-left: auto; 제거
-  padding: 8px 16px;
-  background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #666;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(220, 38, 38, 0.1);
+    background: #f5f5f5;
+    border-color: #ccc;
   }
 `;
 
 export default Navbar;
 
-
 // Add these new styled components
-const LogoContainer = styled.div`
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  margin-right: 24px;
-`;
-
 const BellImage = styled.img`
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-`;
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
 
-const LogoImage = styled.img`
-  height: 32px;
-  width: auto;
-  
-  @media (max-width: 768px) {
-    height: 28px;
+  &:hover {
+    opacity: 1;
   }
 `;

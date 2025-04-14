@@ -380,6 +380,15 @@ const Login = () => {
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
 
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      console.error('Token decode error:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -397,8 +406,16 @@ const Login = () => {
       
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem('token', data.access_token);
-        navigate('/dashboard');
+        const token = data.access_token;
+        localStorage.setItem('token', token);
+        
+        // JWT 토큰 디코딩하여 role 확인
+        const decodedToken = decodeToken(token);
+        if (decodedToken?.role === 'ADMIN') {
+          navigate('/dashboard-admin');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
       }
