@@ -133,7 +133,11 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-top: 60px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 // 기존 스타일 컴포넌트 유지
@@ -175,6 +179,7 @@ const CompanyTable = styled.table`
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  margin: 0 auto;
 `;
 
 const LoadingMessage = styled.div`
@@ -211,7 +216,7 @@ const DeleteButton = styled.button`
 `;
 
 const TableHeaderCell = styled.th`
-  padding: 16px;
+  padding: 16px 24px;
   text-align: left;
   font-size: 14px;
   font-weight: 500;
@@ -229,7 +234,7 @@ const TableRow = styled.tr`
 `;
 
 const TableCell = styled.td`
-  padding: 16px;
+  padding: 16px 24px;
   font-size: 14px;
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;

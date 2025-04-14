@@ -131,6 +131,10 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 const Header = styled.div`
@@ -171,6 +175,7 @@ const UserTable = styled.table`
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  margin: 0 auto;
 `;
 
 const TableHeader = styled.thead`
@@ -186,7 +191,7 @@ const TableRow = styled.tr`
 `;
 
 const TableHeaderCell = styled.th`
-  padding: 16px;
+  padding: 16px 24px;
   text-align: left;
   font-size: 14px;
   font-weight: 500;
@@ -197,7 +202,7 @@ const TableHeaderCell = styled.th`
 const TableBody = styled.tbody``;
 
 const TableCell = styled.td`
-  padding: 16px;
+  padding: 16px 24px;
   font-size: 14px;
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
