@@ -49,18 +49,15 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   console.log('Decoded token:', decodedToken); // For debugging
 
   const menuItems = [
-    { 
-      name: '대시보드', 
-      path: isAdmin ? '/dashboard-admin' : '/dashboard', 
-      showFor: 'all' 
-    },
+    { name: '대시보드', path: '/dashboard-admin' },
     { 
       name: '프로젝트 관리', 
       path: isAdmin ? '/admin-projects' : '/project-list',
       showFor: 'all' 
     },
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
-    { name: '사용자 관리', path: '/user-management', showFor: 'admin' }
+    { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
+    { name: '관리자 문의', path: '/admin-inquiry', showFor: 'admin' }
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
@@ -71,6 +68,11 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/');
+  };
+
+  const handleClick = (menuItem) => {
+    handleMenuClick(menuItem.name);
+    navigate(menuItem.path);
   };
 
   return (
@@ -85,11 +87,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
               <NavItem
                 key={item.name}
                 active={activeMenuItem === item.name}
-                onClick={() => {
-                  handleMenuClick(item.name);
-                  navigate(item.path);
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={() => handleClick(item)}
               >
                 {item.name}
               </NavItem>
