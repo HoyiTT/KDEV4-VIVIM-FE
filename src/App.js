@@ -19,6 +19,7 @@ import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
 import ProjectPostDetail from './pages/ProjectPostDetail';
 import ProjectPostModify from './pages/ProjectPostModify';
+import AdminInquiry from './pages/AdminInquiry';
 
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
             <DashboardAdmin />
           </ProtectedRoute>
         } />
+        <Route path="/admin-inquiry" element={<AdminInquiry />} />
 
         <Route path="/projectCreate" element={
           <ProtectedRoute>
