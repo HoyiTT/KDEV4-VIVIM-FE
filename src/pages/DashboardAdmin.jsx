@@ -1,11 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { PieChart } from 'react-minimal-pie-chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
+
+
+const API_BASE_URL = 'https://localhost';
 
 const DashboardAdmin = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -69,39 +78,28 @@ const DashboardAdmin = () => {
     }
   ];
 
-  // 최근 게시글 더미데이터 추가 (컴포넌트 상단에 추가)
-  const recentPosts = [
-    {
-      title: "2024년 1분기 프로젝트 진행현황 보고",
-      author: "김관리",
-      date: "2024.03.21",
-      category: "공지"
-    },
-    {
-      title: "신규 프로젝트 관리 시스템 도입 안내",
-      author: "이매니저",
-      date: "2024.03.20",
-      category: "일반"
-    },
-    {
-      title: "3월 프로젝트 마감 일정 안내",
-      author: "박팀장",
-      date: "2024.03.19",
-      category: "일반"
-    },
-    {
-      title: "외부 협력사 미팅 결과 공유",
-      author: "최대리",
-      date: "2024.03.18",
-      category: "공지"
-    },
-    {
-      title: "프로젝트 진행 가이드라인 업데이트",
-      author: "정과장",
-      date: "2024.03.17",
-      category: "질문"
-    }
-  ];
+  useEffect(() => {
+    const fetchRecentPosts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/posts/admin/recent`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch recent posts');
+        const data = await response.json();
+        console.log('최근 게시글 데이터:', data);
+        setRecentPosts(data);
+      } catch (error) {
+        console.error('Error fetching recent posts:', error);
+        setRecentPosts([]);
+      }
+    };
+
+    fetchRecentPosts();
+  }, []);
 
   // 매출 데이터 추가 (컴포넌트 내부)
   const revenueData = [
@@ -110,6 +108,10 @@ const DashboardAdmin = () => {
     { name: '3주차', amount: 2600 },
     { name: '4주차', amount: 3500 },
   ];
+
+  const handlePostClick = (postId, projectId) => {
+    navigate(`/project/${projectId}/post/${postId}`);
+  };
 
   return (
     <PageContainer>
@@ -218,13 +220,22 @@ const DashboardAdmin = () => {
         <RecentPostSection>
           <SectionTitle>최근 게시글</SectionTitle>
           <PostList>
-            {recentPosts.map((post, index) => (
-              <PostItem key={index}>
-                <PostCategory>{post.category}</PostCategory>
+            {recentPosts.map((post) => (
+              <PostItem 
+                key={post.postId} 
+                onClick={() => handlePostClick(post.postId, post.projectId)}
+              >
+                <PostCategory>{post.creatorRole}</PostCategory>
                 <PostTitle>{post.title}</PostTitle>
                 <PostInfo>
-                  <PostAuthor>{post.author}</PostAuthor>
-                  <PostDate>{post.date}</PostDate>
+                  <PostAuthor>{post.creatorName}</PostAuthor>
+                  <PostDate>
+                    {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    }).replace(/\. /g, '.').slice(0, -1)}
+                  </PostDate>
                 </PostInfo>
               </PostItem>
             ))}
@@ -519,14 +530,42 @@ const PostItem = styled.div`
   background: #f8fafc;
   border-radius: 8px;
   gap: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
 `;
 
 const PostCategory = styled.span`
-  background: #e2e8f0;
+  background: ${props => {
+    switch (props.children) {
+      case 'DEVELOPER':
+        return '#E3F2FD';
+      case 'DESIGNER':
+        return '#F3E5F5';
+      case 'MANAGER':
+        return '#E8F5E9';
+      default:
+        return '#e2e8f0';
+    }
+  }};
+  color: ${props => {
+    switch (props.children) {
+      case 'DEVELOPER':
+        return '#1976D2';
+      case 'DESIGNER':
+        return '#9C27B0';
+      case 'MANAGER':
+        return '#2E7D32';
+      default:
+        return '#475569';
+    }
+  }};
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  color: #475569;
   white-space: nowrap;
 `;
 

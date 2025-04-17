@@ -1,36 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const AdminInquiry = () => {
+  const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('관리자 문의');
+  const [projects, setProjects] = useState([]);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    inquiryType: 'GENERAL',
+    projectId: ''
+  });
+
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (error) {
+      console.error('Token decode error:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const decodedToken = decodeToken(token);
+        
+        if (!decodedToken?.userId) {
+          console.error('User ID not found in token');
+          return;
+        }
+
+        const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const activeProjects = data.filter(project => !project.deleted);
+          setProjects(activeProjects);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
-  // 더미데이터 수정
-  const adminInquiries = [
-    {
-      id: 1,
-      title: "프로젝트 권한 설정 문의",
-      author: "김철수",
-      company: "테크솔루션",
-      date: "2024.03.21",
-      status: "미답변",
-      content: "프로젝트 관리자 권한 설정 방법을 알고 싶습니다."
-    },
-    {
-      id: 2,
-      title: "결제 정보 변경 요청",
-      author: "이영희",
-      company: "디자인허브",
-      date: "2024.03.21",
-      status: "답변완료",
-      content: "회사 법인카드 정보를 변경하고 싶습니다."
-    },
-    // ... 더 많은 데이터 추가
-  ];
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://dev.vivim.co.kr/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        alert('문의가 성공적으로 등록되었습니다.');
+        navigate('/admin-inquiry-list');
+      } else {
+        alert('문의 등록에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error creating inquiry:', error);
+      alert('문의 등록 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <PageContainer>
@@ -40,41 +98,71 @@ const AdminInquiry = () => {
       />
       <MainContent>
         <Header>
-          <PageTitle>관리자 문의</PageTitle>
-          <TotalCount>총 {adminInquiries.length}건</TotalCount>
+          <PageTitle>관리자 문의 작성</PageTitle>
         </Header>
-        <TableContainer>
-          <Table>
-            <TableHeader>
-              <tr>
-                <th>번호</th>
-                <th>제목</th>
-                <th>회사명</th>
-                <th>작성자</th>
-                <th>등록일</th>
-                <th>상태</th>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {adminInquiries.map((inquiry) => (
-                <TableRow key={inquiry.id}>
-                  <td>{inquiry.id}</td>
-                  <td>
-                    <InquiryTitle>{inquiry.title}</InquiryTitle>
-                  </td>
-                  <td>{inquiry.company}</td>
-                  <td>{inquiry.author}</td>
-                  <td>{inquiry.date}</td>
-                  <td>
-                    <InquiryStatus status={inquiry.status}>
-                      {inquiry.status}
-                    </InquiryStatus>
-                  </td>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <FormContainer onSubmit={handleSubmit}>
+          <FormGroup>
+            <Label>문의 유형</Label>
+            <Select 
+              name="inquiryType"
+              value={formData.inquiryType}
+              onChange={handleChange}
+            >
+              <option value="GENERAL">일반 문의</option>
+              <option value="PROJECT">프로젝트 문의</option>
+            </Select>
+          </FormGroup>
+
+          {formData.inquiryType === 'PROJECT' && (
+            <FormGroup>
+              <Label>프로젝트 선택</Label>
+              <StyledSelect
+                name="projectId"
+                value={formData.projectId}
+                onChange={handleChange}
+                required
+              >
+                <option value="">프로젝트를 선택해주세요</option>
+                {projects.map(project => (
+                  <option key={project.projectId} value={project.projectId}>
+                    {project.name}
+                  </option>
+                ))}
+              </StyledSelect>
+            </FormGroup>
+          )}
+
+          <FormGroup>
+            <Label>제목</Label>
+            <Input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="제목을 입력해주세요"
+              required
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label>내용</Label>
+            <TextArea
+              name="content"
+              value={formData.content}
+              onChange={handleChange}
+              placeholder="문의 내용을 입력해주세요"
+              required
+              rows={10}
+            />
+          </FormGroup>
+          <ButtonContainer>
+            <CancelButton type="button" onClick={() => navigate('/admin-inquiry-list')}>
+              취소
+            </CancelButton>
+            <SubmitButton type="submit">
+              등록
+            </SubmitButton>
+          </ButtonContainer>
+        </FormContainer>
       </MainContent>
     </PageContainer>
   );
@@ -91,15 +179,13 @@ const PageContainer = styled.div`
 const MainContent = styled.main`
   padding: 24px;
   margin-top: 60px;
-  max-width: 2000px;
-  margin-left: 300px;
-  margin-right: 300px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 24px;
 `;
 
@@ -107,94 +193,140 @@ const PageTitle = styled.h1`
   font-size: 24px;
   font-weight: 600;
   color: #1e293b;
+  margin: 0;
 `;
 
-const TotalCount = styled.span`
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const TableContainer = styled.div`
+const FormContainer = styled.form`
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  width: 100%;
-  margin: 0 auto;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-`;
+const FormGroup = styled.div`
+  margin-bottom: 24px;
+  position: relative;
 
-const TableHeader = styled.thead`
-  background: #f8fafc;
-  
-  th {
-    padding: 16px;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 500;
-    color: #64748b;
-    border-bottom: 1px solid #e2e8f0;
+  /* 드롭다운이 열렸을 때의 스타일 */
+  select:focus + .dropdown {
+    display: block;
   }
 `;
 
-const TableBody = styled.tbody`
-  tr:hover {
-    background: #f8fafc;
-  }
-`;
-
-const TableRow = styled.tr`
-  td {
-    padding: 16px;
-    font-size: 14px;
-    color: #1e293b;
-    border-bottom: 1px solid #e2e8f0;
-  }
-`;
-
-const InquiryTitle = styled.span`
-  color: #1e293b;
+const Label = styled.label`
+  display: block;
+  font-size: 14px;
   font-weight: 500;
+  color: #64748b;
+  margin-bottom: 8px;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+  }
+`;
+
+const StyledSelect = styled.select`
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
   cursor: pointer;
   
-  &:hover {
-    color: #3b82f6;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 1px #2E7D32;
+  }
+  
+  option {
+    padding: 8px;
+    &:first-child {
+      color: #64748b;
+    }
   }
 `;
 
-const InquiryStatus = styled.span`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  ${props => {
-    switch (props.status) {
-      case '미답변':
-        return `
-          background-color: #FEF2F2;
-          color: #EF4444;
-        `;
-      case '답변완료':
-        return `
-          background-color: #F0FDF4;
-          color: #22C55E;
-        `;
-      case '검토중':
-        return `
-          background-color: #F0F9FF;
-          color: #0EA5E9;
-        `;
-      default:
-        return `
-          background-color: #F8FAFC;
-          color: #64748B;
-        `;
-    }
-  }}
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 200px;
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 1px #2E7D32;
+  }
 `;
 
-export default AdminInquiry; 
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+`;
+
+const Button = styled.button`
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+`;
+
+const SubmitButton = styled(Button)`
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  
+  &:hover {
+    background-color: #1B5E20;
+  }
+`;
+
+const CancelButton = styled(Button)`
+  background-color: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+export default AdminInquiry;
