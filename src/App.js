@@ -13,7 +13,7 @@ import CompanyEdit from './pages/CompanyEdit';
 import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
-
+import AuditLog from './pages/AuditLog';
 
 import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
@@ -102,6 +102,11 @@ function App() {
         <Route path="/project/:projectId/post/:postId/modify" element={
           <ProtectedRoute>
             <ProjectPostModify />
+          </ProtectedRoute>
+        } />
+        <Route path="/audit-log" element={
+          <ProtectedRoute>
+            <AuditLog />
           </ProtectedRoute>
         } />
         <Route path="/user-edit/:userId" element={<UserEdit />} />
