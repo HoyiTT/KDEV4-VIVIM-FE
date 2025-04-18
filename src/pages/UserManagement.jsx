@@ -100,7 +100,7 @@ const UserManagement = () => {
                   </TableCell>
                   <TableCell>
                     <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정하기</ActionButton>
+                      <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정</ActionButton>
                       <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
                         삭제
                       </DeleteButton>
@@ -152,18 +152,34 @@ const PageTitle = styled.h1`
 `;
 
 const AddButton = styled.button`
-  padding: 12px 24px;
-  background: #2E7D32;
+  padding: 12px 20px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   
+  &:before {
+    content: '+';
+    font-size: 20px;
+    font-weight: 400;
+  }
+
   &:hover {
-    background: #1B5E20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
   }
 `;
 

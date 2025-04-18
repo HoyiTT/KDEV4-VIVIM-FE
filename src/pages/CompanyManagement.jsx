@@ -92,7 +92,7 @@ const CompanyManagement = () => {
                 <TableRow key={company.id}>
                   <TableCell 
                     onClick={() => navigate(`/company-edit/${company.id}`)}
-                    style={{ cursor: 'pointer', color: '#2E7D32' }}
+                    style={{ cursor: 'pointer', color: '#1e293b' }}
                   >
                     {company.name}
                   </TableCell>
@@ -125,7 +125,7 @@ const PageContainer = styled.div`
   flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'SUIT', sans-serif;
 `;
 
 // MainContent 스타일 수정
@@ -153,21 +153,38 @@ const PageTitle = styled.h1`
   font-weight: 600;
   color: #1e293b;
   margin: 0;
+  font-family: 'SUIT', sans-serif;
 `;
 
 const AddButton = styled.button`
-  padding: 12px 24px;
-  background: #2E7D32;
+  padding: 12px 20px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   
+  &:before {
+    content: '+';
+    font-size: 20px;
+    font-weight: 400;
+  }
+
   &:hover {
-    background: #1B5E20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
   }
 `;
 
@@ -189,6 +206,7 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
+  font-family: 'SUIT', sans-serif;
 `;
 
 // 기타 필요한 스타일 컴포넌트들...
@@ -209,6 +227,7 @@ const DeleteButton = styled.button`
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: 'SUIT', sans-serif;
 
   &:hover {
     background: rgba(220, 38, 38, 0.1);
@@ -223,6 +242,7 @@ const TableHeaderCell = styled.th`
   color: #64748b;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
+  font-family: 'SUIT', sans-serif;
 `;
 
 const TableRow = styled.tr`
@@ -238,6 +258,7 @@ const TableCell = styled.td`
   font-size: 14px;
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
+  font-family: 'SUIT', sans-serif;
 `;
 
 const ActionButton = styled.button`
@@ -249,6 +270,7 @@ const ActionButton = styled.button`
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: 'SUIT', sans-serif;
 
   &:hover {
     background: rgba(79, 106, 255, 0.1);
