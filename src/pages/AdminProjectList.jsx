@@ -94,7 +94,7 @@ const AdminProjectList = () => {
                 <TableRow key={project.projectId}>
                   <TableCell 
                     onClick={() => navigate(`/project/${project.projectId}`)}
-                    style={{ cursor: 'pointer', color: '#2E7D32' }}
+                    style={{ cursor: 'pointer', color: '#1e293b' }}
                   >
                     {project.name}
                   </TableCell>
@@ -108,13 +108,13 @@ const AdminProjectList = () => {
                   <TableCell>
                     <ActionButtonContainer>
                       <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
-                        수정하기
+                        수정
                       </ActionButton>
                       <DeleteButton 
                         onClick={() => handleDeleteProject(project.projectId)}
                         disabled={project.deleted}
                       >
-                        삭제하기
+                        삭제
                       </DeleteButton>
                     </ActionButtonContainer>
                   </TableCell>
@@ -134,7 +134,7 @@ const PageContainer = styled.div`
   flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'SUIT', sans-serif;
 `;
 
 // MainContent 스타일 수정
@@ -165,18 +165,34 @@ const PageTitle = styled.h1`
 `;
 
 const AddButton = styled.button`
-  padding: 12px 24px;
-  background: #2E7D32;
+  padding: 12px 20px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   
+  &:before {
+    content: '+';
+    font-size: 20px;
+    font-weight: 400;
+  }
+
   &:hover {
-    background: #1B5E20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
   }
 `;
 
@@ -210,6 +226,7 @@ const TableHeaderCell = styled.th`
   font-weight: 500;
   color: #64748b;
   border-bottom: 1px solid #e2e8f0;
+  font-family: 'SUIT', sans-serif;
 `;
 
 const TableBody = styled.tbody``;
@@ -219,6 +236,7 @@ const TableCell = styled.td`
   font-size: 14px;
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
+  font-family: 'SUIT', sans-serif;
 `;
 
 const StatusBadge = styled.span`
@@ -227,6 +245,7 @@ const StatusBadge = styled.span`
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
+  font-family: 'SUIT', sans-serif;
   
   ${props => props.deleted ? `
     background: rgba(239, 68, 68, 0.1);
@@ -251,6 +270,7 @@ const ActionButton = styled.button`
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: 'SUIT', sans-serif;
 
   &:hover {
     background: rgba(79, 106, 255, 0.1);
@@ -266,6 +286,7 @@ const DeleteButton = styled.button`
   font-size: 13px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
+  font-family: 'SUIT', sans-serif;
 
   &:hover {
     background: ${props => props.disabled ? 'transparent' : 'rgba(239, 68, 68, 0.1)'};
@@ -279,6 +300,7 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
+  font-family: 'SUIT', sans-serif;
 `;
 
 export default AdminProjectList;

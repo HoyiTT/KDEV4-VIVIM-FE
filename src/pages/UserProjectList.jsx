@@ -119,6 +119,10 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 const Header = styled.div`

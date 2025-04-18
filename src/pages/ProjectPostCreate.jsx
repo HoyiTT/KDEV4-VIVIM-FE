@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
-
-const API_BASE_URL = 'https://dev.vivim.co.kr/api';
-
-
+import { API_ENDPOINTS } from '../config/api';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
@@ -87,7 +84,7 @@ const handleLinkDelete = (indexToDelete) => {
         parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null
       };
       
-      const postResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/posts`, {
+      const postResponse = await fetch(API_ENDPOINTS.PROJECT_POSTS(projectId), {
         method: 'POST',
         headers: {
           'Authorization': `${token}`,
@@ -110,7 +107,7 @@ const handleLinkDelete = (indexToDelete) => {
             url: link.url
           };
       
-          const linkResponse = await fetch(`${API_BASE_URL}/posts/${postId}/link`, {
+          const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, postId), {
             method: 'POST',
             headers: {
               'Authorization': `${token}`,
@@ -131,7 +128,7 @@ const handleLinkDelete = (indexToDelete) => {
           const formData = new FormData();
           formData.append('file', file);
   
-          const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
+          const fileResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, postId), {
             method: 'POST',
             headers: {
               'Authorization': `${token}`

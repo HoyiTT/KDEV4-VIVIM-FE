@@ -275,6 +275,7 @@ const CompanyEdit = () => {
               <option value="">선택하세요</option>
               <option value="DEVELOPER">개발사</option>
               <option value="CUSTOMER">고객사</option>
+              <option value="ADMIN">관리사</option>
             </Select>
           </FormGroup>
 

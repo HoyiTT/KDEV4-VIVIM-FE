@@ -57,7 +57,8 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     },
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
     { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
-    { name: '관리자 문의', path: '/admin-inquiry', showFor: 'admin' }
+    { name: '관리자 문의', path: '/admin-inquiry', showFor: 'admin' },
+    { name: '감사 로그', path: '/audit-log', showFor: 'admin' }
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
@@ -71,7 +72,9 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   };
 
   const handleClick = (menuItem) => {
-    handleMenuClick(menuItem.name);
+    if (handleMenuClick) {
+      handleMenuClick(menuItem.name);
+    }
     navigate(menuItem.path);
   };
 

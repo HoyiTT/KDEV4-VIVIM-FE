@@ -259,12 +259,12 @@ const ProjectDetail = () => {
                             <thead>
                               <tr>
                                 <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>답글</BoardHeaderCell>
                                 <BoardHeaderCell>상태</BoardHeaderCell>
                                 <BoardHeaderCell>작성자</BoardHeaderCell>
                                 <BoardHeaderCell>역할</BoardHeaderCell>
                                 <BoardHeaderCell>작성일</BoardHeaderCell>
                                 <BoardHeaderCell>수정일</BoardHeaderCell>
-                                <BoardHeaderCell></BoardHeaderCell>
                               </tr>
                             </thead>
                             <tbody>
@@ -287,6 +287,18 @@ const ProjectDetail = () => {
                                       {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
                                       {post.title}
                                     </BoardCell>
+                                    <BoardCell>
+                                      {!post.parentId && (
+                                        <ReplyButton onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/project/${id}/post/create`, {
+                                            state: { parentPost: post }
+                                          });
+                                        }}>
+                                          답글
+                                        </ReplyButton>
+                                      )}
+                                    </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
                                        post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
@@ -303,16 +315,6 @@ const ProjectDetail = () => {
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
                                     </BoardCell>
-                                    <ActionCell className={post.parentId ? 'child-post' : ''}>
-                                      <ReplyButton onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/project/${id}/post/create`, {
-                                          state: { parentPost: post }
-                                        });
-                                      }}>
-                                        답글
-                                      </ReplyButton>
-                                    </ActionCell>
                                   </BoardRow>
                                 ))}
                             </tbody>
@@ -342,7 +344,11 @@ const MainContent = styled.div`
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  margin-top: 60px; // 네비게이션바 높이만큼 여백 추가
+  margin-top: 60px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 `;
 
 const Header = styled.div`

@@ -9,6 +9,11 @@ const ChecklistComponent = ({ progressId }) => {
   const [isEditing, setIsEditing] = useState(null);
   const [newChecklistName, setNewChecklistName] = useState('');
   const [editName, setEditName] = useState('');
+  const [isDisabled, setIsDisabled] = useState(false);
+
+  const toggleDisabled = () => {
+    setIsDisabled(!isDisabled);
+  };
 
   const fetchChecklists = async () => {
     try {
@@ -20,6 +25,7 @@ const ChecklistComponent = ({ progressId }) => {
       });
       const data = await response.json();
       setChecklists(data.allChecklist || []);
+      // setIsDisabled(data.isDisabled || false); // 임시로 주석 처리
     } catch (error) {
       console.error('Error fetching checklists:', error);
     } finally {
@@ -34,7 +40,7 @@ const ChecklistComponent = ({ progressId }) => {
   if (loading) return <LoadingText>로딩중...</LoadingText>;
 
   const handleAddChecklist = async () => {
-    if (!newChecklistName.trim()) return;
+    if (!newChecklistName.trim() || isDisabled) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/progress/${progressId}/checklists`, {
@@ -59,6 +65,7 @@ const ChecklistComponent = ({ progressId }) => {
   };
 
   const handleDeleteChecklist = async (checklistId) => {
+    if (isDisabled) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/progress/${checklistId}`, {
@@ -77,7 +84,7 @@ const ChecklistComponent = ({ progressId }) => {
   };
 
   const handleEditChecklist = async (checklistId) => {
-    if (!editName.trim()) return;
+    if (!editName.trim() || isDisabled) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/progress/${checklistId}?name=${encodeURIComponent(editName)}`, {
@@ -97,13 +104,20 @@ const ChecklistComponent = ({ progressId }) => {
     }
   };
 
-  // Update the return JSX for checklist items
   return (
-    <ChecklistContainer>
+    <ChecklistContainer isDisabled={isDisabled}>
+      <ToggleButton onClick={toggleDisabled}>
+        {isDisabled ? '활성화하기' : '비활성화하기'}
+      </ToggleButton>
+      {isDisabled && (
+        <DisabledOverlay>
+          <DisabledText>이 단계는 완료되었습니다</DisabledText>
+        </DisabledOverlay>
+      )}
       {checklists.length > 0 ? (
         <ChecklistList>
           {checklists.map((item) => (
-            <ChecklistItemContainer key={item.id}>
+            <ChecklistItemContainer key={item.id} isDisabled={isDisabled}>
               {isEditing === item.id ? (
                 <ChecklistInput
                   type="text"
@@ -111,6 +125,7 @@ const ChecklistComponent = ({ progressId }) => {
                   onChange={(e) => setEditName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleEditChecklist(item.id)}
                   placeholder="체크리스트 이름 입력"
+                  disabled={isDisabled}
                 />
               ) : (
                 <ChecklistName>{item.name}</ChecklistName>
@@ -121,16 +136,16 @@ const ChecklistComponent = ({ progressId }) => {
                     <CancelButton onClick={() => {
                       setIsEditing(null);
                       setEditName('');
-                    }}>취소</CancelButton>
-                    <SaveButton onClick={() => handleEditChecklist(item.id)}>저장</SaveButton>
+                    }} disabled={isDisabled}>취소</CancelButton>
+                    <SaveButton onClick={() => handleEditChecklist(item.id)} disabled={isDisabled}>저장</SaveButton>
                   </>
                 ) : (
                   <>
                     <EditButton onClick={() => {
                       setIsEditing(item.id);
                       setEditName(item.name);
-                    }}>수정</EditButton>
-                    <DeleteButton onClick={() => handleDeleteChecklist(item.id)}>삭제</DeleteButton>
+                    }} disabled={isDisabled}>수정</EditButton>
+                    <DeleteButton onClick={() => handleDeleteChecklist(item.id)} disabled={isDisabled}>삭제</DeleteButton>
                   </>
                 )}
               </ChecklistActions>
@@ -149,14 +164,15 @@ const ChecklistComponent = ({ progressId }) => {
             value={newChecklistName}
             onChange={(e) => setNewChecklistName(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddChecklist()}
+            disabled={isDisabled}
           />
           <ButtonGroup>
-            <CancelButton onClick={() => setIsAdding(false)}>취소</CancelButton>
-            <SaveButton onClick={handleAddChecklist}>저장</SaveButton>
+            <CancelButton onClick={() => setIsAdding(false)} disabled={isDisabled}>취소</CancelButton>
+            <SaveButton onClick={handleAddChecklist} disabled={isDisabled}>저장</SaveButton>
           </ButtonGroup>
         </AddChecklistForm>
       ) : (
-        <AddChecklistButton onClick={() => setIsAdding(true)}>
+        <AddChecklistButton onClick={() => setIsAdding(true)} disabled={isDisabled}>
           + 체크리스트 추가
         </AddChecklistButton>
       )}
@@ -164,27 +180,67 @@ const ChecklistComponent = ({ progressId }) => {
   );
 };
 
+const ChecklistContainer = styled.div`
+  margin-top: 12px;
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  opacity: ${props => props.isDisabled ? 0.5 : 1};
+`;
+
+const DisabledOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 6px;
+`;
+
+const DisabledText = styled.span`
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
 const AddChecklistForm = styled.div`
   margin-top: 24px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 16px;
   background-color: white;
-  min-height: 90px;  // Increased height
+  min-height: 90px;
   display: flex;
-  flex-direction: column;  // Back to column layout
+  flex-direction: column;
   gap: 12px;
 `;
 
 const AddChecklistButton = styled.button`
-    padding: 8px 16px;
-    background: #2E7D32;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
+  padding: 8px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+
+  &:hover {
+    background: ${props => props.disabled ? '#2E7D32' : '#1B5E20'};
+  }
 `;
 
 const ChecklistInput = styled.input`
@@ -199,13 +255,18 @@ const ChecklistInput = styled.input`
     outline: none;
     border-color: #94a3b8;
   }
+
+  &:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+  }
 `;
 
 const EmptyMessage = styled.div`
   text-align: center;
   color: #64748b;
   font-size: 14px;
-  padding: 15px;  // Changed to match ChecklistItemContainer padding
+  padding: 15px;
   flex-grow: 1;
   display: flex;
   align-items: center;
@@ -213,7 +274,7 @@ const EmptyMessage = styled.div`
   border: 1px dashed #cbd5e1;
   border-radius: 6px;
   margin-bottom: 24px;
-  min-height: 90px;  // Added to match other containers
+  min-height: 90px;
 `;
 
 const ButtonGroup = styled.div`
@@ -221,7 +282,6 @@ const ButtonGroup = styled.div`
   gap: 8px;
   justify-content: flex-end;
 `;
-
 
 const CancelButton = styled.button`
   padding: 6px 12px;
@@ -231,18 +291,12 @@ const CancelButton = styled.button`
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   
   &:hover {
-    background-color: #e2e8f0;
+    background-color: ${props => props.disabled ? '#f1f5f9' : '#e2e8f0'};
   }
-`;
-
-const ChecklistContainer = styled.div`
-  margin-top: 12px;
-  width: 100%;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
 `;
 
 const ChecklistList = styled.ul`
@@ -262,15 +316,16 @@ const ChecklistItemContainer = styled.li`
   background-color: white;
   display: flex;
   flex-direction: column;
-  gap: 16px;  // Changed from 12px to 16px for even more spacing
+  gap: 16px;
+  opacity: ${props => props.isDisabled ? 0.5 : 1};
   
   &:last-child {
     margin-bottom: 0;
   }
   
   &:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-color: ${props => props.isDisabled ? '#e2e8f0' : '#cbd5e1'};
+    box-shadow: ${props => props.isDisabled ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.05)'};
   }
 `;
 
@@ -296,43 +351,76 @@ const LoadingText = styled.div`
   padding: 16px;
 `;
 
-export default ChecklistComponent;
-
-// Add these new styled components
 const EditButton = styled.button`
-    padding: 6px 12px;
-    background: transparent;
-    color: #4F6AFF;
-    border: 1px solid #4F6AFF;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    
+  padding: 6px 12px;
+  background: transparent;
+  color: #4F6AFF;
+  border: 1px solid #4F6AFF;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  
+  &:hover {
+    background-color: ${props => props.disabled ? 'transparent' : '#f0f5ff'};
+  }
 `;
 
 const DeleteButton = styled.button`
-    padding: 6px 12px;
-    background: transparent;
-    color: #dc2626;
-    border: 1px solid #dc2626;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
+  padding: 6px 12px;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  
+  &:hover {
+    background-color: ${props => props.disabled ? 'transparent' : '#fef2f2'};
+  }
 `;
 
 const SaveButton = styled.button`
-    padding: 8px 16px;
-    background: #2E7D32;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
+  padding: 8px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   
   &:hover {
-    background-color: #2E7D32;
+    background-color: ${props => props.disabled ? '#2E7D32' : '#1B5E20'};
   }
 `;
+
+const ToggleButton = styled.button`
+  position: absolute;
+  top: -30px;
+  right: 0;
+  padding: 2px 6px;
+  background: ${props => props.isDisabled ? '#2E7D32' : '#dc2626'};
+  color: white;
+  border: none;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 20;
+  height: 20px;
+  min-width: 60px;
+
+  &:hover {
+    background: ${props => props.isDisabled ? '#1B5E20' : '#b91c1c'};
+  }
+`;
+
+export default ChecklistComponent;
