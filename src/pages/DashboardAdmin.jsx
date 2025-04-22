@@ -13,6 +13,25 @@ const DashboardAdmin = () => {
   const [recentPosts, setRecentPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [summaryData, setSummaryData] = useState([
+    { title: '계약', value: 0 },
+    { title: '검수', value: 0 },
+  ]);
+  const [revenueData, setRevenueData] = useState([
+    { name: '1주차', amount: 0 },
+    { name: '2주차', amount: 0 },
+    { name: '3주차', amount: 0 },
+    { name: '4주차', amount: 0 },
+    { name: '5주차', amount: 0 },
+  ]);
+  const [projectStatusData, setProjectStatusData] = useState([
+    { title: '요구사항정의', count: 0, color: '#FFD572' },
+    { title: '화면설계', count: 0, color: '#B785DB' },
+    { title: '디자인', count: 0, color: '#647ACB' },
+    { title: '개발', count: 0, color: '#7BC86C' },
+    { title: '배포', count: 0, color: '#8E6DA6' },
+    { title: '검수', count: 0, color: '#FF8A65' }
+  ]);
 
   const navigate = useNavigate();
 
@@ -20,17 +39,37 @@ const DashboardAdmin = () => {
     setActiveMenuItem(menuItem);
   };
 
-  // 도넛 차트 데이터 (건수 기반)
-  const projectStatusData = [
-    { title: '화면 설계', count: 385, color: '#B785DB' },
-    { title: '디자인', count: 269, color: '#647ACB' },
-    { title: '프로젝트 기획', count: 1, color: '#FFD572' },
-    { title: '개발', count: 154, color: '#7BC86C' },
-    { title: '검수', count: 115, color: '#8E6DA6' },
-    { title: '배포', count: 115, color: '#8E6DA6' }
-  ];
+  // 프로젝트 진행 현황 데이터 API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchProjectStatusData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://localhost/api/projects/dashboard/progress_count', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch project status data');
+        const data = await response.json();
+        
+        setProjectStatusData([
+          { title: '요구사항정의', count: data.requirementCount, color: '#FFD572' },
+          { title: '화면설계', count: data.wireframeCount, color: '#B785DB' },
+          { title: '디자인', count: data.designCount, color: '#647ACB' },
+          { title: '개발', count: data.developCount, color: '#7BC86C' },
+          { title: '배포', count: data.publishCount, color: '#8E6DA6' },
+          { title: '검수', count: data.inspectionCount, color: '#FF8A65' }
+        ]);
+      } catch (error) {
+        console.error('Error fetching project status data:', error);
+      }
+    };
 
-  // 비율 계산
+    fetchProjectStatusData();
+  }, []);
+
+  // chartData useMemo는 그대로 유지 (projectStatusData가 변경될 때마다 재계산)
   const chartData = useMemo(() => {
     const total = projectStatusData.reduce((sum, item) => sum + item.count, 0);
     return projectStatusData.map(item => ({
@@ -38,13 +77,6 @@ const DashboardAdmin = () => {
       value: Number(((item.count / total) * 100).toFixed(1))
     }));
   }, [projectStatusData]);
-
-  // 프로젝트 현황 요약 데이터
-  const summaryData = [
-    { title: '계약', value: 212 },
-    { title: '검수', value: 72 },
-
-  ];
 
   // 승인요청 더미데이터 대신 관리자 문의 더미데이터 추가
   const adminInquiries = [
@@ -101,13 +133,60 @@ const DashboardAdmin = () => {
     fetchRecentPosts();
   }, []);
 
-  // 매출 데이터 추가 (컴포넌트 내부)
-  const revenueData = [
-    { name: '1주차', amount: 2800 },
-    { name: '2주차', amount: 3200 },
-    { name: '3주차', amount: 2600 },
-    { name: '4주차', amount: 3500 },
-  ];
+  // API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchSummaryData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://localhost/api/projects/dashboard/inspection_count', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch summary data');
+        const data = await response.json();
+        
+        setSummaryData([
+          { title: '계약', value: data.progressCount },
+          { title: '검수', value: data.inspectionCount },
+        ]);
+      } catch (error) {
+        console.error('Error fetching summary data:', error);
+      }
+    };
+
+    fetchSummaryData();
+  }, []);
+
+  // 매출 데이터 API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://localhost/api/projects/dashboard/project_fee', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch revenue data');
+        const data = await response.json();
+        
+        setRevenueData([
+          { name: '1주차', amount: data.week1 },
+          { name: '2주차', amount: data.week2 },
+          { name: '3주차', amount: data.week3 },
+          { name: '4주차', amount: data.week4 },
+          { name: '5주차', amount: data.week5 },
+        ]);
+      } catch (error) {
+        console.error('Error fetching revenue data:', error);
+      }
+    };
+
+    fetchRevenueData();
+  }, []);
 
   const handlePostClick = (postId, projectId) => {
     navigate(`/project/${projectId}/post/${postId}`);
@@ -471,19 +550,19 @@ const InquiryStatus = styled.span`
 `;
 
 const InquiryInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const CompanyInfo = styled.span`
   font-size: 13px;
   color: #64748b;
 `;
 
+const CompanyInfo = styled.span`
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
 const InquiryDate = styled.span`
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: 13px;
+  color: #64748b;
 `;
 
 const RevenueSection = styled.div`
