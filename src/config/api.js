@@ -1,6 +1,6 @@
 // export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
-export const API_BASE_URL = 'https://api.vivim.co.kr/api';
-// export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://api.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
 
 
 
@@ -8,6 +8,7 @@ export const API_BASE_URL = 'https://api.vivim.co.kr/api';
 export const API_ENDPOINTS = {
   // Auth
   LOGIN: `${API_BASE_URL}/auth/login`,
+  REFRESH_TOKEN: `${API_BASE_URL}/auth/refresh`,
   
   // Users
   USERS: `${API_BASE_URL}/users`,
@@ -32,4 +33,5 @@ export const API_ENDPOINTS = {
   RESET_PASSWORD: `${API_BASE_URL}/users/resetpassword`,
   AUDIT_LOGS: `${API_BASE_URL}/auditLog`,
   AUDIT_LOGS_SEARCH: `${API_BASE_URL}/auditLog/search`,
+  AUTH_LOGOUT: `${API_BASE_URL}/auth/logout`,
 };

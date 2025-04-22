@@ -406,15 +406,14 @@ const Login = () => {
       
       if (response.ok) {
         const data = await response.json();
-        const token = data.access_token;
-        localStorage.setItem('token', token);
-        
-        // JWT 토큰 디코딩하여 role 확인
-        const decodedToken = decodeToken(token);
-        if (decodedToken?.role === 'ADMIN') {
-          navigate('/dashboard-admin');
+        console.log('로그인 응답:', data);
+
+        if (data.access_token) {
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('refreshToken', data.refresh_token);
+          window.location.href = '/dashboard-admin';
         } else {
-          navigate('/dashboard');
+          alert('로그인에 실패했습니다. 다시 시도해주세요.');
         }
       } else {
         alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');

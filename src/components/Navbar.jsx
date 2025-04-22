@@ -1,12 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../utils/axiosInstance';
+import { API_ENDPOINTS } from '../config/api';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setIsAdmin(payload.role === 'ADMIN');
+        
+        // 사용자 정보 가져오기
+        const fetchUserInfo = async () => {
+          try {
+            const response = await axiosInstance.get(`${API_ENDPOINTS.USERS}/${payload.userId}`);
+            setUserInfo(response.data.data);
+          } catch (error) {
+            console.error('사용자 정보 조회 실패:', error);
+          }
+        };
+        
+        fetchUserInfo();
+      } catch (error) {
+        console.error('Token decode error:', error);
+      }
+    }
+  }, []);
 
   const decodeToken = (token) => {
     try {
@@ -18,35 +45,12 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
 
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
   const userId = decodedToken?.userId;
 
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
-          headers: {
-            'Authorization': token
-          }
-        });
-        const data = await response.json();
-        if (data.statusCode === 200) {
-          setUserInfo(data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching user info:', error);
-      }
-    };
+  const userName = decodedToken?.username || '사용자';
+  const companyName = decodedToken?.companyName || '';
 
-    if (userId) {
-      fetchUserInfo();
-    }
-  }, [userId, token]);
-
-  const userName = decodedToken?.username || '사용자';  // Changed from name to username
-  const companyName = decodedToken?.companyName || '';  // This should match the JWT field name
-
-  console.log('Decoded token:', decodedToken); // For debugging
+  console.log('Decoded token:', decodedToken);
 
   const menuItems = [
     { name: '대시보드', path: '/dashboard-admin' },
@@ -66,9 +70,24 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     (isAdmin && item.showFor === 'admin')
   );
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      await axiosInstance.post(`${API_ENDPOINTS.AUTH_LOGOUT}?refreshToken=${encodeURIComponent(refreshToken)}`);
+      
+      // localStorage에서 토큰 제거
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      
+      // 로그인 페이지로 이동
+      navigate('/');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      // 에러가 발생해도 토큰은 제거하고 로그인 페이지로 이동
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      navigate('/');
+    }
   };
 
   const handleClick = (menuItem) => {
@@ -324,6 +343,7 @@ const UserInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-items: flex-end;
 `;
 
 const UserName = styled.div`
@@ -393,6 +413,7 @@ const BellImage = styled.img`
   height: 20px;
   opacity: 0.6;
   transition: opacity 0.2s ease;
+  filter: invert(77%) sepia(61%) saturate(1232%) hue-rotate(358deg) brightness(180%) contrast(105%);
 
   &:hover {
     opacity: 1;
