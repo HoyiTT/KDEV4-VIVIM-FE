@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { API_ENDPOINTS } from '../config/api';
 import Navbar from '../components/Navbar';
+import axiosInstance from '../utils/axiosInstance';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
@@ -25,7 +26,6 @@ const AuditLog = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
       // 쿼리 파라미터 구성
       const queryParams = new URLSearchParams();
@@ -39,27 +39,30 @@ const AuditLog = () => {
 
       console.log('검색 파라미터:', queryParams.toString()); // 디버깅용
 
-      const response = await fetch(`https://localhost/api/auditLog/search?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': token,
-          'accept': '*/*'
-        },
-      });
+      const response = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
 
-      if (!response.ok) {
-        throw new Error('로그를 불러오는데 실패했습니다.');
+      if (response.status === 401) {
+        alert('로그인이 필요합니다.');
+        return;
       }
 
-      const data = await response.json();
+      const data = response.data;
       console.log('응답 데이터:', data); // 디버깅용
       
-      // 응답 데이터에서 logs 배열을 추출
-      const logsData = data.logs || [];
-      setLogs(logsData);
+      // data.logs가 배열인지 확인
+      if (Array.isArray(data.logs)) {
+        setLogs(data.logs);
+        setTotalPages(Math.ceil(data.logs.length / 10));
+      } else {
+        console.error('응답 데이터의 logs가 배열이 아닙니다:', data);
+        setLogs([]);
+        setTotalPages(1);
+      }
     } catch (error) {
       console.error('Error fetching logs:', error);
       alert('로그를 불러오는데 실패했습니다.');
       setLogs([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }

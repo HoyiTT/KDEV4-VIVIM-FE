@@ -111,7 +111,7 @@ const ChecklistComponent = ({ progressId }) => {
       </ToggleButton>
       {isDisabled && (
         <DisabledOverlay>
-          <DisabledText>이 단계는 완료되었습니다</DisabledText>
+          <DisabledText>이 단계는 비활성화되었습니다</DisabledText>
         </DisabledOverlay>
       )}
       {checklists.length > 0 ? (
@@ -404,19 +404,17 @@ const SaveButton = styled.button`
 
 const ToggleButton = styled.button`
   position: absolute;
-  top: -30px;
+  top: -40px;
   right: 0;
-  padding: 2px 6px;
+  padding: 6px 12px;
   background: ${props => props.isDisabled ? '#2E7D32' : '#dc2626'};
   color: white;
   border: none;
-  border-radius: 3px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   z-index: 20;
-  height: 20px;
-  min-width: 60px;
 
   &:hover {
     background: ${props => props.isDisabled ? '#1B5E20' : '#b91c1c'};
