@@ -29,4 +29,13 @@ export const API_ENDPOINTS = {
   RESET_PASSWORD: `${API_BASE_URL}/users/resetpassword`,
   AUDIT_LOGS: `${API_BASE_URL}/auditLog`,
   AUDIT_LOGS_SEARCH: `${API_BASE_URL}/auditLog/search`,
+  
+  APPROVAL: {
+    LIST: (progressId) => `/api/progress/${progressId}/approval`,
+    CREATE: (progressId) => `/api/progress/${progressId}/approval`,
+    DETAIL: (approvalId) => `/api/approval/${approvalId}`,
+    MODIFY: (approvalId) => `/api/approval/${approvalId}`,
+    DELETE: (approvalId) => `/api/approval/${approvalId}`,
+    RESEND: (approvalId) => `/api/approval/${approvalId}/resend`,
+  },
 };

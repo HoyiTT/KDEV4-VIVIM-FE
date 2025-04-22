@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
-import ChecklistComponent from '../components/ChecklistComponent';
+import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
 
 const ProjectDetail = () => {
@@ -235,14 +235,14 @@ const ProjectDetail = () => {
             </ProjectInfoSection>
 
             <StageSection>
-              <SectionTitle>진행 단계</SectionTitle>
+              <SectionTitle>진행단계별 승인요청</SectionTitle>
               <StageGrid>
                 {progressList
                   .sort((a, b) => a.position - b.position)
                   .map((stage) => (
                     <StageItem key={stage.id}>
                       <StageHeader>{stage.name}</StageHeader>
-                      <ChecklistComponent progressId={stage.id} />
+                      <ApprovalProposal progressId={stage.id} />
                     </StageItem>
                   ))}
               </StageGrid>
@@ -501,7 +501,8 @@ const StageItem = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 200px;
-  min-width: 200px;
+  min-width: 280px;
+  max-width: 280px;
   flex: 0 0 auto;
 `;
 
