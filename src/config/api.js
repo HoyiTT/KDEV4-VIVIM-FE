@@ -36,6 +36,6 @@ export const API_ENDPOINTS = {
     DETAIL: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
     MODIFY: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
     DELETE: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
-    RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
+    RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/resend`,
   }
 };
