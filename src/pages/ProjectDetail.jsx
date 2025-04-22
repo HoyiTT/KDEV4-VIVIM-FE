@@ -268,55 +268,68 @@ const ProjectDetail = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {posts
-                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                                .reduce((acc, post) => {
-                                  if (!post.parentId) {
-                                    acc.push(post);
-                                    const replies = posts.filter(reply => reply.parentId === post.postId);
-                                    acc.push(...replies);
-                                  }
-                                  return acc;
-                                }, [])
-                                .map((post) => (
-                                  <BoardRow key={post.postId}>
-                                    <BoardCell 
-                                      className={`title-cell ${post.parentId ? 'child-post' : ''}`}
-                                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
-                                    >
-                                      {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
-                                      {post.title}
-                                    </BoardCell>
-                                    <BoardCell>
-                                      {!post.parentId && (
-                                        <ReplyButton onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/project/${id}/post/create`, {
-                                            state: { parentPost: post }
-                                          });
-                                        }}>
-                                          답글
-                                        </ReplyButton>
-                                      )}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
-                                       post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.creatorName}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
-                                    </BoardCell>
-                                  </BoardRow>
-                                ))}
+                              {posts.length === 0 ? (
+                                <tr>
+                                  <EmptyBoardCell colSpan="7">
+                                    <EmptyStateContainer>
+                                      <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
+                                      <EmptyStateDescription>
+                                        새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
+                                      </EmptyStateDescription>
+                                    </EmptyStateContainer>
+                                  </EmptyBoardCell>
+                                </tr>
+                              ) : (
+                                posts
+                                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                  .reduce((acc, post) => {
+                                    if (!post.parentId) {
+                                      acc.push(post);
+                                      const replies = posts.filter(reply => reply.parentId === post.postId);
+                                      acc.push(...replies);
+                                    }
+                                    return acc;
+                                  }, [])
+                                  .map((post) => (
+                                    <BoardRow key={post.postId}>
+                                      <BoardCell 
+                                        className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                                        onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                                      >
+                                        {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                                        {post.title}
+                                      </BoardCell>
+                                      <BoardCell>
+                                        {!post.parentId && (
+                                          <ReplyButton onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/project/${id}/post/create`, {
+                                              state: { parentPost: post }
+                                            });
+                                          }}>
+                                            답글
+                                          </ReplyButton>
+                                        )}
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                                         post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.creatorName}
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
+                                      </BoardCell>
+                                    </BoardRow>
+                                  ))
+                              )}
                             </tbody>
                           </BoardTable>
                         </BoardSection>
@@ -720,6 +733,35 @@ const DropdownItem = styled.div`
 const StatusContainer = styled.div`
   display: flex;
   align-items: center;
+`;
+
+const EmptyBoardCell = styled.td`
+  text-align: center;
+  padding: 48px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+`;
+
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+`;
+
+const EmptyStateTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const EmptyStateDescription = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
 `;
 
 
