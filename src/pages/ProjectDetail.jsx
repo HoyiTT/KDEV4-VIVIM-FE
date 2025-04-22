@@ -510,7 +510,7 @@ const StageHeader = styled.div`
   font-size: 16px;
   font-weight: 500;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 20px;
 `;
 
 const StageCount = styled.div`
