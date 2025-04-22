@@ -78,9 +78,8 @@ const ApprovalProposal = ({ progressId }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          title: '새 승인요청',
-          content: '승인요청 내용을 입력하세요',
-          approvalProposalStatus: 'BEFORE_REQUEST_PROPOSAL'
+          title: "새 승인요청",
+          content: "승인요청 내용을 입력하세요"
         })
       });
 
@@ -88,8 +87,13 @@ const ApprovalProposal = ({ progressId }) => {
         throw new Error('승인요청 생성에 실패했습니다.');
       }
 
-      // 목록 새로고침
-      fetchProposals();
+      const result = await response.json();
+      if (result.statusCode === 0) {
+        // 목록 새로고침
+        fetchProposals();
+      } else {
+        throw new Error(result.statusMessage || '승인요청 생성에 실패했습니다.');
+      }
     } catch (error) {
       console.error('Error creating proposal:', error);
       alert('승인요청 생성에 실패했습니다.');
@@ -97,7 +101,7 @@ const ApprovalProposal = ({ progressId }) => {
   };
 
   // 승인요청 수정
-  const handleModifyProposal = async (approvalId, updatedData) => {
+  const handleModifyProposal = async (approvalId, proposal) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(approvalId), {
@@ -106,7 +110,11 @@ const ApprovalProposal = ({ progressId }) => {
           'Authorization': token,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updatedData)
+        body: JSON.stringify({
+          title: proposal.title,
+          content: proposal.content,
+          approved: false
+        })
       });
 
       if (!response.ok) {
@@ -149,8 +157,8 @@ const ApprovalProposal = ({ progressId }) => {
     }
   };
 
-  // 승인요청 재전송
-  const handleResendProposal = async (approvalId) => {
+  // 승인요청 전송
+  const handleSendProposal = async (approvalId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(approvalId), {
@@ -162,14 +170,14 @@ const ApprovalProposal = ({ progressId }) => {
       });
 
       if (!response.ok) {
-        throw new Error('승인요청 재전송에 실패했습니다.');
+        throw new Error('승인요청 전송에 실패했습니다.');
       }
 
       // 목록 새로고침
       fetchProposals();
     } catch (error) {
-      console.error('Error resending proposal:', error);
-      alert('승인요청 재전송에 실패했습니다.');
+      console.error('Error sending proposal:', error);
+      alert('승인요청 전송에 실패했습니다.');
     }
   };
 
@@ -226,24 +234,20 @@ const ApprovalProposal = ({ progressId }) => {
                     {getStatusText(proposal.approvalProposalStatus)}
                   </StatusBadge>
                   <ActionButtons>
-                    {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
-                      <ActionButton onClick={() => handleModifyProposal(proposal.id, {
-                        ...proposal,
-                        approvalProposalStatus: 'REQUEST_PROPOSAL'
-                      })}>
-                        요청하기
-                      </ActionButton>
-                    )}
-                    {proposal.approvalProposalStatus === 'REJECTED' && (
-                      <ActionButton onClick={() => handleResendProposal(proposal.id)}>
-                        재요청
-                      </ActionButton>
-                    )}
+                    <ActionButton onClick={() => handleModifyProposal(proposal.id, proposal)}>
+                      수정
+                    </ActionButton>
                     <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
                       삭제
                     </DeleteButton>
                   </ActionButtons>
                 </ProposalActions>
+                {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
+                  proposal.approvalProposalStatus === 'REJECTED') && (
+                  <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                    승인요청 전송
+                  </SendButton>
+                )}
               </ProposalItem>
             );
           })
@@ -406,6 +410,24 @@ const EmptyState = styled.div`
   height: 100px;
   font-size: 14px;
   color: #64748b;
+`;
+
+const SendButton = styled.button`
+  width: 100%;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #2E7D32;
+  border-radius: 6px;
+  color: #2E7D32;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #1B5E20;
+  }
 `;
 
 export default ApprovalProposal; 
