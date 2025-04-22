@@ -89,8 +89,11 @@ const ProposalSubtitle = styled.h2`
   color: #475569;
   margin: 0;
   padding: 0 16px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  margin-top: ${props => props.withMargin ? '70px' : '50px'};
+  border-bottom: ${props => props.withMargin ? 'none' : '1px solid #e2e8f0'};
+  margin-top: ${props => props.withMargin ? '70px' : '0px'};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const ProposalDescription = styled.div`
@@ -1217,7 +1220,6 @@ const ApprovalProposal = ({ progressId }) => {
             </SidePanelHeader>
             <SidePanelBody>
               <ProposalTitle>{selectedProposal.title}</ProposalTitle>
-              <ProposalSubtitle>승인요청 상세보기</ProposalSubtitle>
               <ProposalInfo>
                 <InfoItem>
                   <InfoLabel>작성자</InfoLabel>
@@ -1239,7 +1241,9 @@ const ApprovalProposal = ({ progressId }) => {
               <ContentSection>
                 {selectedProposal.content}
               </ContentSection>
-              <ProposalSubtitle withMargin>승인권자별 응답목록</ProposalSubtitle>
+              <ProposalSubtitle withMargin>
+                <span>승인권자별 응답목록</span>
+              </ProposalSubtitle>
               <ApprovalDecision approvalId={selectedProposal.id} />
             </SidePanelBody>
             <SidePanelFooter>

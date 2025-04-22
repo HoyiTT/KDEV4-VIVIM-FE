@@ -461,7 +461,6 @@ const ApprovalDecision = ({ approvalId }) => {
 
   return (
     <ResponseSection>
-      <ResponseTitle>승인권자별 응답 목록</ResponseTitle>
       <ResponseList>
         {proposals.length === 0 ? (
           <EmptyResponseMessage>승인권자가 없습니다.</EmptyResponseMessage>
