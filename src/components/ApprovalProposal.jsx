@@ -75,11 +75,22 @@ const ProposalHeader = styled.div`
   margin-bottom: 8px;
 `;
 
-const ProposalTitle = styled.div`
-  font-size: 14px;
-  font-weight: 500;
+const ProposalTitle = styled.h1`
+  font-size: 24px;
+  font-weight: 600;
   color: #1e293b;
-  text-align: left;
+  margin: 0;
+  padding: 16px;
+`;
+
+const ProposalSubtitle = styled.h2`
+  font-size: 18px;
+  font-weight: 500;
+  color: #475569;
+  margin: 0;
+  padding: 0 16px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-top: ${props => props.withMargin ? '70px' : '50px'};
 `;
 
 const ProposalDescription = styled.div`
@@ -96,13 +107,10 @@ const ProposalDescription = styled.div`
 
 const ProposalInfo = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 8px 0;
-  border-top: 1px solid #e2e8f0;
-  font-size: 12px;
-  color: #94a3b8;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const CreatorInfo = styled.div`
@@ -271,10 +279,36 @@ const SidePanelHeader = styled.div`
   align-items: center;
   padding: 16px;
   border-bottom: 1px solid #e2e8f0;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+`;
+
+const HeaderInfo = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: center;
+`;
+
+const HeaderStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const HeaderAuthor = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const HeaderDate = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
 `;
 
 const SidePanelBody = styled.div`
@@ -486,19 +520,10 @@ const InfoSection = styled.div`
 `;
 
 const ContentSection = styled.div`
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  margin-bottom: 12px;
-`;
-
-const Content = styled.div`
+  padding: 24px 16px;
   font-size: 14px;
+  color: #1e293b;
   line-height: 1.6;
-  color: #475569;
-  white-space: pre-wrap;
-  text-align: justify;
-  text-justify: inter-word;
 `;
 
 const ResponseSection = styled.div`
@@ -611,17 +636,16 @@ const InfoItem = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-`;
-
-const InfoLabel = styled.div`
-  width: 60px;
   font-size: 14px;
   color: #64748b;
-  font-weight: 500;
 `;
 
-const InfoValue = styled.div`
-  font-size: 14px;
+const InfoLabel = styled.span`
+  font-weight: 500;
+  min-width: 60px;
+`;
+
+const InfoValue = styled.span`
   color: #1e293b;
 `;
 
@@ -716,6 +740,24 @@ const FullscreenButton = styled.button`
   &:hover {
     color: #1e293b;
   }
+`;
+
+const ListProposalTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  text-align: left;
+`;
+
+const ListProposalInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #94a3b8;
 `;
 
 const ApprovalProposal = ({ progressId }) => {
@@ -1043,17 +1085,17 @@ const ApprovalProposal = ({ progressId }) => {
                         >
                           {getStatusText(proposal.approvalProposalStatus)}
                         </StatusBadge>
-                        <ProposalTitle>{proposal.title}</ProposalTitle>
+                        <ListProposalTitle>{proposal.title}</ListProposalTitle>
                       </ProposalHeader>
                       <ProposalDescription>{proposal.content}</ProposalDescription>
                     </ProposalContent>
-                    <ProposalInfo>
+                    <ListProposalInfo>
                       <CreatorInfo>
                         <CompanyName>{proposal.creator.companyName}</CompanyName>
                         <CreatorName>{proposal.creator.name}</CreatorName>
                       </CreatorInfo>
                       <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
-                    </ProposalInfo>
+                    </ListProposalInfo>
                     <ProposalActions>
                       <ActionButtons>
                         <ActionButton onClick={() => handleEditClick(proposal)}>
@@ -1166,7 +1208,6 @@ const ApprovalProposal = ({ progressId }) => {
         <SidePanelOverlay onClick={() => setIsProposalModalOpen(false)}>
           <SidePanelContent onClick={(e) => e.stopPropagation()} isFullscreen={isFullscreen}>
             <SidePanelHeader>
-              <SidePanelTitle>승인요청 상세보기</SidePanelTitle>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <FullscreenButton onClick={() => setIsFullscreen(!isFullscreen)}>
                   {isFullscreen ? '⤢' : '⤡'}
@@ -1175,32 +1216,30 @@ const ApprovalProposal = ({ progressId }) => {
               </div>
             </SidePanelHeader>
             <SidePanelBody>
-              <ProposalDetail>
-                <DetailItem>
-                  <DetailLabel>제목</DetailLabel>
-                  <DetailValue>{selectedProposal.title}</DetailValue>
-                </DetailItem>
-                <DetailItem>
-                  <DetailLabel>내용</DetailLabel>
-                  <DetailValue>{selectedProposal.content}</DetailValue>
-                </DetailItem>
-                <DetailItem>
-                  <DetailLabel>상태</DetailLabel>
-                  <DetailValue>
-                    <StatusBadge status={selectedProposal.status}>
-                      {getStatusText(selectedProposal.status)}
+              <ProposalTitle>{selectedProposal.title}</ProposalTitle>
+              <ProposalSubtitle>승인요청 상세보기</ProposalSubtitle>
+              <ProposalInfo>
+                <InfoItem>
+                  <InfoLabel>작성자</InfoLabel>
+                  <InfoValue>{selectedProposal.creator.name} ({selectedProposal.creator.companyName})</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>작성일</InfoLabel>
+                  <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>상태</InfoLabel>
+                  <InfoValue>
+                    <StatusBadge status={selectedProposal.approvalProposalStatus}>
+                      {getStatusText(selectedProposal.approvalProposalStatus)}
                     </StatusBadge>
-                  </DetailValue>
-                </DetailItem>
-                <DetailItem>
-                  <DetailLabel>작성자</DetailLabel>
-                  <DetailValue>{selectedProposal.authorName}</DetailValue>
-                </DetailItem>
-                <DetailItem>
-                  <DetailLabel>작성일</DetailLabel>
-                  <DetailValue>{formatDate(selectedProposal.createdAt)}</DetailValue>
-                </DetailItem>
-              </ProposalDetail>
+                  </InfoValue>
+                </InfoItem>
+              </ProposalInfo>
+              <ContentSection>
+                {selectedProposal.content}
+              </ContentSection>
+              <ProposalSubtitle withMargin>승인권자별 응답목록</ProposalSubtitle>
               <ApprovalDecision approvalId={selectedProposal.id} />
             </SidePanelBody>
             <SidePanelFooter>
