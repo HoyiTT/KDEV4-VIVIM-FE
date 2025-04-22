@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
+import { ApprovalDecisionStatus } from '../constants/enums';
+import ApprovalDecision from './ApprovalDecision';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -33,347 +35,7 @@ const getStatusColor = (status) => {
   }
 };
 
-const ApprovalProposal = ({ progressId }) => {
-  const navigate = useNavigate();
-  const [proposals, setProposals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [newProposal, setNewProposal] = useState({
-    title: '',
-    content: ''
-  });
-  const [editingProposal, setEditingProposal] = useState(null);
-  const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    fetchProposals();
-  }, [progressId]);
-
-  // 승인요청 목록 조회
-  const fetchProposals = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.LIST(progressId), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('승인요청 목록 조회에 실패했습니다.');
-      }
-      
-      const data = await response.json();
-      setProposals(data.approvalList || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-      alert('승인요청 목록을 불러오는데 실패했습니다.');
-      setLoading(false);
-    }
-  };
-
-  // 승인요청 추가
-  const handleAddProposal = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newProposal)
-      });
-
-      const result = await response.json();
-      
-      if (result.statusCode === 0) {
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Error creating proposal:', error);
-      alert('승인요청 생성에 실패했습니다.');
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewProposal(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // 승인요청 수정
-  const handleModifyProposal = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const requestBody = {};
-      
-      // 변경된 필드만 requestBody에 추가
-      if (editingProposal.title !== undefined) {
-        requestBody.title = editingProposal.title;
-      }
-      if (editingProposal.content !== undefined) {
-        requestBody.content = editingProposal.content;
-      }
-
-      const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id), {
-        method: 'PATCH',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-          'accept': '*/*'
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.statusCode === 201) {
-        setIsEditModalOpen(false);
-        setEditingProposal(null);
-        fetchProposals(); // 목록 새로고침
-      } else {
-        throw new Error(result.statusMessage || '승인요청 수정에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Error modifying proposal:', error);
-      alert(error.message);
-    }
-  };
-
-  const handleEditClick = (proposal) => {
-    setEditingProposal({ ...proposal });
-    setIsEditModalOpen(true);
-  };
-
-  // 승인요청 삭제
-  const handleDeleteProposal = async (approvalId) => {
-    if (!window.confirm('정말로 이 승인요청을 삭제하시겠습니까?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.DELETE(approvalId), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 삭제에 실패했습니다.');
-      }
-
-      // 목록 새로고침
-      fetchProposals();
-    } catch (error) {
-      console.error('Error deleting proposal:', error);
-      alert('승인요청 삭제에 실패했습니다.');
-    }
-  };
-
-  // 승인요청 전송
-  const handleSendProposal = async (approvalId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(approvalId), {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 전송에 실패했습니다.');
-      }
-
-      // 목록 새로고침
-      fetchProposals();
-    } catch (error) {
-      console.error('Error sending proposal:', error);
-      alert('승인요청 전송에 실패했습니다.');
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '요청 전';
-      case 'REQUEST_PROPOSAL':
-        return '요청 중';
-      case 'APPROVED':
-        return '승인됨';
-      case 'REJECTED':
-        return '거절됨';
-      default:
-        return status;
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  };
-
-  const displayedProposals = showAll ? proposals : proposals.slice(0, 3);
-
-  if (loading) {
-    return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
-  }
-
-  return (
-    <>
-      <ProposalContainer>
-        <ProposalList>
-          {proposals.length === 0 ? (
-            <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
-          ) : (
-            <>
-              {displayedProposals.map((proposal) => {
-                const colors = getStatusColor(proposal.approvalProposalStatus);
-                return (
-                  <ProposalItem key={proposal.id}>
-                    <ProposalContent>
-                      <ProposalTitle>{proposal.title}</ProposalTitle>
-                      <ProposalDescription>{proposal.content}</ProposalDescription>
-                    </ProposalContent>
-                    <ProposalInfo>
-                      <CreatorInfo>
-                        <CompanyName>{proposal.creator.companyName}</CompanyName>
-                        <CreatorName>{proposal.creator.name}</CreatorName>
-                      </CreatorInfo>
-                      <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
-                    </ProposalInfo>
-                    <ProposalActions>
-                      <StatusBadge
-                        background={colors.background}
-                        text={colors.text}
-                      >
-                        {getStatusText(proposal.approvalProposalStatus)}
-                      </StatusBadge>
-                      <ActionButtons>
-                        <ActionButton onClick={() => handleEditClick(proposal)}>
-                          수정
-                        </ActionButton>
-                        <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
-                          삭제
-                        </DeleteButton>
-                      </ActionButtons>
-                    </ProposalActions>
-                    {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
-                      proposal.approvalProposalStatus === 'REJECTED') && (
-                      <SendButton onClick={() => handleSendProposal(proposal.id)}>
-                        승인요청 전송
-                      </SendButton>
-                    )}
-                  </ProposalItem>
-                );
-              })}
-              {proposals.length > 3 && !showAll && (
-                <ShowMoreButton onClick={() => setShowAll(true)}>
-                  더보기
-                </ShowMoreButton>
-              )}
-            </>
-          )}
-        </ProposalList>
-        <AddButton onClick={() => setIsModalOpen(true)}>
-          + 승인요청 추가
-        </AddButton>
-      </ProposalContainer>
-
-      {isModalOpen && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>새 승인요청</ModalTitle>
-              <CloseButton onClick={() => setIsModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <InputGroup>
-                <Label>제목</Label>
-                <Input
-                  type="text"
-                  name="title"
-                  value={newProposal.title}
-                  onChange={handleInputChange}
-                  placeholder="제목을 입력하세요"
-                />
-              </InputGroup>
-              <InputGroup>
-                <Label>내용</Label>
-                <TextArea
-                  name="content"
-                  value={newProposal.content}
-                  onChange={handleInputChange}
-                  placeholder="내용을 입력하세요"
-                />
-              </InputGroup>
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton onClick={() => setIsModalOpen(false)}>취소</ModalButton>
-              <ModalButton primary onClick={handleAddProposal}>추가</ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-
-      {isEditModalOpen && editingProposal && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>승인요청 수정</ModalTitle>
-              <CloseButton onClick={() => setIsEditModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <InputGroup>
-                <Label>제목</Label>
-                <Input
-                  type="text"
-                  value={editingProposal.title || ''}
-                  onChange={(e) => setEditingProposal(prev => ({
-                    ...prev,
-                    title: e.target.value
-                  }))}
-                  placeholder="제목을 입력하세요"
-                />
-              </InputGroup>
-              <InputGroup>
-                <Label>내용</Label>
-                <TextArea
-                  value={editingProposal.content || ''}
-                  onChange={(e) => setEditingProposal(prev => ({
-                    ...prev,
-                    content: e.target.value
-                  }))}
-                  placeholder="내용을 입력하세요"
-                />
-              </InputGroup>
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton onClick={() => setIsEditModalOpen(false)}>취소</ModalButton>
-              <ModalButton primary onClick={handleModifyProposal}>수정</ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-    </>
-  );
-};
-
+// Styled Components
 const ProposalContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -396,6 +58,7 @@ const ProposalItem = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   background: white;
+  cursor: pointer;
 `;
 
 const ProposalContent = styled.div`
@@ -403,6 +66,13 @@ const ProposalContent = styled.div`
   flex-direction: column;
   gap: 8px;
   width: 100%;
+`;
+
+const ProposalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 `;
 
 const ProposalTitle = styled.div`
@@ -451,35 +121,44 @@ const DateInfo = styled.span``;
 
 const ProposalActions = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
   width: 100%;
+  margin-top: 8px;
 `;
 
 const ActionButtons = styled.div`
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
 `;
 
 const ActionButton = styled.button`
   padding: 4px 8px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: white;
+  border: 1px solid #94a3b8;
   border-radius: 4px;
   color: #475569;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 40px;
+  height: 24px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
-    background: #e2e8f0;
+    background: #f1f5f9;
     color: #1e293b;
   }
 `;
 
 const DeleteButton = styled(ActionButton)`
-  background: #fef2f2;
-  border-color: #fee2e2;
+  background: white;
+  border-color: #ef4444;
   color: #dc2626;
 
   &:hover {
@@ -495,6 +174,7 @@ const StatusBadge = styled.div`
   font-weight: 500;
   background-color: ${props => props.background};
   color: ${props => props.text};
+  white-space: nowrap;
 `;
 
 const AddButton = styled.button`
@@ -532,16 +212,22 @@ const EmptyState = styled.div`
 `;
 
 const SendButton = styled.button`
-  width: 100%;
-  padding: 8px 16px;
+  padding: 4px 8px;
   background: white;
   border: 1px solid #2E7D32;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #2E7D32;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 40px;
+  height: 24px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: #f1f5f9;
@@ -549,38 +235,66 @@ const SendButton = styled.button`
   }
 `;
 
-const ModalOverlay = styled.div`
+const SidePanelOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
 `;
 
-const ModalContent = styled.div`
+const SidePanelContent = styled.div`
   background: white;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90%;
-  max-height: 90vh;
+  width: ${props => props.isFullscreen ? '100%' : '800px'};
+  height: 100vh;
   overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  transition: width 0.3s ease;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
-const ModalHeader = styled.div`
+const SidePanelHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px;
   border-bottom: 1px solid #e2e8f0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 `;
 
-const ModalTitle = styled.h3`
+const SidePanelBody = styled.div`
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+`;
+
+const SidePanelFooter = styled.div`
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  background: white;
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+const SidePanelTitle = styled.h3`
   margin: 0;
   font-size: 18px;
   color: #1e293b;
@@ -600,6 +314,45 @@ const CloseButton = styled.button`
   }
 `;
 
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: default;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+`;
+
 const ModalBody = styled.div`
   padding: 16px;
 `;
@@ -607,20 +360,19 @@ const ModalBody = styled.div`
 const InputGroup = styled.div`
   margin-bottom: 16px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 `;
 
 const Label = styled.label`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  min-width: 100px;
   font-size: 14px;
   color: #475569;
+  text-align: right;
 `;
 
 const Input = styled.input`
-  width: 100%;
+  flex: 1;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
@@ -635,7 +387,7 @@ const Input = styled.input`
 `;
 
 const TextArea = styled.textarea`
-  width: 100%;
+  flex: 1;
   height: 120px;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
@@ -704,5 +456,803 @@ const ShowMoreButton = styled.button`
     color: #1e293b;
   }
 `;
+
+const DetailContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const TitleSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const Title = styled.div`
+  font-size: 18px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const InfoSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 12px;
+`;
+
+const ContentSection = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 12px;
+`;
+
+const Content = styled.div`
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+  white-space: pre-wrap;
+  text-align: justify;
+  text-justify: inter-word;
+`;
+
+const ResponseSection = styled.div`
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+`;
+
+const ResponseTitle = styled.div`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ResponseList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ResponseItem = styled.div`
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+`;
+
+const ResponseHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const ResponseName = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const ResponseDate = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const ResponseContent = styled.div`
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+`;
+
+const ResponseActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+`;
+
+const ResponseButton = styled.button`
+  padding: 4px 8px;
+  background: white;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  color: #475569;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+`;
+
+const StatusSelect = styled.select`
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+  }
+`;
+
+const RequiredLabel = styled.span`
+  color: #ef4444;
+  margin-left: 4px;
+`;
+
+const EmptyResponseMessage = styled.div`
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const InfoLabel = styled.div`
+  width: 60px;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const InfoValue = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const ResponseStatus = styled.div`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  background-color: ${props => {
+    const status = props.status;
+    switch (status) {
+      case ApprovalDecisionStatus.APPROVED:
+        return '#dcfce7';
+      case ApprovalDecisionStatus.REJECTED:
+        return '#fee2e2';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    const status = props.status;
+    switch (status) {
+      case ApprovalDecisionStatus.APPROVED:
+        return '#16a34a';
+      case ApprovalDecisionStatus.REJECTED:
+        return '#dc2626';
+      default:
+        return '#64748b';
+    }
+  }};
+`;
+
+const ResponseText = styled.div`
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+`;
+
+const ProposalDetail = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const DetailItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const DetailLabel = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+`;
+
+const DetailValue = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const SidePanelButton = styled.button`
+  padding: 8px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #1B5E20;
+  }
+`;
+
+const FullscreenButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 20px;
+  margin-right: 8px;
+
+  &:hover {
+    color: #1e293b;
+  }
+`;
+
+const ApprovalProposal = ({ progressId }) => {
+  const [proposals, setProposals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [selectedApprover, setSelectedApprover] = useState(null);
+  const [newProposal, setNewProposal] = useState({
+    title: '',
+    content: ''
+  });
+  const [newDecision, setNewDecision] = useState({
+    content: '',
+    status: ''
+  });
+  const [editingProposal, setEditingProposal] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [approvers, setApprovers] = useState([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [progressId]);
+
+  useEffect(() => {
+    if (isProposalModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isProposalModalOpen]);
+
+  const fetchProposals = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.LIST(progressId), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+          'accept': '*/*'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      setProposals(data.approvalList || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching proposals:', error);
+      alert(error.message || '승인요청 목록을 불러오는데 실패했습니다.');
+      setLoading(false);
+    }
+  };
+
+  const fetchApprovers = async (approvalId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        method: 'GET',
+        headers: {
+          'Authorization': token,
+          'accept': '*/*'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
+      setApprovers(data);
+    } catch (error) {
+      console.error('Error fetching approvers:', error);
+      alert(error.message || '승인권자 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleProposalClick = async (proposal) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인요청 상세 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setSelectedProposal(data);
+      setIsProposalModalOpen(true);
+      await fetchApprovers(proposal.id);
+    } catch (error) {
+      console.error('Error fetching proposal detail:', error);
+      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleAddProposal = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newProposal)
+      });
+
+      const result = await response.json();
+      
+      if (result.statusCode === 0) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error creating proposal:', error);
+      alert('승인요청 생성에 실패했습니다.');
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewProposal(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleModifyProposal = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const requestBody = {};
+      
+      if (editingProposal.title !== undefined) {
+        requestBody.title = editingProposal.title;
+      }
+      if (editingProposal.content !== undefined) {
+        requestBody.content = editingProposal.content;
+      }
+
+      const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+          'accept': '*/*'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.statusCode === 201) {
+        setIsEditModalOpen(false);
+        setEditingProposal(null);
+        fetchProposals();
+      } else {
+        throw new Error(result.statusMessage || '승인요청 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error modifying proposal:', error);
+      alert(error.message);
+    }
+  };
+
+  const handleEditClick = (proposal) => {
+    setEditingProposal({ ...proposal });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteProposal = async (approvalId) => {
+    if (!window.confirm('정말로 이 승인요청을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.DELETE(approvalId), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인요청 삭제에 실패했습니다.');
+      }
+
+      fetchProposals();
+    } catch (error) {
+      console.error('Error deleting proposal:', error);
+      alert('승인요청 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleSendProposal = async (approvalId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(approvalId), {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인요청 전송에 실패했습니다.');
+      }
+
+      fetchProposals();
+    } catch (error) {
+      console.error('Error sending proposal:', error);
+      alert('승인요청 전송에 실패했습니다.');
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return '요청전';
+      case 'REQUEST_PROPOSAL':
+        return '요청 중';
+      case 'APPROVED':
+        return '승인됨';
+      case 'REJECTED':
+        return '거절됨';
+      default:
+        return status;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const displayedProposals = showAll ? proposals : proposals.slice(0, 3);
+
+  const handleCreateDecision = async () => {
+    if (!newDecision.content || newDecision.content.trim() === '') {
+      alert('응답 내용을 입력해주세요.');
+      return;
+    }
+
+    if (!newDecision.status) {
+      alert('승인 상태를 선택해주세요.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.DECISION.CREATE(selectedProposal.id), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': '*/*'
+        },
+        body: JSON.stringify({
+          content: newDecision.content,
+          decisionStatus: newDecision.status,
+          approverId: selectedApprover.approverId
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      setIsDecisionModalOpen(false);
+      setNewDecision({ content: '', status: '' });
+      fetchApprovers(selectedProposal.id);
+    } catch (error) {
+      console.error('Error creating decision:', error);
+      alert(error.message || '승인응답 생성에 실패했습니다.');
+    }
+  };
+
+  if (loading) {
+    return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
+  }
+
+  return (
+    <>
+      <ProposalContainer>
+        <ProposalList>
+          {proposals.length === 0 ? (
+            <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
+          ) : (
+            <>
+              {displayedProposals.map((proposal) => {
+                const colors = getStatusColor(proposal.approvalProposalStatus);
+                return (
+                  <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
+                    <ProposalContent>
+                      <ProposalHeader>
+                        <StatusBadge
+                          background={colors.background}
+                          text={colors.text}
+                        >
+                          {getStatusText(proposal.approvalProposalStatus)}
+                        </StatusBadge>
+                        <ProposalTitle>{proposal.title}</ProposalTitle>
+                      </ProposalHeader>
+                      <ProposalDescription>{proposal.content}</ProposalDescription>
+                    </ProposalContent>
+                    <ProposalInfo>
+                      <CreatorInfo>
+                        <CompanyName>{proposal.creator.companyName}</CompanyName>
+                        <CreatorName>{proposal.creator.name}</CreatorName>
+                      </CreatorInfo>
+                      <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
+                    </ProposalInfo>
+                    <ProposalActions>
+                      <ActionButtons>
+                        <ActionButton onClick={() => handleEditClick(proposal)}>
+                          수정
+                        </ActionButton>
+                        <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
+                          삭제
+                        </DeleteButton>
+                        {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
+                          proposal.approvalProposalStatus === 'REJECTED') && (
+                          <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                            승인요청 전송
+                          </SendButton>
+                        )}
+                      </ActionButtons>
+                    </ProposalActions>
+                  </ProposalItem>
+                );
+              })}
+              {proposals.length > 3 && !showAll && (
+                <ShowMoreButton onClick={() => setShowAll(true)}>
+                  더보기
+                </ShowMoreButton>
+              )}
+            </>
+          )}
+        </ProposalList>
+        <AddButton onClick={() => setIsModalOpen(true)}>
+          + 승인요청 추가
+        </AddButton>
+      </ProposalContainer>
+
+      {isModalOpen && (
+        <ModalOverlay onClick={() => setIsModalOpen(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>새 승인요청</ModalTitle>
+              <CloseButton onClick={() => setIsModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <Label>제목</Label>
+                <Input
+                  type="text"
+                  name="title"
+                  value={newProposal.title}
+                  onChange={handleInputChange}
+                  placeholder="제목을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>내용</Label>
+                <TextArea
+                  name="content"
+                  value={newProposal.content}
+                  onChange={handleInputChange}
+                  placeholder="내용을 입력하세요"
+                />
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => setIsModalOpen(false)}>취소</ModalButton>
+              <ModalButton primary onClick={handleAddProposal}>추가</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {isEditModalOpen && editingProposal && (
+        <ModalOverlay onClick={() => setIsEditModalOpen(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>승인요청 수정</ModalTitle>
+              <CloseButton onClick={() => setIsEditModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <Label>제목</Label>
+                <Input
+                  type="text"
+                  value={editingProposal.title || ''}
+                  onChange={(e) => setEditingProposal(prev => ({
+                    ...prev,
+                    title: e.target.value
+                  }))}
+                  placeholder="제목을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>내용</Label>
+                <TextArea
+                  value={editingProposal.content || ''}
+                  onChange={(e) => setEditingProposal(prev => ({
+                    ...prev,
+                    content: e.target.value
+                  }))}
+                  placeholder="내용을 입력하세요"
+                />
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => setIsEditModalOpen(false)}>취소</ModalButton>
+              <ModalButton primary onClick={handleModifyProposal}>수정</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {isProposalModalOpen && selectedProposal && (
+        <SidePanelOverlay onClick={() => setIsProposalModalOpen(false)}>
+          <SidePanelContent onClick={(e) => e.stopPropagation()} isFullscreen={isFullscreen}>
+            <SidePanelHeader>
+              <SidePanelTitle>승인요청 상세보기</SidePanelTitle>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <FullscreenButton onClick={() => setIsFullscreen(!isFullscreen)}>
+                  {isFullscreen ? '⤢' : '⤡'}
+                </FullscreenButton>
+                <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
+              </div>
+            </SidePanelHeader>
+            <SidePanelBody>
+              <ProposalDetail>
+                <DetailItem>
+                  <DetailLabel>제목</DetailLabel>
+                  <DetailValue>{selectedProposal.title}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>내용</DetailLabel>
+                  <DetailValue>{selectedProposal.content}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>상태</DetailLabel>
+                  <DetailValue>
+                    <StatusBadge status={selectedProposal.status}>
+                      {getStatusText(selectedProposal.status)}
+                    </StatusBadge>
+                  </DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>작성자</DetailLabel>
+                  <DetailValue>{selectedProposal.authorName}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>작성일</DetailLabel>
+                  <DetailValue>{formatDate(selectedProposal.createdAt)}</DetailValue>
+                </DetailItem>
+              </ProposalDetail>
+              <ApprovalDecision approvalId={selectedProposal.id} />
+            </SidePanelBody>
+            <SidePanelFooter>
+              <SidePanelButton onClick={() => setIsProposalModalOpen(false)}>닫기</SidePanelButton>
+            </SidePanelFooter>
+          </SidePanelContent>
+        </SidePanelOverlay>
+      )}
+
+      {isDecisionModalOpen && selectedApprover && (
+        <ModalOverlay onClick={() => setIsDecisionModalOpen(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>{selectedApprover.approverName}님의 승인응답 작성</ModalTitle>
+              <CloseButton onClick={() => setIsDecisionModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <Label>응답 내용</Label>
+                <TextArea
+                  value={newDecision.content}
+                  onChange={(e) => setNewDecision(prev => ({
+                    ...prev,
+                    content: e.target.value
+                  }))}
+                  placeholder="응답 내용을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>승인 상태</Label>
+                <StatusSelect
+                  value={newDecision.status}
+                  onChange={(e) => setNewDecision(prev => ({
+                    ...prev,
+                    status: e.target.value
+                  }))}
+                >
+                  <option value="">승인 상태를 선택하세요</option>
+                  <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
+                  <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
+                </StatusSelect>
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => setIsDecisionModalOpen(false)}>취소</ModalButton>
+              <ModalButton primary onClick={handleCreateDecision}>저장</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+    </>
+  );
+};
 
 export default ApprovalProposal; 

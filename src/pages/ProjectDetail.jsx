@@ -188,7 +188,7 @@ const ProjectDetail = () => {
       <ContentWrapper>
         <MainContent>
           <Header>
-            <PageTitle>프로젝트 상세</PageTitle>
+            <PageTitle>프로젝트 상세보기</PageTitle>
           </Header>
 
         {loading ? (
