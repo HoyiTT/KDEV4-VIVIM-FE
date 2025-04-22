@@ -72,8 +72,8 @@ axiosInstance.interceptors.response.use(
         console.log('토큰 갱신 요청 전송...');
         // 리프레시 토큰으로 새로운 액세스 토큰 요청
         const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh-token?refreshToken=${refreshToken}`,
-          null,
+          `${API_BASE_URL}/auth/refresh-token`,
+          { refreshToken: `${refreshToken}` },
           {
             headers: {
               'Content-Type': 'application/json',

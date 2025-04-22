@@ -73,7 +73,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const handleLogout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
-      await axiosInstance.post(`${API_ENDPOINTS.AUTH_LOGOUT}?refreshToken=${encodeURIComponent(refreshToken)}`);
+      await axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT, { refreshToken });
       
       // localStorage에서 토큰 제거
       localStorage.removeItem('token');
