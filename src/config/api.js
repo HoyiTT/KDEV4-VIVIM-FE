@@ -39,11 +39,11 @@ export const API_ENDPOINTS = {
   AUTH_LOGOUT: `${API_BASE_URL}/auth/logout`,
 
   APPROVAL: {
-    LIST: (progressId) => `/api/progress/${progressId}/approval`,
-    CREATE: (progressId) => `/api/progress/${progressId}/approval`,
-    DETAIL: (approvalId) => `/api/approval/${approvalId}`,
-    MODIFY: (approvalId) => `/api/approval/${approvalId}`,
-    DELETE: (approvalId) => `/api/approval/${approvalId}`,
-    RESEND: (approvalId) => `/api/approval/${approvalId}/resend`,
-  },
+    LIST: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
+    CREATE: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
+    DETAIL: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
+    MODIFY: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
+    DELETE: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
+    RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/resend`,
+  }
 };
