@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 
 const getStatusColor = (status) => {
@@ -111,28 +111,43 @@ const ApprovalProposal = ({ progressId }) => {
   const handleModifyProposal = async () => {
     try {
       const token = localStorage.getItem('token');
+      const requestBody = {};
+      
+      // 변경된 필드만 requestBody에 추가
+      if (editingProposal.title !== undefined) {
+        requestBody.title = editingProposal.title;
+      }
+      if (editingProposal.content !== undefined) {
+        requestBody.content = editingProposal.content;
+      }
+
       const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id), {
         method: 'PATCH',
         headers: {
           'Authorization': token,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'accept': '*/*'
         },
-        body: JSON.stringify({
-          title: editingProposal.title,
-          content: editingProposal.content
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
 
       const result = await response.json();
       
-      if (result.statusCode === 0) {
+      if (result.statusCode === 201) {
         setIsEditModalOpen(false);
         setEditingProposal(null);
-        window.location.reload();
+        fetchProposals(); // 목록 새로고침
+      } else {
+        throw new Error(result.statusMessage || '승인요청 수정에 실패했습니다.');
       }
     } catch (error) {
       console.error('Error modifying proposal:', error);
-      alert('승인요청 수정에 실패했습니다.');
+      alert(error.message);
     }
   };
 
@@ -328,22 +343,22 @@ const ApprovalProposal = ({ progressId }) => {
                 <Label>제목</Label>
                 <Input
                   type="text"
-                  value={editingProposal.title}
-                  onChange={(e) => setEditingProposal({
-                    ...editingProposal,
+                  value={editingProposal.title || ''}
+                  onChange={(e) => setEditingProposal(prev => ({
+                    ...prev,
                     title: e.target.value
-                  })}
+                  }))}
                   placeholder="제목을 입력하세요"
                 />
               </InputGroup>
               <InputGroup>
                 <Label>내용</Label>
                 <TextArea
-                  value={editingProposal.content}
-                  onChange={(e) => setEditingProposal({
-                    ...editingProposal,
+                  value={editingProposal.content || ''}
+                  onChange={(e) => setEditingProposal(prev => ({
+                    ...prev,
                     content: e.target.value
-                  })}
+                  }))}
                   placeholder="내용을 입력하세요"
                 />
               </InputGroup>
