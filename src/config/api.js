@@ -52,7 +52,8 @@ export const API_ENDPOINTS = {
     MODIFY: (decisionId) => `${API_BASE_URL}/decision/${decisionId}`,
     DELETE: (decisionId) => `${API_BASE_URL}/decision/${decisionId}`,
     DETAIL: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/approver/decision`,
-    LIST: () => `${API_BASE_URL}/approval/approver/decision`,
+    LIST: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/approver/decision`,
+    ALL: () => `${API_BASE_URL}/approval/approver/decision`,
     SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`
   },
 };
