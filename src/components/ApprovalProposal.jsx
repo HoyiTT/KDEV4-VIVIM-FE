@@ -39,7 +39,7 @@ const getStatusColor = (status) => {
 const ProposalContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
   flex: 1;
 `;
 
@@ -53,18 +53,25 @@ const ProposalList = styled.div`
 const ProposalItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 20px;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 12px;
   background: white;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const ProposalContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
 `;
 
@@ -72,23 +79,23 @@ const ProposalHeader = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 8px;
 `;
 
 const ProposalTitle = styled.h1`
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
   color: #1e293b;
   margin: 0;
-  padding: 16px;
+  padding: 24px 20px;
+  line-height: 1.3;
 `;
 
 const ProposalSubtitle = styled.h2`
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 600;
   color: #475569;
   margin: 0;
-  padding: 0 16px 16px;
+  padding: 0 20px 20px;
   border-bottom: ${props => props.withMargin ? 'none' : '1px solid #e2e8f0'};
   margin-top: ${props => props.withMargin ? '70px' : '0px'};
   display: flex;
@@ -112,9 +119,10 @@ const ProposalDescription = styled.div`
 const ProposalInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 16px;
+  padding: 24px 20px;
   border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
 `;
 
 const CreatorInfo = styled.div`
@@ -125,68 +133,71 @@ const CreatorInfo = styled.div`
 
 const CompanyName = styled.span`
   font-weight: 500;
+  color: #475569;
 `;
 
-const CreatorName = styled.span``;
+const CreatorName = styled.span`
+  color: #64748b;
+`;
 
-const DateInfo = styled.span``;
+const DateInfo = styled.span`
+  color: #94a3b8;
+`;
 
 const ProposalActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  width: 100%;
-  margin-top: 8px;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
   gap: 8px;
-  justify-content: flex-end;
   margin-top: 8px;
 `;
 
 const ActionButton = styled.button`
-  padding: 4px 8px;
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   background: white;
-  border: 1px solid #94a3b8;
-  border-radius: 4px;
   color: #475569;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  min-width: 40px;
-  height: 24px;
-  line-height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
     color: #1e293b;
   }
 `;
 
 const DeleteButton = styled(ActionButton)`
-  background: white;
-  border-color: #ef4444;
-  color: #dc2626;
+  border-color: #fee2e2;
+  color: #ef4444;
 
   &:hover {
     background: #fee2e2;
-    color: #b91c1c;
+    color: #dc2626;
+  }
+`;
+
+const SendButton = styled(ActionButton)`
+  border-color: #dbeafe;
+  color: #2563eb;
+
+  &:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
   }
 `;
 
 const StatusBadge = styled.div`
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   background-color: ${props => props.background};
   color: ${props => props.text};
   align-self: flex-start;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const AddButton = styled.button`
@@ -223,30 +234,6 @@ const EmptyState = styled.div`
   color: #64748b;
 `;
 
-const SendButton = styled.button`
-  padding: 4px 8px;
-  background: white;
-  border: 1px solid #2E7D32;
-  border-radius: 4px;
-  color: #2E7D32;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  min-width: 40px;
-  height: 24px;
-  line-height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #f1f5f9;
-    color: #1B5E20;
-  }
-`;
-
 const SidePanelOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -258,6 +245,7 @@ const SidePanelOverlay = styled.div`
   display: flex;
   justify-content: flex-end;
   overflow: hidden;
+  backdrop-filter: blur(4px);
 `;
 
 const SidePanelContent = styled.div`
@@ -265,15 +253,26 @@ const SidePanelContent = styled.div`
   width: ${props => props.isFullscreen ? '100%' : '800px'};
   height: 100vh;
   overflow-y: auto;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
   transition: width 0.3s ease;
   
   &::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 `;
 
@@ -281,8 +280,12 @@ const SidePanelHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 20px;
   border-bottom: 1px solid #e2e8f0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 `;
 
 const HeaderInfo = styled.div`
@@ -322,14 +325,14 @@ const SidePanelBody = styled.div`
 `;
 
 const SidePanelFooter = styled.div`
-  padding: 16px;
+  padding: 20px;
   border-top: 1px solid #e2e8f0;
   background: white;
   position: sticky;
   bottom: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
 `;
 
 const SidePanelTitle = styled.h3`
@@ -346,9 +349,11 @@ const CloseButton = styled.button`
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  transition: all 0.2s ease;
 
   &:hover {
     color: #1e293b;
+    transform: scale(1.1);
   }
 `;
 
@@ -524,10 +529,12 @@ const InfoSection = styled.div`
 `;
 
 const ContentSection = styled.div`
-  padding: 24px 16px;
-  font-size: 14px;
+  padding: 32px 20px;
+  font-size: 15px;
   color: #1e293b;
-  line-height: 1.6;
+  line-height: 1.7;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const ResponseSection = styled.div`
@@ -639,18 +646,21 @@ const EmptyResponseMessage = styled.div`
 const InfoItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
+  gap: 12px;
+  font-size: 15px;
 `;
 
 const InfoLabel = styled.span`
-  font-weight: 500;
-  min-width: 60px;
+  font-weight: 600;
+  min-width: 80px;
+  color: #64748b;
 `;
 
 const InfoValue = styled.span`
   color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const ResponseStatus = styled.div`
@@ -718,17 +728,19 @@ const DetailValue = styled.div`
 `;
 
 const SidePanelButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
+  padding: 10px 20px;
+  background: #f1f5f9;
+  color: #475569;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #1B5E20;
+    background: #e2e8f0;
+    color: #1e293b;
   }
 `;
 
@@ -740,17 +752,19 @@ const FullscreenButton = styled.button`
   padding: 8px;
   font-size: 20px;
   margin-right: 8px;
+  transition: all 0.2s ease;
 
   &:hover {
     color: #1e293b;
+    transform: scale(1.1);
   }
 `;
 
 const ListProposalTitle = styled.div`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   color: #1e293b;
-  text-align: left;
+  line-height: 1.4;
 `;
 
 const ListProposalInfo = styled.div`
@@ -758,10 +772,10 @@ const ListProposalInfo = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 8px 0;
-  border-top: 1px solid #e2e8f0;
-  font-size: 12px;
-  color: #94a3b8;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+  color: #64748b;
 `;
 
 const ApprovalProposal = ({ progressId }) => {
@@ -785,6 +799,7 @@ const ApprovalProposal = ({ progressId }) => {
   const [showAll, setShowAll] = useState(false);
   const [approvers, setApprovers] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [approvalDecisions, setApprovalDecisions] = useState([]);
 
   useEffect(() => {
     fetchProposals();
@@ -851,6 +866,34 @@ const ApprovalProposal = ({ progressId }) => {
       alert(error.message || '승인권자 목록을 불러오는데 실패했습니다.');
     }
   };
+
+  const fetchApprovalDecisions = async (approvalId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.DECISION.DETAIL(approvalId), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인응답 목록 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setApprovalDecisions(data.items[0]?.approvers || []);
+    } catch (error) {
+      console.error('Error fetching approval decisions:', error);
+      alert('승인응답 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProposal) {
+      fetchApprovalDecisions(selectedProposal.id);
+    }
+  }, [selectedProposal]);
 
   const handleProposalClick = async (proposal) => {
     try {
@@ -1101,20 +1144,18 @@ const ApprovalProposal = ({ progressId }) => {
                       <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
                     </ListProposalInfo>
                     <ProposalActions>
-                      <ActionButtons>
-                        <ActionButton onClick={() => handleEditClick(proposal)}>
-                          수정
-                        </ActionButton>
-                        <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
-                          삭제
-                        </DeleteButton>
-                        {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
-                          proposal.approvalProposalStatus === 'REJECTED') && (
-                          <SendButton onClick={() => handleSendProposal(proposal.id)}>
-                            승인요청 전송
-                          </SendButton>
-                        )}
-                      </ActionButtons>
+                      <ActionButton onClick={() => handleEditClick(proposal)}>
+                        수정
+                      </ActionButton>
+                      <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
+                        삭제
+                      </DeleteButton>
+                      {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
+                        proposal.approvalProposalStatus === 'REJECTED') && (
+                        <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                          승인요청 전송
+                        </SendButton>
+                      )}
                     </ProposalActions>
                   </ProposalItem>
                 );
@@ -1245,7 +1286,32 @@ const ApprovalProposal = ({ progressId }) => {
               <ProposalSubtitle withMargin>
                 <span>승인권자별 응답목록</span>
               </ProposalSubtitle>
-              <ApprovalDecision approvalId={selectedProposal.id} />
+              {approvalDecisions.map((approver) => (
+                <ResponseSection key={approver.approverId}>
+                  <ResponseTitle>
+                    <span>{approver.approverName}</span>
+                  </ResponseTitle>
+                  <ResponseList>
+                    {approver.decisionList.length > 0 ? (
+                      approver.decisionList.map((decision) => (
+                        <ResponseItem key={decision.id}>
+                          <ResponseHeader>
+                            <ResponseName>{decision.title}</ResponseName>
+                            <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
+                          </ResponseHeader>
+                          <ResponseContent>
+                            <ResponseStatus status={decision.status}>
+                              {decision.status === 'APPROVED' ? '승인' : '거절'}
+                            </ResponseStatus>
+                          </ResponseContent>
+                        </ResponseItem>
+                      ))
+                    ) : (
+                      <EmptyResponseMessage>아직 응답이 없습니다.</EmptyResponseMessage>
+                    )}
+                  </ResponseList>
+                </ResponseSection>
+              ))}
             </SidePanelBody>
             <SidePanelFooter>
               <SidePanelButton onClick={() => setIsProposalModalOpen(false)}>닫기</SidePanelButton>
