@@ -309,7 +309,7 @@ const CompletedMessage = styled.div`
 `;
 
 const ApprovalDecision = ({ approvalId }) => {
-  const [proposals, setProposals] = useState([]);
+  const [approversData, setApproversData] = useState([]);
   const [isInputOpen, setIsInputOpen] = useState(false);
   const [newDecision, setNewDecision] = useState({
     content: '',
@@ -340,7 +340,8 @@ const ApprovalDecision = ({ approvalId }) => {
 
       const data = await response.json();
       console.log('Fetched decisions:', data);
-      setProposals(data.items || []);
+      const approvers = data.items[0]?.approvers || [];
+      setApproversData(approvers);
     } catch (error) {
       console.error('Error fetching decisions:', error);
       alert(error.message || '승인응답 목록을 불러오는데 실패했습니다.');
@@ -462,10 +463,10 @@ const ApprovalDecision = ({ approvalId }) => {
   return (
     <ResponseSection>
       <ResponseList>
-        {proposals.length === 0 ? (
+        {approversData.length === 0 ? (
           <EmptyResponseMessage>승인권자가 없습니다.</EmptyResponseMessage>
         ) : (
-          sortApprovers(proposals[0].approvers).map((approver) => (
+          sortApprovers(approversData).map((approver) => (
             <ResponseItem 
               key={approver.approverId}
               isCompleted={hasApprovedDecision(approver)}
