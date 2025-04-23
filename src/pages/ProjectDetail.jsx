@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -13,7 +13,13 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showDropdown, setShowDropdown] = useState(false); // Add this line
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedStage, setSelectedStage] = useState(null);
+  const [maxHeight, setMaxHeight] = useState(0);
+  const [expandedHeights, setExpandedHeights] = useState({});
+  const stageRefs = useRef([]);
+  const [showAll, setShowAll] = useState(false);
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
@@ -41,7 +47,6 @@ const ProjectDetail = () => {
     }
   };
 
-  // Add new state for progress list
   const [progressList, setProgressList] = useState([]);
 
   useEffect(() => {
@@ -49,6 +54,17 @@ const ProjectDetail = () => {
     fetchProjectPosts();
     fetchProjectProgress(); // Add new fetch call
   }, [id]);
+
+  useEffect(() => {
+    if (stageRefs.current.length > 0) {
+      const heights = stageRefs.current.map((ref, index) => {
+        const expandedHeight = expandedHeights[index] || 0;
+        return Math.max(ref?.offsetHeight || 0, expandedHeight);
+      });
+      const max = Math.max(...heights, 550); // 최소 높이 550px 보장
+      setMaxHeight(max);
+    }
+  }, [progressList, expandedHeights]);
 
   const translateRole = (role) => {
     switch (role) {
@@ -179,6 +195,14 @@ const ProjectDetail = () => {
       checkAdminStatus();
     }, []);
   
+
+  const handleShowMore = (stage, index, height) => {
+    setExpandedHeights(prev => ({
+      ...prev,
+      [index]: height
+    }));
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -239,11 +263,22 @@ const ProjectDetail = () => {
               <StageGrid>
                 {progressList
                   .sort((a, b) => a.position - b.position)
-                  .map((stage) => (
-                    <StageItem key={stage.id}>
-                      <StageHeader>{stage.name}</StageHeader>
-                      <ApprovalProposal progressId={stage.id} />
-                    </StageItem>
+                  .map((stage, index) => (
+                    <StageContainer key={stage.id}>
+                      <StageItem 
+                        ref={el => stageRefs.current[index] = el} 
+                        style={{ height: maxHeight > 0 ? `${maxHeight}px` : 'auto' }}
+                      >
+                        <StageHeader>
+                          <StageTitle>{stage.name}</StageTitle>
+                        </StageHeader>
+                        <ApprovalProposal 
+                          progressId={stage.id} 
+                          showMore={true} 
+                          onShowMore={(height) => handleShowMore(stage, index, height)}
+                        />
+                      </StageItem>
+                    </StageContainer>
                   ))}
               </StageGrid>
             </StageSection>
@@ -469,54 +504,59 @@ const StageSection = styled.div`
 const StageGrid = styled.div`
   display: flex;
   gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 12px;
-  
-  /* Add styling for the scrollbar */
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-  }
+  width: 100%;
+  height: 650px; // 고정된 높이 설정
+  overflow: hidden; // 스크롤 제거
 `;
 
 // Update the StageItem styled component
 const StageItem = styled.div`
-  padding: 20px;
   background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  text-align: center;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  min-height: 200px;
-  min-width: 280px;
-  max-width: 280px;
-  flex: 0 0 auto;
+  gap: 8px;
+  min-width: 320px;
+  max-width: 320px;
+  min-height: 550px;
+  max-height: 550px;
+  transition: height 0.3s ease;
+  overflow: hidden; // 스크롤 제거
 `;
 
 const StageHeader = styled.div`
   font-size: 16px;
   font-weight: 500;
   color: #1e293b;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  padding: 15px 15px 0 10px;
 `;
 
-const StageCount = styled.div`
-  font-size: 24px;
-  font-weight: 600;
-  color: #2E7D32;
+const ShowMoreButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const AddButtonContainer = styled.div`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 5px;
+  margin-top: auto;
 `;
 
 const LoadingMessage = styled.div`
@@ -763,6 +803,19 @@ const EmptyStateDescription = styled.p`
   color: #64748b;
   margin: 0;
   line-height: 1.5;
+`;
+
+const StageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const StageTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
 `;
 
 

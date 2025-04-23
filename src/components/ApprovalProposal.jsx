@@ -1,344 +1,235 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
-import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus } from '../constants/enums';
 import ApprovalDecision from './ApprovalDecision';
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'BEFORE_REQUEST_PROPOSAL':
-      return {
-        background: '#f1f5f9',
-        text: '#64748b'
-      };
-    case 'REQUEST_PROPOSAL':
-      return {
-        background: '#dbeafe',
-        text: '#2563eb'
-      };
-    case 'APPROVED':
-      return {
-        background: '#dcfce7',
-        text: '#16a34a'
-      };
-    case 'REJECTED':
-      return {
-        background: '#fee2e2',
-        text: '#dc2626'
-      };
-    default:
-      return {
-        background: '#f1f5f9',
-        text: '#64748b'
-      };
-  }
-};
-
 // Styled Components
+const LoadingMessage = styled.div`
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+`;
+
 const ProposalContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
+  gap: 16px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 `;
 
 const ProposalList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   flex: 1;
+  padding-bottom: 16px;
+  overflow-y: auto;
+  max-height: calc(100% - 100px);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+`;
+
+const EmptyState = styled.div`
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 `;
 
 const ProposalItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
   background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   }
 `;
 
 const ProposalContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-`;
-
-const ProposalHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const ProposalTitle = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-  padding: 24px 20px;
-  line-height: 1.3;
-`;
-
-const ProposalSubtitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #475569;
-  margin: 0;
-  padding: 0 20px 20px;
-  border-bottom: ${props => props.withMargin ? 'none' : '1px solid #e2e8f0'};
-  margin-top: ${props => props.withMargin ? '70px' : '0px'};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 8px;
 `;
 
 const ProposalDescription = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.5;
-  text-align: left;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: none;
 `;
 
-const ProposalInfo = styled.div`
+const ListProposalInfo = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px 20px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
 `;
 
 const CreatorInfo = styled.div`
   display: flex;
   gap: 8px;
-  align-items: center;
 `;
 
 const CompanyName = styled.span`
-  font-weight: 500;
-  color: #475569;
-`;
-
-const CreatorName = styled.span`
+  font-size: 12px;
   color: #64748b;
 `;
 
+const CreatorName = styled.span`
+  font-size: 12px;
+  color: #1e293b;
+  font-weight: 500;
+`;
+
 const DateInfo = styled.span`
-  color: #94a3b8;
+  font-size: 12px;
+  color: #64748b;
 `;
 
 const ProposalActions = styled.div`
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
 `;
 
 const ActionButton = styled.button`
   padding: 6px 12px;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: white;
+  border-radius: 4px;
   color: #475569;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 
   &:hover {
-    background: #f8fafc;
-    color: #1e293b;
+    background: #e2e8f0;
   }
 `;
 
 const DeleteButton = styled(ActionButton)`
-  border-color: #fee2e2;
-  color: #ef4444;
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
 
   &:hover {
-    background: #fee2e2;
-    color: #dc2626;
+    background: #fecaca;
   }
 `;
 
 const SendButton = styled(ActionButton)`
-  border-color: #dbeafe;
-  color: #2563eb;
+  background: white;
+  border: 1px solid #2E7D32;
+  color: #2E7D32;
+  width: 100%;
+  text-align: center;
+  padding: 8px 16px;
+  transition: all 0.2s;
 
   &:hover {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: #2E7D32;
+    color: white;
   }
 `;
 
-const StatusBadge = styled.div`
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  background-color: ${props => props.background};
-  color: ${props => props.text};
-  align-self: flex-start;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+const ShowMoreButton = styled.button`
+  width: 100%;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: sticky;
+  bottom: 60px;
+  z-index: 1;
+  margin-top: auto;
+
+  &:hover {
+    background: #f1f5f9;
+  }
 `;
 
 const AddButton = styled.button`
-  width: 100%;
-  padding: 8px 16px;
+  padding: 12px 24px;
   background: #2E7D32;
-  color: white;
   border: none;
   border-radius: 6px;
+  color: white;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  align-self: flex-start;
+  width: 100%;
 
   &:hover {
     background: #1B5E20;
   }
 `;
 
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const SidePanelOverlay = styled.div`
+const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
-  display: flex;
-  justify-content: flex-end;
-  overflow: hidden;
-  backdrop-filter: blur(4px);
 `;
 
-const SidePanelContent = styled.div`
+const ModalContent = styled.div`
   background: white;
-  width: ${props => props.isFullscreen ? '100%' : '800px'};
-  height: 100vh;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-  
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
+  overflow-x: hidden;
 `;
 
-const SidePanelHeader = styled.div`
+const ModalHeader = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e2e8f0;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 `;
 
-const HeaderInfo = styled.div`
-  display: flex;
-  gap: 16px;
-  align-items: center;
-`;
-
-const HeaderStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const HeaderAuthor = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const HeaderDate = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const SidePanelBody = styled.div`
-  padding: 16px;
-  flex: 1;
-  overflow-y: auto;
-`;
-
-const SidePanelFooter = styled.div`
-  padding: 20px;
-  border-top: 1px solid #e2e8f0;
-  background: white;
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-`;
-
-const SidePanelTitle = styled.h3`
-  margin: 0;
+const ModalTitle = styled.h2`
   font-size: 18px;
+  font-weight: 600;
   color: #1e293b;
+  margin: 0;
 `;
 
 const CloseButton = styled.button`
@@ -349,115 +240,31 @@ const CloseButton = styled.button`
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  transition: all 0.2s ease;
 
   &:hover {
     color: #1e293b;
-    transform: scale(1.1);
   }
-`;
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  cursor: pointer;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  cursor: default;
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const ModalTitle = styled.h3`
-  margin: 0;
-  font-size: 18px;
-  color: #1e293b;
 `;
 
 const ModalBody = styled.div`
   padding: 16px;
-`;
-
-const InputGroup = styled.div`
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const Label = styled.label`
-  min-width: 100px;
-  font-size: 14px;
-  color: #475569;
-  text-align: right;
-`;
-
-const Input = styled.input`
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #1e293b;
+  width: 100%;
   box-sizing: border-box;
-
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-  }
-`;
-
-const TextArea = styled.textarea`
-  flex: 1;
-  height: 120px;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #1e293b;
-  resize: vertical;
-  box-sizing: border-box;
-
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-  }
 `;
 
 const ModalFooter = styled.div`
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding: 16px;
-  border-top: 1px solid #e2e8f0;
 `;
 
 const ModalButton = styled.button`
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -470,116 +277,174 @@ const ModalButton = styled.button`
       background: #1B5E20;
     }
   ` : `
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
     color: #475569;
+    border: 1px solid #e2e8f0;
 
     &:hover {
-      background: #f1f5f9;
-      color: #1e293b;
+      background: #e2e8f0;
     }
   `}
 `;
 
-const ShowMoreButton = styled.button`
-  width: 100%;
-  padding: 8px 16px;
+const SidePanelOverlay = styled(ModalOverlay)`
+  justify-content: flex-end;
+`;
+
+const SidePanelContent = styled.div`
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #475569;
-  font-size: 14px;
+  width: 100%;
+  max-width: 600px;
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  ${props => props.isFullscreen && `
+    max-width: 100%;
+  `}
+`;
+
+const SidePanelHeader = styled(ModalHeader)`
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const SidePanelBody = styled.div`
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const SidePanelFooter = styled(ModalFooter)`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+`;
+
+const SidePanelActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+`;
+
+const SidePanelButton = styled(ModalButton)`
+  width: 100%;
+`;
+
+const FullscreenButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
   cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  margin-top: 30px;
+  padding: 0;
+  line-height: 1;
+  margin-right: 8px;
 
   &:hover {
-    background: #f1f5f9;
     color: #1e293b;
   }
 `;
 
-const DetailContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const Title = styled.div`
-  font-size: 18px;
-  font-weight: 500;
+const ProposalTitle = styled.h1`
+  font-size: 24px;
+  font-weight: 600;
   color: #1e293b;
+  margin-bottom: 24px;
 `;
 
-const InfoSection = styled.div`
+const ProposalInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+const InfoLabel = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  min-width: 80px;
+`;
+
+const InfoValue = styled.span`
+  font-size: 14px;
+  color: #1e293b;
 `;
 
 const ContentSection = styled.div`
-  padding: 32px 20px;
-  font-size: 15px;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 24px;
+`;
+
+const ProposalSubtitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
   color: #1e293b;
-  line-height: 1.7;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+  ${props => props.withMargin && `
+    margin-top: 32px;
+  `}
 `;
 
 const ResponseSection = styled.div`
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
+  margin-top: 24px;
 `;
 
-const ResponseTitle = styled.div`
+const ResponseTitle = styled.h3`
   font-size: 16px;
   font-weight: 500;
   color: #1e293b;
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 16px;
 `;
 
 const ResponseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 `;
 
 const ResponseItem = styled.div`
-  padding: 12px;
   background: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  padding: 16px;
 `;
 
 const ResponseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 `;
 
-const ResponseName = styled.div`
+const ResponseName = styled.span`
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
 `;
 
-const ResponseDate = styled.div`
+const ResponseDate = styled.span`
   font-size: 12px;
   color: #64748b;
 `;
@@ -590,47 +455,32 @@ const ResponseContent = styled.div`
   line-height: 1.6;
 `;
 
-const ResponseActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-`;
-
-const ResponseButton = styled.button`
+const ResponseStatus = styled.span`
+  display: inline-block;
   padding: 4px 8px;
-  background: white;
-  border: 1px solid #94a3b8;
   border-radius: 4px;
-  color: #475569;
   font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f1f5f9;
-    color: #1e293b;
-  }
-`;
-
-const StatusSelect = styled.select`
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #1e293b;
-  background: white;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-  }
-`;
-
-const RequiredLabel = styled.span`
-  color: #ef4444;
-  margin-left: 4px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.status) {
+      case ApprovalDecisionStatus.APPROVED:
+        return '#dcfce7';
+      case ApprovalDecisionStatus.REJECTED:
+        return '#fee2e2';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case ApprovalDecisionStatus.APPROVED:
+        return '#16a34a';
+      case ApprovalDecisionStatus.REJECTED:
+        return '#dc2626';
+      default:
+        return '#64748b';
+    }
+  }};
 `;
 
 const EmptyResponseMessage = styled.div`
@@ -643,163 +493,175 @@ const EmptyResponseMessage = styled.div`
   border: 1px solid #e2e8f0;
 `;
 
-const InfoItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 15px;
+const InputGroup = styled.div`
+  margin-bottom: 16px;
+  width: 100%;
 `;
 
-const InfoLabel = styled.span`
-  font-weight: 600;
-  min-width: 80px;
-  color: #64748b;
-`;
-
-const InfoValue = styled.span`
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ResponseStatus = styled.div`
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+const Label = styled.label`
+  display: block;
   margin-bottom: 8px;
-  background-color: ${props => {
-    const status = props.status;
-    switch (status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '#dcfce7';
-      case ApprovalDecisionStatus.REJECTED:
-        return '#fee2e2';
-      default:
-        return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    const status = props.status;
-    switch (status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '#16a34a';
-      case ApprovalDecisionStatus.REJECTED:
-        return '#dc2626';
-      default:
-        return '#64748b';
-    }
-  }};
-`;
-
-const ResponseText = styled.div`
-  font-size: 14px;
-  color: #475569;
-  line-height: 1.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-`;
-
-const ProposalDetail = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const DetailLabel = styled.div`
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
-`;
-
-const DetailValue = styled.div`
-  font-size: 14px;
   color: #1e293b;
 `;
 
-const SidePanelButton = styled.button`
-  padding: 10px 20px;
-  background: #f1f5f9;
-  color: #475569;
-  border: none;
-  border-radius: 8px;
+const Input = styled.input`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  color: #1e293b;
+  background: white;
+  transition: all 0.2s;
+  box-sizing: border-box;
 
-  &:hover {
-    background: #e2e8f0;
-    color: #1e293b;
+  &:focus {
+    outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
+  }
+
+  &::placeholder {
+    color: #94a3b8;
   }
 `;
 
-const FullscreenButton = styled.button`
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 8px;
-  font-size: 20px;
-  margin-right: 8px;
-  transition: all 0.2s ease;
+const TextArea = styled.textarea`
+  width: 100%;
+  min-height: 120px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  resize: vertical;
+  transition: all 0.2s;
+  box-sizing: border-box;
 
-  &:hover {
-    color: #1e293b;
-    transform: scale(1.1);
+  &:focus {
+    outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
   }
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+`;
+
+const StatusSelect = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
+  }
+
+  option {
+    padding: 8px;
+  }
+`;
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'BEFORE_REQUEST_PROPOSAL':
+      return {
+        background: '#f1f5f9',
+        text: '#64748b',
+        border: '1px solid #e2e8f0'
+      };
+    case 'REQUEST_PROPOSAL':
+      return {
+        background: '#dbeafe',
+        text: '#2563eb',
+        border: '1px solid #bfdbfe'
+      };
+    case 'APPROVED':
+      return {
+        background: '#dcfce7',
+        text: '#16a34a',
+        border: '1px solid #bbf7d0'
+      };
+    case 'REJECTED':
+      return {
+        background: '#fee2e2',
+        text: '#dc2626',
+        border: '1px solid #fecaca'
+      };
+    default:
+      return {
+        background: '#f1f5f9',
+        text: '#64748b',
+        border: '1px solid #e2e8f0'
+      };
+  }
+};
+
+const StatusBadge = styled.div`
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: ${props => props.background};
+  color: ${props => props.text};
+  border: ${props => props.border};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 `;
 
 const ListProposalTitle = styled.div`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #1e293b;
   line-height: 1.4;
+  flex: 1;
 `;
 
-const ListProposalInfo = styled.div`
+const ProposalHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
+  gap: 12px;
   align-items: center;
-  width: 100%;
-  padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
-  font-size: 13px;
-  color: #64748b;
+  margin-bottom: 16px;
 `;
 
-const ApprovalProposal = ({ progressId }) => {
+const AddButtonContainer = styled.div`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 8px;
+  margin-top: auto;
+  z-index: 2;
+`;
+
+const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
-  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
-  const [selectedProposal, setSelectedProposal] = useState(null);
-  const [selectedApprover, setSelectedApprover] = useState(null);
-  const [newProposal, setNewProposal] = useState({
-    title: '',
-    content: ''
-  });
-  const [newDecision, setNewDecision] = useState({
-    content: '',
-    status: ''
-  });
-  const [editingProposal, setEditingProposal] = useState(null);
   const [showAll, setShowAll] = useState(false);
-  const [approvers, setApprovers] = useState([]);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [approvalDecisions, setApprovalDecisions] = useState([]);
+  const [newDecision, setNewDecision] = useState({ content: '', status: '' });
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newProposal, setNewProposal] = useState({ title: '', content: '' });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProposal, setEditingProposal] = useState(null);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     fetchProposals();
@@ -843,58 +705,6 @@ const ApprovalProposal = ({ progressId }) => {
     }
   };
 
-  const fetchApprovers = async (approvalId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
-        method: 'GET',
-        headers: {
-          'Authorization': token,
-          'accept': '*/*'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setApprovers(data);
-    } catch (error) {
-      console.error('Error fetching approvers:', error);
-      alert(error.message || '승인권자 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  const fetchApprovalDecisions = async (approvalId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.DECISION.DETAIL(approvalId), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인응답 목록 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
-      setApprovalDecisions(data.items[0]?.approvers || []);
-    } catch (error) {
-      console.error('Error fetching approval decisions:', error);
-      alert('승인응답 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  useEffect(() => {
-    if (selectedProposal) {
-      fetchApprovalDecisions(selectedProposal.id);
-    }
-  }, [selectedProposal]);
-
   const handleProposalClick = async (proposal) => {
     try {
       const token = localStorage.getItem('token');
@@ -912,7 +722,6 @@ const ApprovalProposal = ({ progressId }) => {
       const data = await response.json();
       setSelectedProposal(data);
       setIsProposalModalOpen(true);
-      await fetchApprovers(proposal.id);
     } catch (error) {
       console.error('Error fetching proposal detail:', error);
       alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
@@ -920,6 +729,15 @@ const ApprovalProposal = ({ progressId }) => {
   };
 
   const handleAddProposal = async () => {
+    if (!newProposal.title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+    if (!newProposal.content.trim()) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
@@ -1065,46 +883,11 @@ const ApprovalProposal = ({ progressId }) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
-  const displayedProposals = showAll ? proposals : proposals.slice(0, 3);
-
-  const handleCreateDecision = async () => {
-    if (!newDecision.content || newDecision.content.trim() === '') {
-      alert('응답 내용을 입력해주세요.');
-      return;
-    }
-
-    if (!newDecision.status) {
-      alert('승인 상태를 선택해주세요.');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.DECISION.CREATE(selectedProposal.id), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'accept': '*/*'
-        },
-        body: JSON.stringify({
-          content: newDecision.content,
-          decisionStatus: newDecision.status,
-          approverId: selectedApprover.approverId
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      setIsDecisionModalOpen(false);
-      setNewDecision({ content: '', status: '' });
-      fetchApprovers(selectedProposal.id);
-    } catch (error) {
-      console.error('Error creating decision:', error);
-      alert(error.message || '승인응답 생성에 실패했습니다.');
+  const handleShowMore = () => {
+    setShowAll(!showAll);
+    if (onShowMore) {
+      const fullHeight = contentRef.current?.scrollHeight || 0;
+      onShowMore(fullHeight);
     }
   };
 
@@ -1115,12 +898,12 @@ const ApprovalProposal = ({ progressId }) => {
   return (
     <>
       <ProposalContainer>
-        <ProposalList>
+        <ProposalList ref={contentRef}>
           {proposals.length === 0 ? (
             <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
           ) : (
             <>
-              {displayedProposals.map((proposal) => {
+              {proposals.slice(0, showAll ? proposals.length : 2).map((proposal) => {
                 const colors = getStatusColor(proposal.approvalProposalStatus);
                 return (
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
@@ -1129,12 +912,12 @@ const ApprovalProposal = ({ progressId }) => {
                         <StatusBadge
                           background={colors.background}
                           text={colors.text}
+                          border={colors.border}
                         >
                           {getStatusText(proposal.approvalProposalStatus)}
                         </StatusBadge>
                         <ListProposalTitle>{proposal.title}</ListProposalTitle>
                       </ProposalHeader>
-                      <ProposalDescription>{proposal.content}</ProposalDescription>
                     </ProposalContent>
                     <ListProposalInfo>
                       <CreatorInfo>
@@ -1144,12 +927,6 @@ const ApprovalProposal = ({ progressId }) => {
                       <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
                     </ListProposalInfo>
                     <ProposalActions>
-                      <ActionButton onClick={() => handleEditClick(proposal)}>
-                        수정
-                      </ActionButton>
-                      <DeleteButton onClick={() => handleDeleteProposal(proposal.id)}>
-                        삭제
-                      </DeleteButton>
                       {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
                         proposal.approvalProposalStatus === 'REJECTED') && (
                         <SendButton onClick={() => handleSendProposal(proposal.id)}>
@@ -1160,17 +937,19 @@ const ApprovalProposal = ({ progressId }) => {
                   </ProposalItem>
                 );
               })}
-              {proposals.length > 3 && !showAll && (
-                <ShowMoreButton onClick={() => setShowAll(true)}>
-                  더보기
-                </ShowMoreButton>
-              )}
             </>
           )}
         </ProposalList>
-        <AddButton onClick={() => setIsModalOpen(true)}>
-          + 승인요청 추가
-        </AddButton>
+        {showMore && proposals.length > 2 && (
+          <ShowMoreButton onClick={handleShowMore}>
+            {showAll ? '접기' : '더보기'}
+          </ShowMoreButton>
+        )}
+        <AddButtonContainer>
+          <AddButton onClick={() => setIsModalOpen(true)}>
+            + 승인요청 추가
+          </AddButton>
+        </AddButtonContainer>
       </ProposalContainer>
 
       {isModalOpen && (
@@ -1209,56 +988,24 @@ const ApprovalProposal = ({ progressId }) => {
         </ModalOverlay>
       )}
 
-      {isEditModalOpen && editingProposal && (
-        <ModalOverlay onClick={() => setIsEditModalOpen(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>승인요청 수정</ModalTitle>
-              <CloseButton onClick={() => setIsEditModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <InputGroup>
-                <Label>제목</Label>
-                <Input
-                  type="text"
-                  value={editingProposal.title || ''}
-                  onChange={(e) => setEditingProposal(prev => ({
-                    ...prev,
-                    title: e.target.value
-                  }))}
-                  placeholder="제목을 입력하세요"
-                />
-              </InputGroup>
-              <InputGroup>
-                <Label>내용</Label>
-                <TextArea
-                  value={editingProposal.content || ''}
-                  onChange={(e) => setEditingProposal(prev => ({
-                    ...prev,
-                    content: e.target.value
-                  }))}
-                  placeholder="내용을 입력하세요"
-                />
-              </InputGroup>
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton onClick={() => setIsEditModalOpen(false)}>취소</ModalButton>
-              <ModalButton primary onClick={handleModifyProposal}>수정</ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-
       {isProposalModalOpen && selectedProposal && (
         <SidePanelOverlay onClick={() => setIsProposalModalOpen(false)}>
           <SidePanelContent onClick={(e) => e.stopPropagation()} isFullscreen={isFullscreen}>
             <SidePanelHeader>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FullscreenButton onClick={() => setIsFullscreen(!isFullscreen)}>
                   {isFullscreen ? '⤢' : '⤡'}
                 </FullscreenButton>
                 <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
               </div>
+              <SidePanelActions>
+                <ActionButton onClick={() => handleEditClick(selectedProposal)}>
+                  수정
+                </ActionButton>
+                <DeleteButton onClick={() => handleDeleteProposal(selectedProposal.id)}>
+                  삭제
+                </DeleteButton>
+              </SidePanelActions>
             </SidePanelHeader>
             <SidePanelBody>
               <ProposalTitle>{selectedProposal.title}</ProposalTitle>
@@ -1274,9 +1021,9 @@ const ApprovalProposal = ({ progressId }) => {
                 <InfoItem>
                   <InfoLabel>상태</InfoLabel>
                   <InfoValue>
-                    <StatusBadge status={selectedProposal.approvalProposalStatus}>
+                    <ResponseStatus status={selectedProposal.approvalProposalStatus}>
                       {getStatusText(selectedProposal.approvalProposalStatus)}
-                    </StatusBadge>
+                    </ResponseStatus>
                   </InfoValue>
                 </InfoItem>
               </ProposalInfo>
@@ -1286,80 +1033,13 @@ const ApprovalProposal = ({ progressId }) => {
               <ProposalSubtitle withMargin>
                 <span>승인권자별 응답목록</span>
               </ProposalSubtitle>
-              {approvalDecisions.map((approver) => (
-                <ResponseSection key={approver.approverId}>
-                  <ResponseTitle>
-                    <span>{approver.approverName}</span>
-                  </ResponseTitle>
-                  <ResponseList>
-                    {approver.decisionList.length > 0 ? (
-                      approver.decisionList.map((decision) => (
-                        <ResponseItem key={decision.id}>
-                          <ResponseHeader>
-                            <ResponseName>{decision.title}</ResponseName>
-                            <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
-                          </ResponseHeader>
-                          <ResponseContent>
-                            <ResponseStatus status={decision.status}>
-                              {decision.status === 'APPROVED' ? '승인' : '거절'}
-                            </ResponseStatus>
-                          </ResponseContent>
-                        </ResponseItem>
-                      ))
-                    ) : (
-                      <EmptyResponseMessage>아직 응답이 없습니다.</EmptyResponseMessage>
-                    )}
-                  </ResponseList>
-                </ResponseSection>
-              ))}
+              <ApprovalDecision approvalId={selectedProposal.id} />
             </SidePanelBody>
             <SidePanelFooter>
               <SidePanelButton onClick={() => setIsProposalModalOpen(false)}>닫기</SidePanelButton>
             </SidePanelFooter>
           </SidePanelContent>
         </SidePanelOverlay>
-      )}
-
-      {isDecisionModalOpen && selectedApprover && (
-        <ModalOverlay onClick={() => setIsDecisionModalOpen(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>{selectedApprover.approverName}님의 승인응답 작성</ModalTitle>
-              <CloseButton onClick={() => setIsDecisionModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <InputGroup>
-                <Label>응답 내용</Label>
-                <TextArea
-                  value={newDecision.content}
-                  onChange={(e) => setNewDecision(prev => ({
-                    ...prev,
-                    content: e.target.value
-                  }))}
-                  placeholder="응답 내용을 입력하세요"
-                />
-              </InputGroup>
-              <InputGroup>
-                <Label>승인 상태</Label>
-                <StatusSelect
-                  value={newDecision.status}
-                  onChange={(e) => setNewDecision(prev => ({
-                    ...prev,
-                    status: e.target.value
-                  }))}
-                >
-                  <option value="">승인 상태를 선택하세요</option>
-                  <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                  <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
-                </StatusSelect>
-              </InputGroup>
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton onClick={() => setIsDecisionModalOpen(false)}>취소</ModalButton>
-              <ModalButton primary onClick={handleCreateDecision}>저장</ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
       )}
     </>
   );
