@@ -70,7 +70,7 @@ const ProposalContent = styled.div`
 
 const ProposalHeader = styled.div`
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
 `;
@@ -106,6 +106,7 @@ const ProposalDescription = styled.div`
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: none;
 `;
 
 const ProposalInfo = styled.div`
@@ -185,7 +186,7 @@ const StatusBadge = styled.div`
   font-weight: 500;
   background-color: ${props => props.background};
   color: ${props => props.text};
-  white-space: nowrap;
+  align-self: flex-start;
 `;
 
 const AddButton = styled.button`
