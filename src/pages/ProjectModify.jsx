@@ -36,6 +36,20 @@ const ProjectModify = () => {
   // Companies data
   const [companies, setCompanies] = useState([]);
   
+  // 상태 변수 추가
+  const [showClientCompanyModal, setShowClientCompanyModal] = useState(false);
+  const [showDevCompanyModal, setShowDevCompanyModal] = useState(false);
+  const [showClientUserModal, setShowClientUserModal] = useState(false);
+  const [showDevUserModal, setShowDevUserModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+
+  // 개발사 다중 선택을 위한 상태 추가
+  const [devCompanySelections, setDevCompanySelections] = useState([
+    { id: 1, companyId: '', managers: [], users: [], companyUsers: [] }
+  ]);
+
   // Fetch companies
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,22 +71,152 @@ const ProjectModify = () => {
   useEffect(() => {
     if (projectId) {
       const token = localStorage.getItem('token');
-      fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          // Populate form with project data
-          setProjectName(data.name);
-          setDescription(data.description);
-          setStartDate(data.startDate);
-          setEndDate(data.endDate);
+      console.log('프로젝트 상세 정보 요청:', API_ENDPOINTS.PROJECT_DETAIL(projectId));
+      
+      // 프로젝트 상세 정보와 회사 정보를 병렬로 요청
+      Promise.all([
+        fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
+          headers: {
+            'Authorization': token
+          }
+        }).then(response => response.json()),
+        fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/companies`, {
+          headers: {
+            'Authorization': token
+          }
+        }).then(response => response.json()),
+        fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
+          headers: {
+            'Authorization': token
+          }
+        }).then(response => response.json())
+      ])
+        .then(([projectData, companiesData, usersData]) => {
+          console.log('프로젝트 상세 정보 응답:', projectData);
+          console.log('프로젝트 회사 정보 응답:', companiesData);
+          console.log('프로젝트 사용자 정보 응답:', usersData);
           
-          // Pre-select companies
-          setSelectedClientCompany(data.clientCompanyId.toString());
-          setSelectedDevCompany(data.devCompanyId.toString());
+          // Populate form with project data
+          setProjectName(projectData.name);
+          setDescription(projectData.description);
+          setStartDate(projectData.startDate);
+          setEndDate(projectData.endDate);
+          
+          // 사용자 정보 설정
+          if (usersData && Array.isArray(usersData)) {
+            const clientManagers = usersData
+              .filter(user => user.role === 'CLIENT_MANAGER')
+              .map(user => ({
+                userId: String(user.userId),
+                name: user.userName
+              }));
+            const clientUsers = usersData
+              .filter(user => user.role === 'CLIENT_USER')
+              .map(user => ({
+                userId: String(user.userId),
+                name: user.userName
+              }));
+            
+            setClientManagers(clientManagers);
+            setClientUsers(clientUsers);
+          }
+          
+          // 회사 정보 설정
+          if (companiesData && companiesData.length > 0) {
+            // 첫 번째 회사를 고객사로 설정
+            const clientCompany = companiesData[0];
+            // 나머지 회사들을 개발사로 설정
+            const devCompanies = companiesData.slice(1);
+
+            if (clientCompany) {
+              setSelectedClientCompany(clientCompany);
+              // 고객사 사용자 정보 가져오기
+              fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(clientCompany.id), {
+                headers: {
+                  'Authorization': token
+                }
+              })
+                .then(response => response.json())
+                .then(result => {
+                  console.log('고객사 사용자 목록 응답:', result);
+                  if (result.statusCode === 200 && Array.isArray(result.data)) {
+                    const formattedUsers = result.data.map(user => ({
+                      id: user.id,
+                      userId: String(user.id),
+                      name: user.name,
+                      email: user.email,
+                      companyRole: user.companyRole
+                    }));
+                    setClientCompanyUsers(formattedUsers);
+                  }
+                });
+            }
+            
+            if (devCompanies && devCompanies.length > 0) {
+              // 개발사 선택 상태 초기화
+              const initialDevSelections = devCompanies.map((company, index) => ({
+                id: index + 1,
+                companyId: company.id,
+                managers: [],
+                users: [],
+                companyUsers: []
+              }));
+              setDevCompanySelections(initialDevSelections);
+
+              // 각 개발사의 사용자 정보 가져오기
+              devCompanies.forEach(company => {
+                fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+                  headers: {
+                    'Authorization': token
+                  }
+                })
+                  .then(response => response.json())
+                  .then(result => {
+                    console.log('개발사 사용자 목록 응답:', result);
+                    if (result.statusCode === 200 && Array.isArray(result.data)) {
+                      const formattedUsers = result.data.map(user => ({
+                        id: user.id,
+                        userId: String(user.id),
+                        name: user.name,
+                        email: user.email,
+                        companyRole: user.companyRole
+                      }));
+
+                      // 해당 개발사의 기존 사용자 정보 설정
+                      if (usersData && Array.isArray(usersData)) {
+                        const companyDevManagers = usersData
+                          .filter(user => user.role === 'DEVELOPER_MANAGER')
+                          .map(user => ({
+                            userId: String(user.userId)
+                          }));
+                        const companyDevUsers = usersData
+                          .filter(user => user.role === 'DEVELOPER_USER')
+                          .map(user => ({
+                            userId: String(user.userId)
+                          }));
+
+                        setDevCompanySelections(prev => prev.map(selection => 
+                          selection.companyId === company.id
+                            ? { 
+                                ...selection, 
+                                companyUsers: formattedUsers,
+                                managers: companyDevManagers,
+                                users: companyDevUsers
+                              }
+                            : selection
+                        ));
+                      } else {
+                        setDevCompanySelections(prev => prev.map(selection => 
+                          selection.companyId === company.id
+                            ? { ...selection, companyUsers: formattedUsers }
+                            : selection
+                        ));
+                      }
+                    }
+                  });
+              });
+            }
+          }
           
           setLoading(false);
         })
@@ -83,170 +227,49 @@ const ProjectModify = () => {
     }
   }, [projectId]);
 
-  // Fetch project users
-  useEffect(() => {
-    if (projectId) {
-      const token = localStorage.getItem('token');
-      fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          setProjectUsers(data);
-          
-          // Organize users by role
-          const clientManagersList = [];
-          const clientUsersList = [];
-          const devManagersList = [];
-          const devUsersList = [];
-          
-          data.forEach(user => {
-            const userObj = { userId: user.userId };
-            
-            switch(user.role) {
-              case 'CLIENT_MANAGER':
-                clientManagersList.push(userObj);
-                break;
-              case 'CLIENT_USER':
-                clientUsersList.push(userObj);
-                break;
-              case 'DEVELOPER_MANAGER':
-                devManagersList.push(userObj);
-                break;
-              case 'DEVELOPER_USER':
-                devUsersList.push(userObj);
-                break;
-              default:
-                break;
-            }
-          });
-          
-          setClientManagers(clientManagersList);
-          setClientUsers(clientUsersList);
-          setDevManagers(devManagersList);
-          setDevUsers(devUsersList);
-        })
-        .catch(error => {
-          console.error('Error fetching project users:', error);
-        });
-    }
-  }, [projectId]);
-
-  // Fetch client company users
-  useEffect(() => {
-    if (selectedClientCompany) {
-      const token = localStorage.getItem('token');
-      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany), {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(response => {
-          const data = response.data || [];
-          const employeeData = data.map(employee => ({
-            userId: employee.id,
-            name: employee.name,
-            email: employee.email,
-            companyName: employee.companyName
-          }));
-          setClientCompanyUsers(employeeData);
-        })
-        .catch(error => {
-          console.error('Error fetching client company users:', error);
-        });
-    }
-  }, [selectedClientCompany]);
-
-  // Fetch dev company users
-  useEffect(() => {
-    if (selectedDevCompany) {
-      const token = localStorage.getItem('token');
-      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedDevCompany), {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(result => {
-          if (result.statusCode === 200) {
-            const employeeData = result.data.map(employee => ({
-              userId: employee.id,
-              name: employee.name,
-              email: employee.email,
-              companyName: employee.companyName
-            }));
-            setDevCompanyUsers(employeeData);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching dev company users:', error);
-        });
-    }
-  }, [selectedDevCompany]);
-
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
   const handleUserSelection = (userId, role, isSelected) => {
-    const userIdInt = parseInt(userId);
+    const user = allUsers.find(u => u.userId === userId);
     
-    // Check if user is already selected in another role
-    const isUserSelectedElsewhere = (excludeRole) => {
-      switch(excludeRole) {
-        case 'clientManager':
-          return clientUsers.some(item => item.userId === userIdInt);
-        case 'clientUser':
-          return clientManagers.some(item => item.userId === userIdInt);
-        case 'devManager':
-          return devUsers.some(item => item.userId === userIdInt);
-        case 'devUser':
-          return devManagers.some(item => item.userId === userIdInt);
-        default:
-          return false;
-      }
+    if (!user) return;
+    
+    const userObj = {
+      userId: userId,
+      name: user.userName,
+      email: user.email || ''
     };
-
-    // If trying to select and user is already selected elsewhere, prevent selection
-    if (isSelected && isUserSelectedElsewhere(role)) {
-      alert('이미 다른 역할로 선택된 사용자입니다.');
-      return;
-    }
     
-    switch(role) {
-      case 'clientManager':
-        if (isSelected) {
-          setClientManagers([...clientManagers, { userId: userIdInt }]);
-        } else {
-          setClientManagers(clientManagers.filter(item => item.userId !== userIdInt));
-        }
-        break;
-      case 'clientUser':
-        if (isSelected) {
-          setClientUsers([...clientUsers, { userId: userIdInt }]);
-        } else {
-          setClientUsers(clientUsers.filter(item => item.userId !== userIdInt));
-        }
-        break;
-      case 'devManager':
-        if (isSelected) {
-          setDevManagers([...devManagers, { userId: userIdInt }]);
-        } else {
-          setDevManagers(devManagers.filter(item => item.userId !== userIdInt));
-        }
-        break;
-      case 'devUser':
-        if (isSelected) {
-          setDevUsers([...devUsers, { userId: userIdInt }]);
-        } else {
-          setDevUsers(devUsers.filter(item => item.userId !== userIdInt));
-        }
-        break;
-      default:
-        break;
+    if (role === 'clientManager') {
+      if (isSelected) {
+        setClientManagers(prev => [...prev, userObj]);
+        setClientUsers(prev => prev.filter(item => item.userId !== userId));
+      } else {
+        setClientManagers(prev => prev.filter(item => item.userId !== userId));
+      }
+    } else if (role === 'clientUser') {
+      if (isSelected) {
+        setClientUsers(prev => [...prev, userObj]);
+        setClientManagers(prev => prev.filter(item => item.userId !== userId));
+      } else {
+        setClientUsers(prev => prev.filter(item => item.userId !== userId));
+      }
+    } else if (role === 'devManager') {
+      if (isSelected) {
+        setDevManagers(prev => [...prev, userObj]);
+        setDevUsers(prev => prev.filter(item => item.userId !== userId));
+      } else {
+        setDevManagers(prev => prev.filter(item => item.userId !== userId));
+      }
+    } else if (role === 'devUser') {
+      if (isSelected) {
+        setDevUsers(prev => [...prev, userObj]);
+        setDevManagers(prev => prev.filter(item => item.userId !== userId));
+      } else {
+        setDevUsers(prev => prev.filter(item => item.userId !== userId));
+      }
     }
   };
 
@@ -254,28 +277,45 @@ const ProjectModify = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     
+    // 모든 개발사 사용자 ID를 저장하는 Map
+    const allDevUsersMap = new Map();
+    
     // Create project data object with proper role values
     const projectData = {
       name: projectName,
       description: description,
       startDate: startDate,
       endDate: endDate,
+      companyIds: [
+        selectedClientCompany.id,
+        ...devCompanySelections.map(selection => selection.companyId)
+      ],
       clientManagers: clientManagers.map(manager => ({
-        userId: manager.userId,
-        role: "CLIENT_MANAGER"
+        userId: parseInt(manager.userId)
       })),
       clientUsers: clientUsers.map(user => ({
-        userId: user.userId,
-        role: "CLIENT_USER"
+        userId: parseInt(user.userId)
       })),
-      devManagers: devManagers.map(manager => ({
-        userId: manager.userId,
-        role: "DEVELOPER_MANAGER"
-      })),
-      devUsers: devUsers.map(user => ({
-        userId: user.userId,
-        role: "DEVELOPER_USER"
-      }))
+      devManagers: devCompanySelections.flatMap(selection => 
+        selection.managers.map(manager => {
+          const userId = parseInt(manager.userId);
+          if (!allDevUsersMap.has(userId)) {
+            allDevUsersMap.set(userId, 'manager');
+            return { userId };
+          }
+          return null;
+        }).filter(Boolean)
+      ),
+      devUsers: devCompanySelections.flatMap(selection => 
+        selection.users.map(user => {
+          const userId = parseInt(user.userId);
+          if (!allDevUsersMap.has(userId)) {
+            allDevUsersMap.set(userId, 'user');
+            return { userId };
+          }
+          return null;
+        }).filter(Boolean)
+      )
     };
     
     console.log('Project data to be sent to server:', projectData);
@@ -312,6 +352,261 @@ const ProjectModify = () => {
     });
   };
 
+  // 고객사 수정 버튼 클릭 핸들러
+  const handleClientCompanyEdit = async () => {
+    if (!selectedClientCompany) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany.id), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('받은 사용자 데이터:', result);
+      
+      if (result.statusCode === 200 && Array.isArray(result.data)) {
+        const formattedUsers = result.data.map(user => ({
+          id: user.id,
+          userId: String(user.id),
+          name: user.name,
+          email: user.email,
+          companyRole: user.companyRole
+        }));
+        
+        setAllUsers(formattedUsers);
+        setSearchedUsers(formattedUsers);
+        setShowClientUserModal(true);
+      } else {
+        console.error('예상치 못한 응답 형식:', result);
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
+      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 고객사 선택 핸들러
+  const handleClientCompanySelect = async (company) => {
+    console.log('선택된 고객사:', company);
+    setSelectedClientCompany(company);
+    setShowClientCompanyModal(false);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('받은 사용자 데이터:', result);
+      
+      if (result.statusCode === 200 && Array.isArray(result.data)) {
+        const formattedUsers = result.data.map(user => ({
+          id: user.id,
+          userId: String(user.id),
+          name: user.name,
+          email: user.email,
+          companyRole: user.companyRole
+        }));
+        
+        setAllUsers(formattedUsers);
+        setSearchedUsers(formattedUsers);
+        setShowClientUserModal(true);
+      } else {
+        console.error('예상치 못한 응답 형식:', result);
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
+      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 개발사 추가 함수
+  const handleAddDevCompany = () => {
+    setDevCompanySelections([
+      ...devCompanySelections,
+      {
+        id: devCompanySelections.length + 1,
+        companyId: '',
+        managers: [],
+        users: [],
+        companyUsers: []
+      }
+    ]);
+  };
+
+  // 개발사 제거 함수
+  const handleRemoveDevCompany = (selectionId) => {
+    setDevCompanySelections(prev => prev.filter(selection => selection.id !== selectionId));
+  };
+
+  // 개발사 수정 버튼 클릭 핸들러 수정
+  const handleDevCompanyEdit = async (selection) => {
+    console.log('수정할 개발사:', selection);
+    setSelectedDevCompany(selection);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selection.companyId), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('받은 사용자 데이터:', result);
+      
+      if (result.statusCode === 200 && Array.isArray(result.data)) {
+        const formattedUsers = result.data.map(user => ({
+          id: user.id,
+          userId: String(user.id),
+          name: user.name,
+          email: user.email,
+          companyRole: user.companyRole
+        }));
+        
+        setAllUsers(formattedUsers);
+        setSearchedUsers(formattedUsers);
+        setShowDevUserModal(true);
+      } else {
+        console.error('예상치 못한 응답 형식:', result);
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
+      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 개발사 선택 핸들러 수정
+  const handleDevCompanySelect = async (company) => {
+    console.log('선택된 개발사:', company);
+    if (!selectedDevCompany) {
+      console.error('선택된 개발사 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('받은 사용자 데이터:', result);
+      
+      if (result.statusCode === 200 && Array.isArray(result.data)) {
+        // 모든 사용자를 포맷팅
+        const formattedUsers = result.data.map(user => ({
+          id: user.id,
+          userId: String(user.id),
+          name: user.name,
+          email: user.email,
+          companyRole: user.companyRole
+        }));
+        
+        setDevCompanySelections(prev => prev.map(selection => 
+          selection.id === selectedDevCompany.id
+            ? { ...selection, companyId: company.id, companyUsers: formattedUsers }
+            : selection
+        ));
+        
+        setAllUsers(formattedUsers);
+        setSearchedUsers(formattedUsers);
+        setShowDevCompanyModal(false);
+        setShowDevUserModal(true);
+      } else {
+        console.error('예상치 못한 응답 형식:', result);
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
+      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 개발사 사용자 선택 핸들러 수정
+  const handleDevUserSelection = (selectionId, userId, role, isSelected) => {
+    console.log('개발사 사용자 선택:', { selectionId, userId, role, isSelected });
+    
+    setDevCompanySelections(prev => prev.map(selection => {
+      if (selection.id !== selectionId) return selection;
+      
+      const user = allUsers.find(u => u.userId === userId);
+      if (!user) return selection;
+      
+      // 현재 선택된 개발사의 모든 사용자 목록에서 해당 사용자 제거
+      const updatedManagers = selection.managers.filter(item => item.userId !== userId);
+      const updatedUsers = selection.users.filter(item => item.userId !== userId);
+      
+      // 새로운 역할에 사용자 추가
+      if (isSelected) {
+        if (role === 'devManager') {
+          updatedManagers.push({ userId, name: user.name });
+        } else {
+          updatedUsers.push({ userId, name: user.name });
+        }
+      }
+      
+      return {
+        ...selection,
+        managers: updatedManagers,
+        users: updatedUsers
+      };
+    }));
+  };
+
+  // 사용자 검색 핸들러
+  const handleUserSearch = () => {
+    if (!searchQuery.trim()) {
+      setSearchedUsers(allUsers);
+      return;
+    }
+    
+    const filteredUsers = allUsers.filter(user => 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setSearchedUsers(filteredUsers);
+  };
+
+  // 검색어 변경 핸들러
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    if (!e.target.value.trim()) {
+      setSearchedUsers(allUsers);
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -321,7 +616,6 @@ const ProjectModify = () => {
       <MainContent>
         <Header>
           <PageTitle>프로젝트 수정</PageTitle>
-
         </Header>
 
         {loading ? (
@@ -377,140 +671,127 @@ const ProjectModify = () => {
 
               <FormGroup>
                 <Label>고객사</Label>
-                <Select 
-                  value={selectedClientCompany} 
-                  onChange={(e) => setSelectedClientCompany(e.target.value)}
-                  required
-                >
-                  <option value="">고객사 선택</option>
-                  {companies
-                    .filter(company => company.companyRole === 'CUSTOMER')
-                    .map(company => (
-                      <option key={company.id} value={company.id}>
-                        {company.name}
-                      </option>
-                    ))
-                  }
-                </Select>
+                <ClientCompanySection>
+                  {selectedClientCompany ? (
+                    <SelectedCompanyInfo>
+                      <CompanyName>{selectedClientCompany.name}</CompanyName>
+                      <CompanyDetails>
+                        <DetailItem>
+                          {/* <span>담당자: {clientManagers.length}명</span>
+                        </DetailItem>
+                        <DetailItem>
+                          <span>일반 사용자: {clientUsers.length}명</span> */}
+                        </DetailItem>
+                      </CompanyDetails>
+                      <ButtonGroup>
+                        <EditButton 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleClientCompanyEdit();
+                          }}
+                        >
+                          수정
+                        </EditButton>
+                        <RemoveButton 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedClientCompany(null);
+                          }}
+                        >
+                          삭제
+                        </RemoveButton>
+                      </ButtonGroup>
+                    </SelectedCompanyInfo>
+                  ) : (
+                    <SelectCompanyButton 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowClientCompanyModal(true);
+                      }}
+                    >
+                      <span>+</span> 고객사 선택
+                    </SelectCompanyButton>
+                  )}
+                </ClientCompanySection>
               </FormGroup>
-
-              {selectedClientCompany && (
-                <>
-                  <FormGroup>
-                    <Label>고객사 담당자</Label>
-                    <UserSelectionContainer>
-                      {clientCompanyUsers.map(user => {
-                        const isSelectedAsUser = clientUsers.some(item => item.userId === user.userId);
-                        return (
-                          <UserCheckboxItem key={`manager-${user.userId}`}>
-                            <Checkbox 
-                              type="checkbox"
-                              id={`client-manager-${user.userId}`}
-                              checked={clientManagers.some(item => item.userId === user.userId)}
-                              onChange={(e) => handleUserSelection(user.userId, 'clientManager', e.target.checked)}
-                              disabled={isSelectedAsUser}
-                            />
-                            <CheckboxLabel htmlFor={`client-manager-${user.userId}`}>
-                              {user.name}
-                            </CheckboxLabel>
-                          </UserCheckboxItem>
-                        );
-                      })}
-                    </UserSelectionContainer>
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>고객사 일반 사용자</Label>
-                    <UserSelectionContainer>
-                      {clientCompanyUsers.map(user => {
-                        const isSelectedAsManager = clientManagers.some(item => item.userId === user.userId);
-                        return (
-                          <UserCheckboxItem key={`user-${user.userId}`}>
-                            <Checkbox 
-                              type="checkbox"
-                              id={`client-user-${user.userId}`}
-                              checked={clientUsers.some(item => item.userId === user.userId)}
-                              onChange={(e) => handleUserSelection(user.userId, 'clientUser', e.target.checked)}
-                              disabled={isSelectedAsManager}
-                            />
-                            <CheckboxLabel htmlFor={`client-user-${user.userId}`}>
-                              {user.name}
-                            </CheckboxLabel>
-                          </UserCheckboxItem>
-                        );
-                      })}
-                    </UserSelectionContainer>
-                  </FormGroup>
-                </>
-              )}
 
               <SectionDivider>개발사 정보</SectionDivider>
 
-              <FormGroup>
-                <Label>개발사</Label>
-                <Select 
-                  value={selectedDevCompany} 
-                  onChange={(e) => setSelectedDevCompany(e.target.value)}
-                  required
-                >
-                  <option value="">개발사 선택</option>
-                  {companies
-                    .filter(company => company.companyRole === 'DEVELOPER')
-                    .map(company => (
-                      <option key={company.id} value={company.id}>
-                        {company.name}
-                      </option>
-                    ))
-                  }
-                </Select>
-              </FormGroup>
-
-              {selectedDevCompany && (
+              {devCompanySelections.length === 0 ? (
+                <FormGroup>
+                  <ClientCompanySection>
+                    <SelectCompanyButton onClick={() => {
+                      const newSelection = { id: 1, companyId: '', managers: [], users: [], companyUsers: [] };
+                      setDevCompanySelections([newSelection]);
+                      setSelectedDevCompany(newSelection);
+                      setShowDevCompanyModal(true);
+                    }}>
+                      <span>+</span> 개발사 선택
+                    </SelectCompanyButton>
+                  </ClientCompanySection>
+                </FormGroup>
+              ) : (
                 <>
-                  <FormGroup>
-                    <Label>개발 담당자</Label>
-                    <UserSelectionContainer>
-                      {devCompanyUsers.map(user => {
-                        const isSelectedAsUser = devUsers.some(item => item.userId === user.userId);
-                        return (
-                          <UserCheckboxItem key={`dev-manager-${user.userId}`}>
-                            <Checkbox 
-                              type="checkbox"
-                              id={`dev-manager-${user.userId}`}
-                              checked={devManagers.some(item => item.userId === user.userId)}
-                              onChange={(e) => handleUserSelection(user.userId, 'devManager', e.target.checked)}
-                              disabled={isSelectedAsUser}
-                            />
-                            <CheckboxLabel htmlFor={`dev-manager-${user.userId}`}>
-                              {user.name}
-                            </CheckboxLabel>
-                          </UserCheckboxItem>
-                        );
-                      })}
-                    </UserSelectionContainer>
-                  </FormGroup>
+                  {devCompanySelections.map((selection, index) => (
+                    <FormGroup key={selection.id}>
+                      <ClientCompanySection>
+                        {selection.companyId ? (
+                          <SelectedCompanyInfo>
+                            <CompanyName>{companies.find(c => c.id === selection.companyId)?.name}</CompanyName>
+                            <CompanyDetails>
+                              {/* <DetailItem>
+                                <span>담당자: {selection.managers.length}명</span>
+                              </DetailItem>
+                              <DetailItem>
+                                <span>일반 사용자: {selection.users.length}명</span>
+                              </DetailItem> */}
+                            </CompanyDetails>
+                            <ButtonGroup>
+                              <EditButton 
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDevCompanyEdit(selection);
+                                }}
+                              >
+                                수정
+                              </EditButton>
+                              <RemoveButton 
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRemoveDevCompany(selection.id);
+                                }}
+                              >
+                                삭제
+                              </RemoveButton>
+                            </ButtonGroup>
+                          </SelectedCompanyInfo>
+                        ) : (
+                          <SelectCompanyButton 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSelectedDevCompany(selection);
+                              setShowDevCompanyModal(true);
+                            }}
+                          >
+                            <span>+</span> 개발사 선택
+                          </SelectCompanyButton>
+                        )}
+                      </ClientCompanySection>
+                    </FormGroup>
+                  ))}
 
                   <FormGroup>
-                    <Label>개발자</Label>
-                    <UserSelectionContainer>
-                      {devCompanyUsers.map(user => {
-                        const isSelectedAsManager = devManagers.some(item => item.userId === user.userId);
-                        return (
-                          <UserCheckboxItem key={`dev-user-${user.userId}`}>
-                            <Checkbox 
-                              type="checkbox"
-                              id={`dev-user-${user.userId}`}
-                              checked={devUsers.some(item => item.userId === user.userId)}
-                              onChange={(e) => handleUserSelection(user.userId, 'devUser', e.target.checked)}
-                              disabled={isSelectedAsManager}
-                            />
-                            <CheckboxLabel htmlFor={`dev-user-${user.userId}`}>
-                              {user.name}
-                            </CheckboxLabel>
-                          </UserCheckboxItem>
-                        );
-                      })}
-                    </UserSelectionContainer>
+                    <ClientCompanySection>
+                      <AddDevCompanyButton type="button" onClick={handleAddDevCompany}>
+                        <span>+</span> 개발사 추가
+                      </AddDevCompanyButton>
+                    </ClientCompanySection>
                   </FormGroup>
                 </>
               )}
@@ -521,6 +802,188 @@ const ProjectModify = () => {
               </ButtonGroup>
             </Form>
           </FormSection>
+        )}
+
+        {/* 고객사 선택 모달 */}
+        {showClientCompanyModal && (
+          <ModalOverlay>
+            <Modal>
+              <ModalHeader>
+                <ModalTitle>고객사 선택</ModalTitle>
+                <CloseButton onClick={() => setShowClientCompanyModal(false)}>×</CloseButton>
+              </ModalHeader>
+              <ModalContent>
+                <CompanyList>
+                  {companies
+                    .filter(company => company.companyRole === 'CUSTOMER')
+                    .map(company => (
+                      <CompanyItem 
+                        key={company.id}
+                        onClick={() => handleClientCompanySelect(company)}
+                      >
+                        {company.name}
+                      </CompanyItem>
+                    ))
+                  }
+                </CompanyList>
+              </ModalContent>
+              <ModalFooter>
+                <ModalButton onClick={() => setShowClientCompanyModal(false)}>선택</ModalButton>
+              </ModalFooter>
+            </Modal>
+          </ModalOverlay>
+        )}
+
+        {/* 개발사 선택 모달 */}
+        {showDevCompanyModal && (
+          <ModalOverlay>
+            <Modal>
+              <ModalHeader>
+                <ModalTitle>개발사 선택</ModalTitle>
+                <CloseButton onClick={() => setShowDevCompanyModal(false)}>×</CloseButton>
+              </ModalHeader>
+              <ModalContent>
+                <CompanyList>
+                  {companies
+                    .filter(company => company.companyRole === 'DEVELOPER')
+                    .filter(company => !devCompanySelections.some(selection => selection.companyId === company.id))
+                    .map(company => (
+                      <CompanyItem 
+                        key={company.id}
+                        onClick={() => handleDevCompanySelect(company)}
+                      >
+                        {company.name}
+                      </CompanyItem>
+                    ))
+                  }
+                </CompanyList>
+              </ModalContent>
+              <ModalFooter>
+                <ModalButton onClick={() => setShowDevCompanyModal(false)}>선택</ModalButton>
+              </ModalFooter>
+            </Modal>
+          </ModalOverlay>
+        )}
+
+        {/* 고객사 사용자 선택 모달 */}
+        {showClientUserModal && (
+          <ModalOverlay>
+            <Modal>
+              <ModalHeader>
+                <ModalTitle>고객사 사용자 선택</ModalTitle>
+                <CloseButton onClick={() => setShowClientUserModal(false)}>×</CloseButton>
+              </ModalHeader>
+              <ModalContent>
+                <SearchSection>
+                  <SearchInput
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    placeholder="이름 또는 이메일로 검색"
+                  />
+                  <SearchButton onClick={handleUserSearch}>검색</SearchButton>
+                </SearchSection>
+                <UserList>
+                  {searchedUsers.map(user => {
+                    const isClientManager = clientManagers.some(item => item.userId === user.userId);
+                    const isClientUser = clientUsers.some(item => item.userId === user.userId);
+                    
+                    return (
+                      <UserItem key={user.userId}>
+                        <UserInfo>
+                          <UserName>{user.name}</UserName>
+                          <UserEmail>{user.email}</UserEmail>
+                        </UserInfo>
+                        <RoleButtons>
+                          <RoleButton
+                            selected={isClientManager}
+                            onClick={() => handleUserSelection(user.userId, 'clientManager', !isClientManager)}
+                            disabled={isClientUser}
+                          >
+                            담당자
+                          </RoleButton>
+                          <RoleButton
+                            selected={isClientUser}
+                            onClick={() => handleUserSelection(user.userId, 'clientUser', !isClientUser)}
+                            disabled={isClientManager}
+                          >
+                            일반사용자
+                          </RoleButton>
+                        </RoleButtons>
+                      </UserItem>
+                    );
+                  })}
+                </UserList>
+                {searchedUsers.length === 0 && (
+                  <NoResults>검색 결과가 없습니다.</NoResults>
+                )}
+              </ModalContent>
+              <ModalFooter>
+                <ModalButton onClick={() => setShowClientUserModal(false)}>닫기</ModalButton>
+              </ModalFooter>
+            </Modal>
+          </ModalOverlay>
+        )}
+
+        {/* 개발사 사용자 선택 모달 */}
+        {showDevUserModal && (
+          <ModalOverlay>
+            <Modal>
+              <ModalHeader>
+                <ModalTitle>개발사 사용자 선택</ModalTitle>
+                <CloseButton onClick={() => setShowDevUserModal(false)}>×</CloseButton>
+              </ModalHeader>
+              <ModalContent>
+                <SearchSection>
+                  <SearchInput
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    placeholder="이름 또는 이메일로 검색"
+                  />
+                  <SearchButton onClick={handleUserSearch}>검색</SearchButton>
+                </SearchSection>
+                <UserList>
+                  {searchedUsers.map(user => {
+                    const currentSelection = devCompanySelections.find(s => s.id === selectedDevCompany.id);
+                    const isDevManager = currentSelection?.managers.some(item => item.userId === user.userId) || false;
+                    const isDevUser = currentSelection?.users.some(item => item.userId === user.userId) || false;
+                    
+                    return (
+                      <UserItem key={user.userId}>
+                        <UserInfo>
+                          <UserName>{user.name}</UserName>
+                          <UserEmail>{user.email}</UserEmail>
+                        </UserInfo>
+                        <RoleButtons>
+                          <RoleButton
+                            selected={isDevManager}
+                            onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devManager', !isDevManager)}
+                            disabled={isDevUser}
+                          >
+                            담당자
+                          </RoleButton>
+                          <RoleButton
+                            selected={isDevUser}
+                            onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devUser', !isDevUser)}
+                            disabled={isDevManager}
+                          >
+                            일반사용자
+                          </RoleButton>
+                        </RoleButtons>
+                      </UserItem>
+                    );
+                  })}
+                </UserList>
+                {searchedUsers.length === 0 && (
+                  <NoResults>검색 결과가 없습니다.</NoResults>
+                )}
+              </ModalContent>
+              <ModalFooter>
+                <ModalButton onClick={() => setShowDevUserModal(false)}>닫기</ModalButton>
+              </ModalFooter>
+            </Modal>
+          </ModalOverlay>
         )}
       </MainContent>
     </PageContainer>
@@ -661,9 +1124,9 @@ const TextArea = styled.textarea`
 
 const ButtonGroup = styled.div`
   display: flex;
+  gap: 8px;
+  margin-top: 8px;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 12px;
 `;
 
 const CancelButton = styled.button`
@@ -699,39 +1162,259 @@ const SubmitButton = styled.button`
   }
 `;
 
-const UserSelectionContainer = styled.div`
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-`;
-
-const UserCheckboxItem = styled.div`
-  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
 `;
 
-const Checkbox = styled.input`
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #2E7D32;
+const Modal = styled.div`
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 50%;
+  max-width: 500px;
 `;
 
-const CheckboxLabel = styled.label`
-  font-size: 14px;
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
   color: #1e293b;
-  cursor: pointer;
+  margin: 0;
 `;
 
-const SectionDivider = styled.div`
+const CloseButton = styled.button`
+  padding: 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #2E7D32;
+  }
+`;
+
+const ModalContent = styled.div`
+  margin-bottom: 24px;
+`;
+
+const CompanyList = styled.ul`
+  list-style: none;
+  padding: 0;
+`;
+
+const CompanyItem = styled.li`
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const ModalButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  
+  &:hover {
+    background-color: #1B5E20;
+  }
+`;
+
+const SelectedCompanyInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const CompanyName = styled.h3`
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  margin: 0;
+`;
+
+const CompanyDetails = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+const DetailItem = styled.div`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const EditButton = styled.button`
+  padding: 8px 16px;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const RemoveButton = styled.button`
+  padding: 8px 16px;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &:hover {
+    background: #fee2e2;
+  }
+`;
+
+const SelectCompanyButton = styled.button`
   width: 100%;
+  padding: 12px;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const SearchSection = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const SearchInput = styled.input`
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  flex: 1;
+  transition: all 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+  
+  &::placeholder {
+    color: #cbd5e1;
+  }
+`;
+
+const SearchButton = styled.button`
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2E7D32;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #1B5E20;
+  }
+`;
+
+const UserList = styled.ul`
+  list-style: none;
+  padding: 0;
+`;
+
+const UserItem = styled.li`
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const UserName = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const UserEmail = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+`;
+
+const RoleButtons = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const RoleButton = styled.button`
+  padding: 6px 12px;
+  border: 1px solid ${props => props.selected ? '#2E7D32' : '#e2e8f0'};
+  border-radius: 4px;
+  background-color: ${props => props.selected ? '#2E7D32' : 'white'};
+  color: ${props => props.selected ? 'white' : '#64748b'};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  font-size: 14px;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  
+  &:hover:not(:disabled) {
+    background-color: ${props => props.selected ? '#1B5E20' : '#f8fafc'};
+  }
+`;
+
+const NoResults = styled.p`
+  text-align: center;
+  color: #64748b;
+  margin: 0;
 `;
 
 const LoadingContainer = styled.div`
@@ -747,6 +1430,42 @@ const LoadingContainer = styled.div`
 const LoadingMessage = styled.div`
   font-size: 16px;
   color: #64748b;
+`;
+
+const SectionDivider = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+`;
+
+const ClientCompanySection = styled.div`
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+`;
+
+const AddDevCompanyButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background: white;
+  color: #2E7D32;
+  border: 1px dashed #2E7D32;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  
+  &:hover {
+    background: #f0fdf4;
+  }
 `;
 
 export default ProjectModify;

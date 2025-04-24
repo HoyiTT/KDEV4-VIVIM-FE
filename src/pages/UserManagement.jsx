@@ -3,32 +3,107 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const UserManagement = () => {
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [companies, setCompanies] = useState([]);
+  const [filters, setFilters] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    companyId: '',
+    companyRole: '',
+    isDeleted: false
+  });
 
   useEffect(() => {
+    fetchCompanies();
     fetchUsers();
-  }, []);
+  }, [currentPage]);
 
-  const fetchUsers = async () => {
+  const fetchCompanies = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.USERS, {
+      const response = await fetch(API_ENDPOINTS.COMPANIES, {
         headers: {
-          'Authorization': token
+          'Authorization': `${localStorage.getItem('token')?.trim()}`
         }
       });
       const data = await response.json();
-      setUsers(data);
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      
+      // 필터가 비어있는 경우 기본 페이지네이션 파라미터만 사용
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        size: 10
+      }).toString();
+
+      const response = await fetch(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
+        headers: {
+          'Authorization': `${localStorage.getItem('token')?.trim()}`
+        }
+      });
+      const data = await response.json();
+      setUsers(data.content);
+      setTotalPages(data.totalPages);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    
+    // 입력된 값만 필터링
+    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+      if (value !== '' && value !== false) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
+    const queryParams = new URLSearchParams({
+      ...activeFilters,
+      page: 0,
+      size: 10
+    }).toString();
+
+    fetch(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
+      headers: {
+        'Authorization': `${localStorage.getItem('token')?.trim()}`
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        setUsers(data.content);
+        setTotalPages(data.totalPages);
+      })
+      .catch(error => {
+        console.error('Error searching users:', error);
+      });
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleDeleteUser = async (userId, userName) => {
@@ -59,6 +134,43 @@ const UserManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
+  // 회사별 직원 수 계산
+  const getCompanyUserDistribution = () => {
+    const companyUserCount = {};
+    
+    users.forEach(user => {
+      const companyName = user.companyName || '미지정';
+      companyUserCount[companyName] = (companyUserCount[companyName] || 0) + 1;
+    });
+
+    return Object.entries(companyUserCount).map(([name, value]) => ({
+      name,
+      value
+    }));
+  };
+
+  // 직원 등록 추이 데이터 (임시)
+  const getRegistrationTrend = () => {
+    const mockData = [
+      { date: '2024-01-01', count: 10 },
+      { date: '2024-02-01', count: 15 },
+      { date: '2024-03-01', count: 20 },
+      { date: '2024-04-01', count: 25 },
+      { date: '2024-05-01', count: 30 },
+      { date: '2024-06-01', count: 35 },
+      { date: '2024-07-01', count: 40 },
+      { date: '2024-08-01', count: 45 },
+      { date: '2024-09-01', count: 50 },
+      { date: '2024-10-01', count: 55 },
+      { date: '2024-11-01', count: 60 },
+      { date: '2024-12-01', count: 65 }
+    ];
+
+    return mockData;
+  };
+
+  const COLORS = ['#4F6AFF', '#FF6B6B', '#4CAF50', '#FFC107', '#9C27B0', '#00BCD4'];
+
   return (
     <PageContainer>
       <Navbar 
@@ -74,42 +186,176 @@ const UserManagement = () => {
           </AddButton>
         </Header>
 
+        <ChartsContainer>
+          {/* 회사별 직원 수 파이 차트 */}
+          <ChartSection>
+            <StatisticsTitle>회사별 직원 수</StatisticsTitle>
+            <ChartContainer>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getCompanyUserDistribution()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {getCompanyUserDistribution().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </ChartSection>
+
+          {/* 직원 등록 추이 라인 차트 */}
+          <ChartSection>
+            <StatisticsTitle>직원 등록 추이</StatisticsTitle>
+            <ChartContainer>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={getRegistrationTrend()}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#4F6AFF"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </ChartSection>
+        </ChartsContainer>
+
+        <SearchSection>
+          <SearchInput
+            type="text"
+            name="name"
+            placeholder="이름 검색"
+            value={filters.name}
+            onChange={handleFilterChange}
+          />
+          <SearchInput
+            type="text"
+            name="email"
+            placeholder="이메일 검색"
+            value={filters.email}
+            onChange={handleFilterChange}
+          />
+          <SearchInput
+            type="text"
+            name="phone"
+            placeholder="전화번호 검색"
+            value={filters.phone}
+            onChange={handleFilterChange}
+          />
+          <SearchSelect
+            name="companyId"
+            value={filters.companyId}
+            onChange={handleFilterChange}
+          >
+            <option value="">전체 회사</option>
+            {companies.map(company => (
+              <option key={company.id} value={company.id}>
+                {company.name}
+              </option>
+            ))}
+          </SearchSelect>
+          <SearchSelect
+            name="companyRole"
+            value={filters.companyRole}
+            onChange={handleFilterChange}
+          >
+            <option value="">전체</option>
+            <option value="ADMIN">관리자</option>
+            <option value="DEVELOPER">개발사</option>
+            <option value="CUSTOMER">고객사</option>
+          </SearchSelect>
+          <SearchCheckbox>
+            <input
+              type="checkbox"
+              name="isDeleted"
+              checked={filters.isDeleted}
+              onChange={handleFilterChange}
+            />
+            <span>삭제된 유저 포함</span>
+          </SearchCheckbox>
+          <SearchButton onClick={handleSearch}>
+            검색
+          </SearchButton>
+        </SearchSection>
+
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
-          <UserTable>
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>이름</TableHeaderCell>
-                <TableHeaderCell>이메일</TableHeaderCell>
-                <TableHeaderCell>소속 회사</TableHeaderCell>
-                <TableHeaderCell>관리</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    {user.companyName ? (
-                      <CompanyBadge>{user.companyName}</CompanyBadge>
-                    ) : (
-                      <NoCompanyBadge>미소속</NoCompanyBadge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정</ActionButton>
-                      <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
-                        삭제
-                      </DeleteButton>
-                    </ActionButtonContainer>
-                  </TableCell>
+          <>
+            <UserTable>
+              <TableHeader>
+                <TableRow>
+                  <TableHeaderCell>이름</TableHeaderCell>
+                  <TableHeaderCell>이메일</TableHeaderCell>
+                  <TableHeaderCell>전화번호</TableHeaderCell>
+                  <TableHeaderCell>소속 회사</TableHeaderCell>
+                  <TableHeaderCell>역할</TableHeaderCell>
+                  <TableHeaderCell>관리</TableHeaderCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </UserTable>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>{user.companyName}</TableCell>
+                    <TableCell>
+                      {user.companyRole === 'ADMIN' ? '관리자' :
+                       user.companyRole === 'DEVELOPER' ? '개발사' :
+                       user.companyRole === 'CUSTOMER' ? '고객사' : ''}
+                    </TableCell>
+                    <TableCell>
+                      <ActionButtonContainer>
+                        <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정</ActionButton>
+                        <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
+                          삭제
+                        </DeleteButton>
+                      </ActionButtonContainer>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </UserTable>
+            <Pagination>
+              <PageButton
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+              >
+                이전
+              </PageButton>
+              <PageInfo>
+                {currentPage + 1} / {totalPages}
+              </PageInfo>
+              <PageButton
+                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                disabled={currentPage === totalPages - 1}
+              >
+                다음
+              </PageButton>
+            </Pagination>
+          </>
         )}
       </MainContent>
     </PageContainer>
@@ -286,6 +532,131 @@ const DeleteButton = styled.button`
   &:hover {
     background: rgba(220, 38, 38, 0.1);
   }
+`;
+
+const SearchSection = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+`;
+
+const SearchInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 200px;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+`;
+
+const SearchSelect = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 150px;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+`;
+
+const SearchCheckbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+`;
+
+const SearchButton = styled.button`
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #2563eb;
+  }
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+`;
+
+const PageButton = styled.button`
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PageInfo = styled.span`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const ChartsContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+`;
+
+const ChartSection = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+`;
+
+const StatisticsTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  font-family: 'SUIT', sans-serif;
+`;
+
+const ChartContainer = styled.div`
+  height: 300px;
+  margin-top: 16px;
 `;
 
 export default UserManagement;
