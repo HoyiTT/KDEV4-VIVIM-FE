@@ -734,35 +734,28 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       });
       return;
     }
-    // 직원 목록이 캐시에 없으면 가져오기
-    let empList = companyEmployees[company.id];
-    try {
-      if (!empList) {
+    // 직원 목록이 캐시에 없으면 API 호출하여 가져오기
+    if (!companyEmployees[company.id]) {
+      try {
         const token = localStorage.getItem('token');
         const res = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
           headers: { 'Authorization': token, 'accept': '*/*' }
         });
-        if (!res.ok) throw new Error('직원 목록 조회 실패');
-        const json = await res.json();
-        // 직원 목록은 data 필드에 존재
-        empList = json.data ?? json.employees ?? json.items ?? (Array.isArray(json) ? json : []);
-        setCompanyEmployees(prev => ({ ...prev, [company.id]: empList }));
+        if (res.ok) {
+          const json = await res.json();
+          const empList = json.data ?? json.employees ?? json.items ?? (Array.isArray(json) ? json : []);
+          setCompanyEmployees(prev => ({ ...prev, [company.id]: empList }));
+        }
+      } catch (err) {
+        console.error('Error fetching employees:', err);
       }
-      // 직원이 없으면 안내 후 토글 안함
-      if (!empList || empList.length === 0) {
-        alert('해당 회사에 직원이 없습니다.');
-        return;
-      }
-      // 직원이 있을 경우 토글 확장
-      setExpandedCompanies(prev => {
-        const newSet = new Set(prev);
-        newSet.add(company.id);
-        return newSet;
-      });
-    } catch (err) {
-      console.error(err);
-      alert('직원 목록을 불러오는데 실패했습니다.');
     }
+    // 토글 확장
+    setExpandedCompanies(prev => {
+      const newSet = new Set(prev);
+      newSet.add(company.id);
+      return newSet;
+    });
   };
 
   const handleSelectApprover = (employee, checked) => {
@@ -867,10 +860,20 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       });
 
       const result = await response.json();
-      
-      if (result.statusCode === 0) {
-        window.location.reload();
+      const createdId = result.data || result.id;
+      if (createdId) {
+        // 생성된 승인요청에 승인권자 할당
+        await fetch(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ approverIds: selectedApprovers.map(a => a.userId) })
+        });
       }
+      // 리스트 새로 고침
+      window.location.reload();
     } catch (error) {
       console.error('Error creating proposal:', error);
       alert('승인요청 생성에 실패했습니다.');
@@ -1073,7 +1076,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
         <ModalOverlay onClick={() => setIsModalOpen(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>새 승인요청</ModalTitle>
+              <ModalTitle>새 승인요청 추가</ModalTitle>
               <CloseButton onClick={() => setIsModalOpen(false)}>×</CloseButton>
             </ModalHeader>
             <ModalBody>

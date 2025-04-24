@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/users/${userId}`, {
+        const response = await fetch(`${ API_ENDPOINTS }/api/users/${userId}`, {
           headers: {
             'Authorization': token
           }
