@@ -25,7 +25,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch(`${ API_ENDPOINTS }/api/users/${userId}`, {
+        const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
           headers: {
             'Authorization': token
           }
@@ -33,16 +33,41 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
         const data = await response.json();
         if (data.statusCode === 200) {
           setUserInfo(data.data);
+        } else {
+          console.log('사용자 정보 가져오기 실패:', data);
+          // 토큰에서 기본 정보로 설정
+          if (decodedToken) {
+            setUserInfo({
+              name: decodedToken.username || '사용자',
+              companyName: decodedToken.companyName || '',
+              companyRole: decodedToken.role
+            });
+          }
         }
       } catch (error) {
         console.error('Error fetching user info:', error);
+        // 오류 발생 시 토큰에서 기본 정보로 설정
+        if (decodedToken) {
+          setUserInfo({
+            name: decodedToken.username || '사용자',
+            companyName: decodedToken.companyName || '',
+            companyRole: decodedToken.role
+          });
+        }
       }
     };
 
     if (userId) {
       fetchUserInfo();
+    } else if (decodedToken) {
+      // userId가 없어도 토큰이 있으면 토큰 정보로 표시
+      setUserInfo({
+        name: decodedToken.username || '사용자',
+        companyName: decodedToken.companyName || '',
+        companyRole: decodedToken.role
+      });
     }
-  }, [userId, token]);
+  }, [userId, token, decodedToken]);
 
   const userName = decodedToken?.username || '사용자';  // Changed from name to username
   const companyName = decodedToken?.companyName || '';  // This should match the JWT field name
@@ -84,8 +109,13 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
       <NavContent>
         <LeftSection>
           <LogoContainer onClick={() => navigate(isAdmin ? '/dashboard-admin' : '/dashboard')}>
-            <LogoImage src="/logo_only.png" alt="Vivim Logo" />
+            <LogoImage src={process.env.PUBLIC_URL + "/logo_only.png"} alt="Vivim Logo" />
           </LogoContainer>
+          <HamburgerMenu onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </HamburgerMenu>
           <NavList isMobile={isMobileMenuOpen}>
             {filteredMenuItems.map((item) => (
               <NavItem
@@ -100,7 +130,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
         </LeftSection>
         <UserSection>
           <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
-            <BellImage src="/bell.png" alt="notifications" />
+            <BellImage src={process.env.PUBLIC_URL + "/bell.png"} alt="notifications" />
           </NotificationIcon>
           {showNotifications && (
             <NotificationPanel>
