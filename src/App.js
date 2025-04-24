@@ -14,6 +14,7 @@ import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
 import AuditLog from './pages/AuditLog';
+import ApprovalDetail from './pages/ApprovalDetail';
 
 import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
@@ -102,6 +103,11 @@ function App() {
         <Route path="/project/:projectId/post/:postId/modify" element={
           <ProtectedRoute>
             <ProjectPostModify />
+          </ProtectedRoute>
+        } />
+        <Route path="/approval/:id" element={
+          <ProtectedRoute>
+            <ApprovalDetail />
           </ProtectedRoute>
         } />
         <Route path="/audit-log" element={

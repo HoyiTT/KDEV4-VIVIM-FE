@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus } from '../constants/enums';
 import ApprovalDecision from './ApprovalDecision';
+import { useNavigate } from 'react-router-dom';
 
 // Styled Components
 const LoadingMessage = styled.div`
@@ -694,6 +695,7 @@ const EmployeeItem = styled.label`
 `;
 
 const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
+  const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -836,27 +838,8 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
     }
   };
 
-  const handleProposalClick = async (proposal) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 상세 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
-      setSelectedProposal(data);
-      setIsProposalModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching proposal detail:', error);
-      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
-    }
+  const handleProposalClick = (proposal) => {
+    navigate(`/approval/${proposal.id}`);
   };
 
   const handleAddProposal = async () => {
@@ -1158,7 +1141,10 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                     <ProposalActions>
                       {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
                         proposal.approvalProposalStatus === 'REJECTED') && (
-                        <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                        <SendButton onClick={(e) => {
+                          e.stopPropagation();
+                          handleSendProposal(proposal.id);
+                        }}>
                           승인요청 전송
                         </SendButton>
                       )}
