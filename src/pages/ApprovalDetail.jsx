@@ -75,6 +75,7 @@ const ProposalTitle = styled.h1`
   font-weight: 600;
   color: #1e293b;
   margin-bottom: 24px;
+  text-align: center;
 `;
 
 const ProposalInfo = styled.div`
@@ -105,10 +106,10 @@ const InfoValue = styled.span`
 `;
 
 const ContentSection = styled.div`
-  font-size: 14px;
+  font-size: 16px;
   color: #475569;
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: 70px;
   padding: 16px;
   background-color: white;
   border-radius: 8px;
@@ -285,13 +286,9 @@ const ApprovalDetail = () => {
                   </InfoValue>
                 </InfoItem>
               </ProposalInfo>
-              <ProposalSubtitle>내용</ProposalSubtitle>
               <ContentSection>
                 {proposal.content}
               </ContentSection>
-              <ProposalSubtitle withMargin>
-                <span>승인권자별 응답목록</span>
-              </ProposalSubtitle>
               <ApprovalDecision approvalId={proposal.id} />
             </ContentContainer>
           ) : (
