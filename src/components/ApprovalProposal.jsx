@@ -685,6 +685,7 @@ const EmployeeItem = styled.label`
 const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
@@ -760,7 +761,13 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
 
   const handleSelectApprover = (employee, checked) => {
     setSelectedApprovers(prev =>
-      checked ? [...prev, { userId: employee.id, name: employee.name }] : prev.filter(a => a.userId !== employee.id)
+      checked 
+        ? [...prev, { 
+            userId: employee.id, 
+            memberId: employee.id,
+            name: employee.name 
+          }] 
+        : prev.filter(a => a.userId !== employee.id)
     );
   };
 
@@ -808,6 +815,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       }
       
       const data = await response.json();
+      console.log('Received approval data:', data);
       setProposals(data.approvalList || []);
       setLoading(false);
     } catch (error) {
@@ -845,38 +853,65 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       alert('제목을 입력해주세요.');
       return;
     }
+
     if (!newProposal.content.trim()) {
       alert('내용을 입력해주세요.');
       return;
     }
 
+    setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const requestBody = { ...newProposal, approverIds: selectedApprovers.map(a => a.userId) };
       const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         method: 'POST',
-        headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newProposal.title,
+          content: newProposal.content,
+        }),
       });
 
-      const result = await response.json();
-      const createdId = result.data || result.id;
-      if (createdId) {
-        // 생성된 승인요청에 승인권자 할당
-        await fetch(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId), {
-          method: 'POST',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ approverIds: selectedApprovers.map(a => a.userId) })
-        });
+      if (!response.ok) {
+        throw new Error('승인 요청 생성에 실패했습니다.');
       }
-      // 리스트 새로 고침
-      window.location.reload();
+
+      const approvalData = await response.json();
+      const createdId = approvalData.approvalProposalId;
+
+      // 선택된 승인권자가 있는 경우 승인권자 등록
+      if (selectedApprovers.length > 0) {
+        try {
+          const approverResponse = await fetch(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId), {
+            method: 'POST',
+            headers: {
+              'Authorization': token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              approverIds: selectedApprovers.map(approver => approver.memberId)
+            }),
+          });
+
+          if (!approverResponse.ok) {
+            console.error('승인권자 등록에 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('승인권자 등록 중 오류 발생:', error);
+        }
+      }
+
+      setIsLoading(false);
+      setIsModalOpen(false);
+      setNewProposal({ title: '', content: '' });
+      setSelectedApprovers([]);
+      fetchProposals();
     } catch (error) {
-      console.error('Error creating proposal:', error);
-      alert('승인요청 생성에 실패했습니다.');
+      console.error('승인 요청 생성 중 오류 발생:', error);
+      setIsLoading(false);
+      alert(error.message);
     }
   };
 
@@ -973,13 +1008,15 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       });
 
       if (!response.ok) {
-        throw new Error('승인요청 전송에 실패했습니다.');
+        const errorText = await response.text();
+        throw new Error(`승인요청 전송에 실패했습니다: ${response.status} ${errorText}`);
       }
 
+      alert('승인요청이 성공적으로 전송되었습니다.');
       fetchProposals();
     } catch (error) {
       console.error('Error sending proposal:', error);
-      alert('승인요청 전송에 실패했습니다.');
+      alert(error.message || '승인요청 전송에 실패했습니다.');
     }
   };
 

@@ -341,7 +341,9 @@ const ApprovalDecision = ({ approvalId }) => {
 
       const data = await response.json();
       console.log('Fetched decisions:', data);
-      const approvers = data.items[0]?.approvers || [];
+      
+      // 새로운 API 응답 구조에 맞게 데이터 처리
+      const approvers = data.decisionResponses || [];
       setApproversData(approvers);
     } catch (error) {
       console.error('Error fetching decisions:', error);
@@ -358,7 +360,9 @@ const ApprovalDecision = ({ approvalId }) => {
     try {
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      const response = await fetch(API_ENDPOINTS.DECISION.CREATE(approvalId), {
+      
+      // 백엔드 엔드포인트 /approver/{approverId}/decision 사용
+      const response = await fetch(API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId), {
         method: 'POST',
         headers: {
           'Authorization': authToken,
@@ -367,8 +371,8 @@ const ApprovalDecision = ({ approvalId }) => {
         },
         body: JSON.stringify({
           content: newDecision.content,
-          decisionStatus: newDecision.status,
-          approverId: selectedApprover.approverId
+          decisionStatus: newDecision.status
+          // approverId는 URL에 이미 포함되어 있으므로 본문에서 제거
         })
       });
 
@@ -380,6 +384,11 @@ const ApprovalDecision = ({ approvalId }) => {
 
       const data = await response.json();
       console.log('Create decision response:', data);
+      
+      if (data.statusCode === 201) {
+        // 성공적으로 생성됨
+        alert(data.statusMessage || '승인응답이 성공적으로 생성되었습니다.');
+      }
 
       setIsInputOpen(false);
       setNewDecision({ content: '', status: '' });
@@ -413,6 +422,12 @@ const ApprovalDecision = ({ approvalId }) => {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        // 성공적으로 삭제됨
+        alert(data.statusMessage || '승인응답이 성공적으로 삭제되었습니다.');
+      }
+
       await fetchDecisions();
     } catch (error) {
       console.error('Error deleting decision:', error);
@@ -437,7 +452,7 @@ const ApprovalDecision = ({ approvalId }) => {
   };
 
   const hasApprovedDecision = (approver) => {
-    return approver.decisionList.some(decision => 
+    return approver.decisionResponses && approver.decisionResponses.some(decision => 
       decision.status === ApprovalDecisionStatus.APPROVED
     );
   };
@@ -491,7 +506,7 @@ const ApprovalDecision = ({ approvalId }) => {
                   </CompletedMessage>
                   {expandedApprovers.has(approver.approverId) && (
                     <>
-                      {approver.decisionList.map((decision) => (
+                      {approver.decisionResponses.map((decision) => (
                         <div key={decision.id} style={{ marginBottom: '16px' }}>
                           <ResponseHeader>
                             <ResponseStatusContainer>
@@ -520,9 +535,9 @@ const ApprovalDecision = ({ approvalId }) => {
                 </>
               ) : (
                 <>
-                  {approver.decisionList.length > 0 ? (
+                  {approver.decisionResponses && approver.decisionResponses.length > 0 ? (
                     <>
-                      {approver.decisionList.map((decision) => (
+                      {approver.decisionResponses.map((decision) => (
                         <div key={decision.id} style={{ marginBottom: '16px' }}>
                           <ResponseHeader>
                             <ResponseStatusContainer>
