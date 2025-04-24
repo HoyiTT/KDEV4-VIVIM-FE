@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
@@ -9,21 +9,41 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const decodeToken = (token) => {
+  // 토큰 관련 코드를 useMemo로 변경하여 불필요한 재실행 방지
+  const tokenInfo = useMemo(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return { token: null, decodedToken: null, isAdmin: false, userId: null };
+    
     try {
-      return JSON.parse(atob(token.split('.')[1]));
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      return {
+        token,
+        decodedToken,
+        isAdmin: decodedToken?.role === 'ADMIN',
+        userId: decodedToken?.userId
+      };
     } catch (error) {
-      return null;
+      console.error('Token decode error:', error);
+      return { token, decodedToken: null, isAdmin: false, userId: null };
     }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-  const userId = decodedToken?.userId;
+  }, []);
+  
+  const { token, decodedToken, isAdmin, userId } = tokenInfo;
 
   useEffect(() => {
     const fetchUserInfo = async () => {
+      if (!userId) {
+        if (decodedToken) {
+          // userId가 없어도 토큰이 있으면 토큰 정보로 표시
+          setUserInfo({
+            name: decodedToken.username || '사용자',
+            companyName: decodedToken.companyName || '',
+            companyRole: decodedToken.role
+          });
+        }
+        return;
+      }
+
       try {
         const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
           headers: {
@@ -57,17 +77,8 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
       }
     };
 
-    if (userId) {
-      fetchUserInfo();
-    } else if (decodedToken) {
-      // userId가 없어도 토큰이 있으면 토큰 정보로 표시
-      setUserInfo({
-        name: decodedToken.username || '사용자',
-        companyName: decodedToken.companyName || '',
-        companyRole: decodedToken.role
-      });
-    }
-  }, [userId, token, decodedToken]);
+    fetchUserInfo();
+  }, [userId, token]);
 
   const userName = decodedToken?.username || '사용자';  // Changed from name to username
   const companyName = decodedToken?.companyName || '';  // This should match the JWT field name

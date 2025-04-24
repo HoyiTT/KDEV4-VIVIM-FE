@@ -32,7 +32,7 @@ export const API_ENDPOINTS = {
   
   APPROVAL: {
     LIST: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
-    CREATE: (progressId) => `${API_BASE_URL}/approval?progressId=${progressId}`,
+    CREATE: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
     DETAIL: (id) => `${API_BASE_URL}/approval/${id}`,
     MODIFY: (id) => `${API_BASE_URL}/approval/${id}`,
     DELETE: (id) => `${API_BASE_URL}/approval/${id}`,
