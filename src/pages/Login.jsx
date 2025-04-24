@@ -411,7 +411,17 @@ const Login = () => {
         if (data.access_token) {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('refreshToken', data.refresh_token);
-          window.location.href = '/dashboard-admin';
+          
+          // JWT 토큰 디코딩
+          const tokenPayload = JSON.parse(atob(data.access_token.split('.')[1]));
+          const userRole = tokenPayload.role;
+          
+          // 권한에 따라 다른 페이지로 이동
+          if (userRole === 'ADMIN') {
+            window.location.href = '/dashboard-admin';
+          } else {
+            window.location.href = '/dashboard';
+          }
         } else {
           alert('로그인에 실패했습니다. 다시 시도해주세요.');
         }
