@@ -154,7 +154,6 @@ const SendButton = styled(ActionButton)`
   overflow: hidden;
 
   &:hover {
-    transform: translateY(-1px);
     color: #3b82f6;
     border-color: #3b82f6;
     background: rgba(59, 130, 246, 0.05);
