@@ -324,11 +324,12 @@ const ApprovalDecision = ({ approvalId }) => {
 
   const fetchDecisions = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const storedToken = localStorage.getItem('token');
+      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
       const response = await fetch(API_ENDPOINTS.DECISION.LIST(approvalId), {
         method: 'GET',
         headers: {
-          'Authorization': token,
+          'Authorization': authToken,
           'accept': '*/*'
         }
       });
@@ -355,11 +356,12 @@ const ApprovalDecision = ({ approvalId }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const storedToken = localStorage.getItem('token');
+      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
       const response = await fetch(API_ENDPOINTS.DECISION.CREATE(approvalId), {
         method: 'POST',
         headers: {
-          'Authorization': token,
+          'Authorization': authToken,
           'Content-Type': 'application/json',
           'accept': '*/*'
         },
@@ -395,11 +397,12 @@ const ApprovalDecision = ({ approvalId }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const storedToken = localStorage.getItem('token');
+      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
       const response = await fetch(API_ENDPOINTS.DECISION.DELETE(decisionId), {
         method: 'DELETE',
         headers: {
-          'Authorization': token,
+          'Authorization': authToken,
           'accept': '*/*'
         }
       });

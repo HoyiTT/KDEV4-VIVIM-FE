@@ -166,11 +166,6 @@ const ShowMoreButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  position: sticky;
-  bottom: 60px;
-  z-index: 1;
-  margin-top: auto;
-
   &:hover {
     background: #f1f5f9;
   }
@@ -210,9 +205,11 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
+  min-width: 100px;
+  min-height: 500px;
   width: 100%;
-  max-width: 400px;
-  max-height: 90vh;
+  max-width: 40vw;
+  max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
 `;
@@ -260,7 +257,7 @@ const ModalFooter = styled.div`
   gap: 8px;
 `;
 
-const ModalButton = styled.button`
+const ModalButton = styled.button.withConfig({ shouldForwardProp: prop => prop !== 'primary' })`
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
@@ -360,7 +357,7 @@ const FullscreenButton = styled.button`
 `;
 
 const ProposalTitle = styled.h1`
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
   margin-bottom: 24px;
@@ -530,21 +527,20 @@ const Input = styled.input`
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 120px;
-  padding: 8px 12px;
+  height: 120px;
+  padding: 16px;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: #1e293b;
-  background: white;
   resize: vertical;
   transition: all 0.2s;
   box-sizing: border-box;
 
   &:focus {
     outline: none;
-    border-color: #94a3b8;
-    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
   }
 
   &::placeholder {
@@ -628,6 +624,9 @@ const ListProposalTitle = styled.div`
   color: #1e293b;
   line-height: 1.4;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ProposalHeader = styled.div`
@@ -647,6 +646,42 @@ const AddButtonContainer = styled.div`
   z-index: 2;
 `;
 
+// 승인권자 지정을 위한 스타일 컴포넌트
+const ApproverSection = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+`;
+const CompanyToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  &:focus { outline: none; }
+`;
+const EmployeeList = styled.div`
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+const EmployeeItem = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+`;
+
 const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -662,6 +697,79 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
   const contentRef = useRef(null);
+  const [companies, setCompanies] = useState([]);
+  const [companyEmployees, setCompanyEmployees] = useState({});
+  const [expandedCompanies, setExpandedCompanies] = useState(new Set());
+  const [selectedApprovers, setSelectedApprovers] = useState([]);
+
+  // 회사 및 승인권자 조회 함수들을 state 선언 이후에 위치시킵니다.
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(API_ENDPOINTS.COMPANIES, {
+        headers: {
+          'Authorization': token,
+          'accept': '*/*'
+        }
+      });
+      if (!res.ok) throw new Error('회사 목록 조회 실패');
+      const json = await res.json();
+      // 응답의 data 필드를 우선 사용
+      const list = json.data ?? json.companies ?? json.items ?? (Array.isArray(json) ? json : []);
+      const customerCompanies = list.filter(c => c.companyRole?.toUpperCase() === 'CUSTOMER');
+      setCompanies(customerCompanies);
+    } catch (err) {
+      console.error(err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const toggleCompany = async (company) => {
+    // 이미 펼쳐진 회사는 닫기
+    if (expandedCompanies.has(company.id)) {
+      setExpandedCompanies(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(company.id);
+        return newSet;
+      });
+      return;
+    }
+    // 직원 목록이 캐시에 없으면 가져오기
+    let empList = companyEmployees[company.id];
+    try {
+      if (!empList) {
+        const token = localStorage.getItem('token');
+        const res = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+          headers: { 'Authorization': token, 'accept': '*/*' }
+        });
+        if (!res.ok) throw new Error('직원 목록 조회 실패');
+        const json = await res.json();
+        // 직원 목록은 data 필드에 존재
+        empList = json.data ?? json.employees ?? json.items ?? (Array.isArray(json) ? json : []);
+        setCompanyEmployees(prev => ({ ...prev, [company.id]: empList }));
+      }
+      // 직원이 없으면 안내 후 토글 안함
+      if (!empList || empList.length === 0) {
+        alert('해당 회사에 직원이 없습니다.');
+        return;
+      }
+      // 직원이 있을 경우 토글 확장
+      setExpandedCompanies(prev => {
+        const newSet = new Set(prev);
+        newSet.add(company.id);
+        return newSet;
+      });
+    } catch (err) {
+      console.error(err);
+      alert('직원 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleSelectApprover = (employee, checked) => {
+    setSelectedApprovers(prev =>
+      checked ? [...prev, { userId: employee.id, name: employee.name }] : prev.filter(a => a.userId !== employee.id)
+    );
+  };
 
   useEffect(() => {
     fetchProposals();
@@ -678,6 +786,17 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       document.body.style.overflow = 'auto';
     };
   }, [isProposalModalOpen]);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      fetchCompanies();
+    } else {
+      setCompanies([]);
+      setCompanyEmployees({});
+      setExpandedCompanies(new Set());
+      setSelectedApprovers([]);
+    }
+  }, [isModalOpen]);
 
   const fetchProposals = async () => {
     try {
@@ -740,13 +859,11 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
 
     try {
       const token = localStorage.getItem('token');
+      const requestBody = { ...newProposal, approverIds: selectedApprovers.map(a => a.userId) };
       const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newProposal)
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
@@ -946,7 +1063,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
           </ShowMoreButton>
         )}
         <AddButtonContainer>
-          <AddButton onClick={() => setIsModalOpen(true)}>
+          <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
             + 승인요청 추가
           </AddButton>
         </AddButtonContainer>
@@ -979,6 +1096,33 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                   placeholder="내용을 입력하세요"
                 />
               </InputGroup>
+              <InputGroup>
+                <Label>승인권자 목록</Label>
+              </InputGroup>
+              <ApproverSection>
+                {companies.length === 0 ? (
+                  <EmptyState>연결된 고객사가 없습니다.</EmptyState>
+                ) : (
+                  companies.map(company => (
+                    <div key={company.id}>
+                      <CompanyToggle onClick={() => toggleCompany(company)}>
+                        <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
+                        <span>{expandedCompanies.has(company.id) ? '▼' : '▶'}</span>
+                      </CompanyToggle>
+                      {expandedCompanies.has(company.id) && (
+                        <EmployeeList>
+                          {(companyEmployees[company.id] || []).map(emp => (
+                            <EmployeeItem key={emp.id}>
+                              <input type="checkbox" checked={selectedApprovers.some(a => a.userId === emp.id)} onChange={e => handleSelectApprover(emp, e.target.checked)} />
+                              <span>{emp.name}</span>
+                            </EmployeeItem>
+                          ))}
+                        </EmployeeList>
+                      )}
+                    </div>
+                  ))
+                )}
+              </ApproverSection>
             </ModalBody>
             <ModalFooter>
               <ModalButton onClick={() => setIsModalOpen(false)}>취소</ModalButton>
@@ -989,25 +1133,13 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       )}
 
       {isProposalModalOpen && selectedProposal && (
-        <SidePanelOverlay onClick={() => setIsProposalModalOpen(false)}>
-          <SidePanelContent onClick={(e) => e.stopPropagation()} isFullscreen={isFullscreen}>
-            <SidePanelHeader>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FullscreenButton onClick={() => setIsFullscreen(!isFullscreen)}>
-                  {isFullscreen ? '⤢' : '⤡'}
-                </FullscreenButton>
-                <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
-              </div>
-              <SidePanelActions>
-                <ActionButton onClick={() => handleEditClick(selectedProposal)}>
-                  수정
-                </ActionButton>
-                <DeleteButton onClick={() => handleDeleteProposal(selectedProposal.id)}>
-                  삭제
-                </DeleteButton>
-              </SidePanelActions>
-            </SidePanelHeader>
-            <SidePanelBody>
+        <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>승인요청 상세보기</ModalTitle>
+              <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
               <ProposalTitle>{selectedProposal.title}</ProposalTitle>
               <ProposalInfo>
                 <InfoItem>
@@ -1034,12 +1166,12 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                 <span>승인권자별 응답목록</span>
               </ProposalSubtitle>
               <ApprovalDecision approvalId={selectedProposal.id} />
-            </SidePanelBody>
-            <SidePanelFooter>
-              <SidePanelButton onClick={() => setIsProposalModalOpen(false)}>닫기</SidePanelButton>
-            </SidePanelFooter>
-          </SidePanelContent>
-        </SidePanelOverlay>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => setIsProposalModalOpen(false)}>닫기</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
       )}
     </>
   );

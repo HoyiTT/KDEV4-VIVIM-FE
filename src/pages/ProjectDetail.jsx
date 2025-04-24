@@ -505,7 +505,7 @@ const StageGrid = styled.div`
   display: flex;
   gap: 16px;
   width: 100%;
-  height: 650px; // 고정된 높이 설정
+  height: 600px; // 고정된 높이 설정
   overflow: hidden; // 스크롤 제거
 `;
 
@@ -520,8 +520,8 @@ const StageItem = styled.div`
   gap: 8px;
   min-width: 320px;
   max-width: 320px;
-  min-height: 550px;
-  max-height: 550px;
+  min-height: 480px;
+  max-height: 500px;
   transition: height 0.3s ease;
   overflow: hidden; // 스크롤 제거
 `;
