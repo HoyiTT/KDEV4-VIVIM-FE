@@ -62,7 +62,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
     { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
     { name: '감사 로그', path: '/audit-log', showFor: 'admin' },
-    { 
+    {
       name: '관리자 문의',
       path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry-list',
       showFor: 'all'
