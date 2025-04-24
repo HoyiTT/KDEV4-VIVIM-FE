@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
     MODIFY_DECISION: (proposalId, decisionId) => `${API_BASE_URL}/approval/${proposalId}/decisions/${decisionId}`,
     DELETE_DECISION: (proposalId, decisionId) => `${API_BASE_URL}/approval/${proposalId}/decisions/${decisionId}`,
     RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/resend`,
+    SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
   },
   DECISION: {
     CREATE: (approvalId) => `${API_BASE_URL}/approver`,
