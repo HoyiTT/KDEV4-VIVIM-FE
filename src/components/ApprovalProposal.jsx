@@ -879,27 +879,92 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       }
 
       const approvalData = await response.json();
-      const createdId = approvalData.approvalProposalId;
+      console.log('승인 요청 생성 응답:', approvalData);
+      
+      // 응답 형식에 따라 ID를 추출
+      let createdId;
+      
+      if (approvalData.approvalProposalId) {
+        createdId = approvalData.approvalProposalId;
+      } else if (approvalData.data && typeof approvalData.data === 'object' && approvalData.data.id) {
+        createdId = approvalData.data.id;
+      } else if (approvalData.data && typeof approvalData.data === 'number') {
+        // data 필드가 직접 숫자인 경우 (백엔드가 data에 ID를 직접 전달)
+        createdId = approvalData.data;
+      } else if (approvalData.id) {
+        createdId = approvalData.id;
+      } else {
+        console.error('생성된 승인 요청의 ID를 찾을 수 없습니다:', approvalData);
+        throw new Error('승인 요청 ID를 찾을 수 없습니다.');
+      }
+      
+      console.log('생성된 승인 요청 ID:', createdId);
 
       // 선택된 승인권자가 있는 경우 승인권자 등록
       if (selectedApprovers.length > 0) {
+        // createdId가 undefined인지 확인
+        if (!createdId) {
+          console.error('승인 요청 ID가 없어 승인권자를 등록할 수 없습니다.');
+          alert('승인 요청은 생성되었으나, 승인권자를 등록할 수 없습니다. (ID 누락)');
+          setIsLoading(false);
+          setIsModalOpen(false);
+          setNewProposal({ title: '', content: '' });
+          setSelectedApprovers([]);
+          fetchProposals();
+          return;
+        }
+        
+        console.log(`승인권자 등록 시작: proposalId=${createdId}, 승인권자 수=${selectedApprovers.length}`);
+        
         try {
-          const approverResponse = await fetch(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId), {
+          const storedToken = localStorage.getItem('token');
+          const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
+          
+          // API 엔드포인트 확인
+          const apiEndpoint = API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId);
+          console.log('승인권자 등록 API 엔드포인트:', apiEndpoint);
+          
+          const approverIds = selectedApprovers.map(approver => approver.memberId);
+          console.log('등록할 승인권자 ID 목록:', approverIds);
+          
+          const approverResponse = await fetch(apiEndpoint, {
             method: 'POST',
             headers: {
-              'Authorization': token,
+              'Authorization': authToken,
               'Content-Type': 'application/json',
+              'accept': '*/*'
             },
             body: JSON.stringify({
-              approverIds: selectedApprovers.map(approver => approver.memberId)
+              approverIds: approverIds
             }),
           });
 
           if (!approverResponse.ok) {
-            console.error('승인권자 등록에 실패했습니다.');
+            const errorText = await approverResponse.text();
+            console.error('승인권자 등록 실패:', errorText);
+            
+            // 에러 응답이 JSON 형식인지 확인
+            try {
+              const errorJson = JSON.parse(errorText);
+              if (errorJson.status === 400 && errorJson.code === 'AP007') {
+                console.warn('이미 등록된 승인권자가 포함되어 있습니다.');
+                // 특정 에러는 경고로만 처리하고 계속 진행
+              } else {
+                throw new Error(errorJson.message || '승인권자 등록에 실패했습니다.');
+              }
+            } catch (jsonError) {
+              // JSON 파싱 에러면 원본 에러 텍스트 사용
+              throw new Error(`승인권자 등록에 실패했습니다: ${errorText}`);
+            }
+          } else {
+            // 응답 처리
+            const approverData = await approverResponse.json();
+            console.log('승인권자 등록 성공:', approverData);
           }
         } catch (error) {
           console.error('승인권자 등록 중 오류 발생:', error);
+          // 승인요청 생성은 성공했으므로 알림만 표시
+          alert('승인요청은 생성되었으나, 승인권자 등록 중 오류가 발생했습니다: ' + error.message);
         }
       }
 

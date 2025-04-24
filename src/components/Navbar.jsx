@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
@@ -35,20 +34,83 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     }
   }, []);
 
-  const decodeToken = (token) => {
+  // 토큰 관련 코드를 useMemo로 변경하여 불필요한 재실행 방지
+  const tokenInfo = useMemo(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return { token: null, decodedToken: null, isAdmin: false, userId: null };
+
     try {
-      return JSON.parse(atob(token.split('.')[1]));
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      return {
+        token,
+        decodedToken,
+        isAdmin: decodedToken?.role === 'ADMIN',
+        userId: decodedToken?.userId
+      };
     } catch (error) {
-      return null;
+      console.error('Token decode error:', error);
+      return { token, decodedToken: null, isAdmin: false, userId: null };
     }
   };
 
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
   const userId = decodedToken?.userId;
+  }, []);
+
+  const { token, decodedToken, isAdmin, userId } = tokenInfo;
 
   const userName = decodedToken?.username || '사용자';
   const companyName = decodedToken?.companyName || '';
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (!userId) {
+        if (decodedToken) {
+          // userId가 없어도 토큰이 있으면 토큰 정보로 표시
+          setUserInfo({
+            name: decodedToken.username || '사용자',
+            companyName: decodedToken.companyName || '',
+            companyRole: decodedToken.role
+          });
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
+          headers: {
+            'Authorization': token
+          }
+        });
+        const data = await response.json();
+        if (data.statusCode === 200) {
+          setUserInfo(data.data);
+        } else {
+          console.log('사용자 정보 가져오기 실패:', data);
+          // 토큰에서 기본 정보로 설정
+          if (decodedToken) {
+            setUserInfo({
+              name: decodedToken.username || '사용자',
+              companyName: decodedToken.companyName || '',
+              companyRole: decodedToken.role
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        // 오류 발생 시 토큰에서 기본 정보로 설정
+        if (decodedToken) {
+          setUserInfo({
+            name: decodedToken.username || '사용자',
+            companyName: decodedToken.companyName || '',
+            companyRole: decodedToken.role
+          });
+        }
+      }
+    };
+
+    fetchUserInfo();
+  }, [userId, token]);
 
   console.log('Decoded token:', decodedToken);
 
