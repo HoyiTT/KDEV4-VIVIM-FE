@@ -33,10 +33,28 @@ const ResponseItem = styled.div`
   border: 1px solid #e2e8f0;
   margin-bottom: 24px;
   position: relative;
-  ${props => props.isCompleted && `
-    background: #f1f5f9;
-    border-color: #e2e8f0;
-  `}
+  display: flex;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    background-color: ${props => {
+      if (props.hasApproved) return '#16a34a';
+      if (props.hasRejected) return '#dc2626';
+      return '#94a3b8';
+    }};
+  }
+
+  & > div {
+    flex: 1;
+    margin-left: 4px;
+  }
 `;
 
 const ResponseHeader = styled.div`
@@ -452,8 +470,14 @@ const ApprovalDecision = ({ approvalId }) => {
   };
 
   const hasApprovedDecision = (approver) => {
-    return approver.decisionResponses && approver.decisionResponses.some(decision => 
-      decision.status === ApprovalDecisionStatus.APPROVED
+    return approver.decisionResponses?.some(
+      decision => decision.status === ApprovalDecisionStatus.APPROVED
+    );
+  };
+
+  const hasRejectedDecision = (approver) => {
+    return approver.decisionResponses?.some(
+      decision => decision.status === ApprovalDecisionStatus.REJECTED
     );
   };
 
@@ -487,180 +511,184 @@ const ApprovalDecision = ({ approvalId }) => {
           sortApprovers(approversData).map((approver) => (
             <ResponseItem 
               key={approver.approverId}
+              hasApproved={hasApprovedDecision(approver)}
+              hasRejected={hasRejectedDecision(approver)}
               isCompleted={hasApprovedDecision(approver)}
             >
-              <ResponseHeader>
-                <ResponseName>
-                  {approver.approverName}
-                  {hasApprovedDecision(approver) && (
-                    <CompletedBadge>승인 완료</CompletedBadge>
-                  )}
-                </ResponseName>
-              </ResponseHeader>
-              {hasApprovedDecision(approver) ? (
-                <>
-                  <CompletedMessage 
-                    onClick={() => toggleApproverExpansion(approver.approverId)}
-                  >
-                    지난 응답내역 다시보기
-                  </CompletedMessage>
-                  {expandedApprovers.has(approver.approverId) && (
-                    <>
-                      {approver.decisionResponses.map((decision) => (
-                        <div key={decision.id} style={{ marginBottom: '16px' }}>
-                          <ResponseHeader>
-                            <ResponseStatusContainer>
-                              <ResponseStatus status={decision.status}>
-                                {getStatusText(decision.status)}
-                              </ResponseStatus>
-                            </ResponseStatusContainer>
-                            <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
-                          </ResponseHeader>
-                          <ResponseContent>
-                            <ResponseText>
-                              {decision.title && <strong>{decision.title}</strong>}
-                              {decision.content && <div>{decision.content}</div>}
-                              {!decision.title && !decision.content && '내용 없음'}
-                            </ResponseText>
-                          </ResponseContent>
-                          <ResponseActionsContainer>
-                            <DeleteButton onClick={() => handleDeleteDecision(decision.id)}>
-                              삭제
-                            </DeleteButton>
-                          </ResponseActionsContainer>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  {approver.decisionResponses && approver.decisionResponses.length > 0 ? (
-                    <>
-                      {approver.decisionResponses.map((decision) => (
-                        <div key={decision.id} style={{ marginBottom: '16px' }}>
-                          <ResponseHeader>
-                            <ResponseStatusContainer>
-                              <ResponseStatus status={decision.status}>
-                                {getStatusText(decision.status)}
-                              </ResponseStatus>
-                            </ResponseStatusContainer>
-                            <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
-                          </ResponseHeader>
-                          <ResponseContent>
-                            <ResponseText>
-                              {decision.title && <strong>{decision.title}</strong>}
-                              {decision.content && <div>{decision.content}</div>}
-                              {!decision.title && !decision.content && '내용 없음'}
-                            </ResponseText>
-                          </ResponseContent>
-                          <ResponseActionsContainer>
-                            <DeleteButton onClick={() => handleDeleteDecision(decision.id)}>
-                              삭제
-                            </DeleteButton>
-                          </ResponseActionsContainer>
-                        </div>
-                      ))}
-                      {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
-                        <div style={{ marginTop: '16px', width: '100%' }}>
-                          <InputGroup>
-                            <Label>응답 내용</Label>
-                            <TextArea
-                              value={newDecision.content}
-                              onChange={(e) => setNewDecision(prev => ({
-                                ...prev,
-                                content: e.target.value
-                              }))}
-                              placeholder="응답 내용을 입력하세요"
-                            />
-                          </InputGroup>
-                          <InputGroup>
-                            <Label>승인 상태</Label>
-                            <StatusSelect
-                              value={newDecision.status}
-                              onChange={(e) => setNewDecision(prev => ({
-                                ...prev,
-                                status: e.target.value
-                              }))}
-                            >
-                              <option value="">승인 상태를 선택하세요</option>
-                              <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                              <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
-                            </StatusSelect>
-                          </InputGroup>
-                          <ResponseActionsContainer>
-                            <CancelButton onClick={() => {
-                              setIsInputOpen(false);
-                              setSelectedApprover(null);
-                              setNewDecision({ content: '', status: '' });
-                            }}>취소</CancelButton>
-                            <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
-                          </ResponseActionsContainer>
-                        </div>
-                      ) : (
-                        <ResponseButton onClick={() => {
-                          setIsInputOpen(true);
-                          setSelectedApprover(approver);
-                          setNewDecision({ content: '', status: '' });
-                        }}>
-                          <span>+</span>
-                          <span>승인응답 추가</span>
-                        </ResponseButton>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <EmptyResponseMessage>아직 응답이 없습니다.</EmptyResponseMessage>
-                      {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
-                        <div style={{ marginTop: '16px', width: '100%' }}>
-                          <InputGroup>
-                            <Label>응답 내용</Label>
-                            <TextArea
-                              value={newDecision.content}
-                              onChange={(e) => setNewDecision(prev => ({
-                                ...prev,
-                                content: e.target.value
-                              }))}
-                              placeholder="응답 내용을 입력하세요"
-                            />
-                          </InputGroup>
-                          <InputGroup>
-                            <Label>승인 상태</Label>
-                            <StatusSelect
-                              value={newDecision.status}
-                              onChange={(e) => setNewDecision(prev => ({
-                                ...prev,
-                                status: e.target.value
-                              }))}
-                            >
-                              <option value="">승인 상태를 선택하세요</option>
-                              <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                              <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
-                            </StatusSelect>
-                          </InputGroup>
-                          <ResponseActionsContainer>
-                            <CancelButton onClick={() => {
-                              setIsInputOpen(false);
-                              setSelectedApprover(null);
-                              setNewDecision({ content: '', status: '' });
-                            }}>취소</CancelButton>
-                            <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
-                          </ResponseActionsContainer>
-                        </div>
-                      ) : (
-                        <ResponseButton onClick={() => {
-                          setIsInputOpen(true);
-                          setSelectedApprover(approver);
-                          setNewDecision({ content: '', status: '' });
-                        }}>
-                          <span>+</span>
-                          <span>승인응답 추가</span>
-                        </ResponseButton>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
+              <div>
+                <ResponseHeader>
+                  <ResponseName>
+                    {approver.approverName}
+                    {hasApprovedDecision(approver) && (
+                      <CompletedBadge>승인 완료</CompletedBadge>
+                    )}
+                  </ResponseName>
+                </ResponseHeader>
+                {hasApprovedDecision(approver) ? (
+                  <>
+                    <CompletedMessage 
+                      onClick={() => toggleApproverExpansion(approver.approverId)}
+                    >
+                      지난 응답내역 다시보기
+                    </CompletedMessage>
+                    {expandedApprovers.has(approver.approverId) && (
+                      <>
+                        {approver.decisionResponses.map((decision) => (
+                          <div key={decision.id} style={{ marginBottom: '16px' }}>
+                            <ResponseHeader>
+                              <ResponseStatusContainer>
+                                <ResponseStatus status={decision.status}>
+                                  {getStatusText(decision.status)}
+                                </ResponseStatus>
+                              </ResponseStatusContainer>
+                              <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
+                            </ResponseHeader>
+                            <ResponseContent>
+                              <ResponseText>
+                                {decision.title && <strong>{decision.title}</strong>}
+                                {decision.content && <div>{decision.content}</div>}
+                                {!decision.title && !decision.content && '내용 없음'}
+                              </ResponseText>
+                            </ResponseContent>
+                            <ResponseActionsContainer>
+                              <DeleteButton onClick={() => handleDeleteDecision(decision.id)}>
+                                삭제
+                              </DeleteButton>
+                            </ResponseActionsContainer>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {approver.decisionResponses && approver.decisionResponses.length > 0 ? (
+                      <>
+                        {approver.decisionResponses.map((decision) => (
+                          <div key={decision.id} style={{ marginBottom: '16px' }}>
+                            <ResponseHeader>
+                              <ResponseStatusContainer>
+                                <ResponseStatus status={decision.status}>
+                                  {getStatusText(decision.status)}
+                                </ResponseStatus>
+                              </ResponseStatusContainer>
+                              <ResponseDate>{formatDate(decision.decidedAt)}</ResponseDate>
+                            </ResponseHeader>
+                            <ResponseContent>
+                              <ResponseText>
+                                {decision.title && <strong>{decision.title}</strong>}
+                                {decision.content && <div>{decision.content}</div>}
+                                {!decision.title && !decision.content && '내용 없음'}
+                              </ResponseText>
+                            </ResponseContent>
+                            <ResponseActionsContainer>
+                              <DeleteButton onClick={() => handleDeleteDecision(decision.id)}>
+                                삭제
+                              </DeleteButton>
+                            </ResponseActionsContainer>
+                          </div>
+                        ))}
+                        {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
+                          <div style={{ marginTop: '16px', width: '100%' }}>
+                            <InputGroup>
+                              <Label>응답 내용</Label>
+                              <TextArea
+                                value={newDecision.content}
+                                onChange={(e) => setNewDecision(prev => ({
+                                  ...prev,
+                                  content: e.target.value
+                                }))}
+                                placeholder="응답 내용을 입력하세요"
+                              />
+                            </InputGroup>
+                            <InputGroup>
+                              <Label>승인 상태</Label>
+                              <StatusSelect
+                                value={newDecision.status}
+                                onChange={(e) => setNewDecision(prev => ({
+                                  ...prev,
+                                  status: e.target.value
+                                }))}
+                              >
+                                <option value="">승인 상태를 선택하세요</option>
+                                <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
+                                <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
+                              </StatusSelect>
+                            </InputGroup>
+                            <ResponseActionsContainer>
+                              <CancelButton onClick={() => {
+                                setIsInputOpen(false);
+                                setSelectedApprover(null);
+                                setNewDecision({ content: '', status: '' });
+                              }}>취소</CancelButton>
+                              <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
+                            </ResponseActionsContainer>
+                          </div>
+                        ) : (
+                          <ResponseButton onClick={() => {
+                            setIsInputOpen(true);
+                            setSelectedApprover(approver);
+                            setNewDecision({ content: '', status: '' });
+                          }}>
+                            <span>+</span>
+                            <span>승인응답 추가</span>
+                          </ResponseButton>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <EmptyResponseMessage>아직 응답이 없습니다.</EmptyResponseMessage>
+                        {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
+                          <div style={{ marginTop: '16px', width: '100%' }}>
+                            <InputGroup>
+                              <Label>응답 내용</Label>
+                              <TextArea
+                                value={newDecision.content}
+                                onChange={(e) => setNewDecision(prev => ({
+                                  ...prev,
+                                  content: e.target.value
+                                }))}
+                                placeholder="응답 내용을 입력하세요"
+                              />
+                            </InputGroup>
+                            <InputGroup>
+                              <Label>승인 상태</Label>
+                              <StatusSelect
+                                value={newDecision.status}
+                                onChange={(e) => setNewDecision(prev => ({
+                                  ...prev,
+                                  status: e.target.value
+                                }))}
+                              >
+                                <option value="">승인 상태를 선택하세요</option>
+                                <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
+                                <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
+                              </StatusSelect>
+                            </InputGroup>
+                            <ResponseActionsContainer>
+                              <CancelButton onClick={() => {
+                                setIsInputOpen(false);
+                                setSelectedApprover(null);
+                                setNewDecision({ content: '', status: '' });
+                              }}>취소</CancelButton>
+                              <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
+                            </ResponseActionsContainer>
+                          </div>
+                        ) : (
+                          <ResponseButton onClick={() => {
+                            setIsInputOpen(true);
+                            setSelectedApprover(approver);
+                            setNewDecision({ content: '', status: '' });
+                          }}>
+                            <span>+</span>
+                            <span>승인응답 추가</span>
+                          </ResponseButton>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </ResponseItem>
           ))
         )}

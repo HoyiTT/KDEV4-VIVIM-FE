@@ -1205,11 +1205,11 @@ const StageSplitLayout = styled.div`
   display: flex;
   gap: 24px;
   margin-top: 20px;
-`;
-
-const StageGridColumn = styled.div`
-  flex: 2;
-  min-width: 0;
+  
+  /* 화면 너비가 1024px 이하일 때 세로 배치로 변경 */
+  @media (max-width: 1024px) {
+    flex-direction: column;
+  }
 `;
 
 const StageProgressColumn = styled.div`
@@ -1221,6 +1221,23 @@ const StageProgressColumn = styled.div`
   padding: 20px;
   max-height: 550px;
   overflow-y: auto;
+  
+  /* 화면 너비가 좁을 때 높이 제한 줄이기 */
+  @media (max-width: 1024px) {
+    max-height: 400px;
+    width: 100%;
+  }
+`;
+
+const StageGridColumn = styled.div`
+  flex: 1;
+  min-width: 0;
+  
+  /* 화면 너비가 좁을 때 너비 100%로 변경 */
+  @media (max-width: 1024px) {
+    width: 100%;
+    margin-top: 20px;
+  }
 `;
 
 const MilestoneColumn = styled.div`
