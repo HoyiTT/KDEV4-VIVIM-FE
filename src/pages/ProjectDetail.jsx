@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag } from 'react-icons/fa';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -16,10 +17,15 @@ const ProjectDetail = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedStage, setSelectedStage] = useState(null);
-  const [maxHeight, setMaxHeight] = useState(0);
-  const [expandedHeights, setExpandedHeights] = useState({});
   const stageRefs = useRef([]);
   const [showAll, setShowAll] = useState(false);
+  const [progressList, setProgressList] = useState([]);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [selectedApproval, setSelectedApproval] = useState(null);
+  const [approvalRequestsForStage, setApprovalRequestsForStage] = useState([]);
+
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
@@ -47,24 +53,11 @@ const ProjectDetail = () => {
     }
   };
 
-  const [progressList, setProgressList] = useState([]);
-
   useEffect(() => {
     fetchProjectDetail();
     fetchProjectPosts();
-    fetchProjectProgress(); // Add new fetch call
+    fetchProjectProgress();
   }, [id]);
-
-  useEffect(() => {
-    if (stageRefs.current.length > 0) {
-      const heights = stageRefs.current.map((ref, index) => {
-        const expandedHeight = expandedHeights[index] || 0;
-        return Math.max(ref?.offsetHeight || 0, expandedHeight);
-      });
-      const max = Math.max(...heights, 550); // 최소 높이 550px 보장
-      setMaxHeight(max);
-    }
-  }, [progressList, expandedHeights]);
 
   const translateRole = (role) => {
     switch (role) {
@@ -79,7 +72,6 @@ const ProjectDetail = () => {
     }
   };
   
-    // Add this near the other styled components
   const getRoleColor = (role) => {
     switch (role) {
       case 'DEVELOPER':
@@ -119,7 +111,7 @@ const ProjectDetail = () => {
   display: inline-block;
   line-height: 1.4;
 `;
-  // Add new fetch function for progress
+
   const fetchProjectProgress = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -172,7 +164,6 @@ const ProjectDetail = () => {
     setActiveMenuItem(menuItem);
   };
 
-  // Add adminCheckLoading state
     const [adminCheckLoading, setAdminCheckLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(null);
   
@@ -196,13 +187,63 @@ const ProjectDetail = () => {
     }, []);
   
 
-  const handleShowMore = (stage, index, height) => {
-    setExpandedHeights(prev => ({
-      ...prev,
-      [index]: height
-    }));
+  const handleNextStage = () => {
+    if (currentStageIndex < progressList.length - 1) {
+      setCurrentStageIndex(prev => prev + 1);
+    }
+  };
+  
+  const handlePrevStage = () => {
+    if (currentStageIndex > 0) {
+      setCurrentStageIndex(prev => prev - 1);
+    }
   };
 
+  // 승인요청 항목 클릭 시 처리하는 함수
+  const handleApprovalClick = async (approval) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(approval.id), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인요청 상세 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setSelectedProposal(data);
+      setIsProposalModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching approval detail:', error);
+      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleApprovalRowClick = (approval) => {
+    setSelectedApproval(approval);
+  };
+
+  const closeModal = () => {
+    setSelectedApproval(null);
+  };
+
+  useEffect(() => {
+    if (progressList && progressList.length > 0) {
+      const currentStage = progressList[currentStageIndex];
+      // 현재 선택된 단계에 해당하는 승인요청만 필터링
+      if (approvalRequestsForStage && approvalRequestsForStage.length > 0) {
+        const filteredRequests = approvalRequestsForStage.filter(
+          proposal => proposal.stageId === currentStage.stageId
+        );
+        setApprovalRequestsForStage(filteredRequests);
+      }
+    }
+  }, [currentStageIndex, progressList, approvalRequestsForStage]);
+  
   return (
     <PageContainer>
       <Navbar 
@@ -259,28 +300,184 @@ const ProjectDetail = () => {
             </ProjectInfoSection>
 
             <StageSection>
-              <SectionTitle>진행단계별 승인요청</SectionTitle>
-              <StageGrid>
+              <SectionHeader>
+                <SectionTitle>진행단계별 승인요청</SectionTitle>
+                <StageNavigation>
+                  <NavButton 
+                    onClick={handlePrevStage} 
+                    disabled={currentStageIndex === 0}
+                  >
+                    <ArrowIcon>←</ArrowIcon>
+                  </NavButton>
+                  <StageIndicator>
+                    {currentStageIndex + 1} / {progressList.length}
+                  </StageIndicator>
+                  <NavButton 
+                    onClick={handleNextStage} 
+                    disabled={currentStageIndex === progressList.length - 1}
+                  >
+                    <ArrowIcon>→</ArrowIcon>
+                  </NavButton>
+                </StageNavigation>
+              </SectionHeader>
+              
+              <StageSplitLayout>
+                {/* 마일스톤 컴포넌트 (임시 주석 처리)
+                <MilestoneColumn>
+                  <MilestoneHeader>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>프로젝트 마일스톤</h3>
+                    <AddMilestoneButton onClick={() => alert('마일스톤 추가 기능은 개발 중입니다.')}>
+                      마일스톤 추가
+                    </AddMilestoneButton>
+                  </MilestoneHeader>
+                  
+                  <MilestoneTimeline>
+                    {project && project.startDate && project.endDate ? (
+                      <>
+                        <MilestoneItem completed>
+                          <MilestoneMarker completed/>
+                          <MilestoneContent>
+                            <MilestoneTitle>프로젝트 시작</MilestoneTitle>
+                            <MilestoneDate>{project.startDate}</MilestoneDate>
+                            <MilestoneDescription>프로젝트가 공식적으로 시작되었습니다.</MilestoneDescription>
+                          </MilestoneContent>
+                        </MilestoneItem>
+                        
+                        {progressList.map((stage, index) => (
+                          <MilestoneItem 
+                            key={stage.id}
+                            completed={index < currentStageIndex}
+                            inProgress={index === currentStageIndex}
+                          >
+                            <MilestoneMarker 
+                              completed={index < currentStageIndex}
+                              inProgress={index === currentStageIndex}
+                            />
+                            <MilestoneContent>
+                              <MilestoneTitle>{stage.name}</MilestoneTitle>
+                              <MilestoneDate>
+                                {new Date().toLocaleDateString()}
+                              </MilestoneDate>
+                              <MilestoneDescription>
+                                {index < currentStageIndex 
+                                  ? '완료된 단계입니다.' 
+                                  : index === currentStageIndex 
+                                    ? '현재 진행 중인 단계입니다.' 
+                                    : '향후 진행될 단계입니다.'}
+                              </MilestoneDescription>
+                            </MilestoneContent>
+                          </MilestoneItem>
+                        ))}
+                        
+                        <MilestoneItem>
+                          <MilestoneMarker/>
+                          <MilestoneContent>
+                            <MilestoneTitle>프로젝트 종료</MilestoneTitle>
+                            <MilestoneDate>{project.endDate}</MilestoneDate>
+                            <MilestoneDescription>프로젝트 완료 예정일입니다.</MilestoneDescription>
+                          </MilestoneContent>
+                        </MilestoneItem>
+                      </>
+                    ) : (
+                      <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                        프로젝트 일정 정보가 없습니다.
+                      </p>
+                    )}
+                  </MilestoneTimeline>
+                  
+                  <MilestoneStats>
+                    <StatItem>
+                      <StatLabel>현재 단계</StatLabel>
+                      <StatValue>{progressList[currentStageIndex]?.name || '정보 없음'}</StatValue>
+                    </StatItem>
+                    <StatItem>
+                      <StatLabel>완료 단계</StatLabel>
+                      <StatValue>{currentStageIndex} / {progressList.length}</StatValue>
+                    </StatItem>
+                    <StatItem>
+                      <StatLabel>예상 종료일까지</StatLabel>
+                      <StatValue>
+                        {project && project.endDate 
+                          ? `${Math.max(0, Math.ceil((new Date(project.endDate) - new Date()) / (1000 * 60 * 60 * 24)))}일 남음` 
+                          : '정보 없음'}
+                      </StatValue>
+                    </StatItem>
+                  </MilestoneStats>
+                </MilestoneColumn>
+                */}
+                
+                <StageProgressColumn>
+                  <StageProgressHeader>
+                    <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>프로젝트 진행 단계</h3>
+                  </StageProgressHeader>
+                  
+                  <StageProgressTimeline>
+                    <TimelineBar />
+                    <StageProgressList>
+                      {progressList.map((stage, index) => (
+                        <StageProgressItem 
+                          key={stage.id}
+                          onClick={() => setCurrentStageIndex(index)}
+                          active={index === currentStageIndex}
+                        >
+                          <StageProgressMarker 
+                            completed={index < currentStageIndex} 
+                            current={index === currentStageIndex}
+                          >
+                            {index < currentStageIndex ? <FaCheck /> : index === currentStageIndex ? <FaClock /> : index}
+                          </StageProgressMarker>
+                          <StageProgressDetails>
+                            <StageProgressName>{stage.name}</StageProgressName>
+                            <StageProgressStatus>
+                              {index < currentStageIndex 
+                                ? '완료' 
+                                : index === currentStageIndex 
+                                  ? '진행 중' 
+                                  : '예정됨'}
+                            </StageProgressStatus>
+                          </StageProgressDetails>
+                        </StageProgressItem>
+                      ))}
+                    </StageProgressList>
+                  </StageProgressTimeline>
+                  
+                  <StageProgressInfo>
+                    <ProgressInfoItem>
+                      <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
+                      <ProgressInfoValue>{progressList[currentStageIndex]?.name || '정보 없음'}</ProgressInfoValue>
+                    </ProgressInfoItem>
+                    <ProgressInfoItem>
+                      <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
+                      <ProgressBar>
+                        <ProgressFill width={`${progressList.length > 0 ? (currentStageIndex / progressList.length) * 100 : 0}%`} />
+                      </ProgressBar>
+                      <ProgressInfoValue>{progressList.length > 0 ? Math.round((currentStageIndex / progressList.length) * 100) : 0}%</ProgressInfoValue>
+                    </ProgressInfoItem>
+                  </StageProgressInfo>
+                </StageProgressColumn>
+                
+                <StageGridColumn>
                 {progressList
                   .sort((a, b) => a.position - b.position)
-                  .map((stage, index) => (
-                    <StageContainer key={stage.id}>
-                      <StageItem 
-                        ref={el => stageRefs.current[index] = el} 
-                        style={{ height: maxHeight > 0 ? `${maxHeight}px` : 'auto' }}
+                    .map((stage, index) => (
+                      <StageContainer 
+                        key={stage.id} 
+                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
                       >
-                        <StageHeader>
-                          <StageTitle>{stage.name}</StageTitle>
-                        </StageHeader>
-                        <ApprovalProposal 
-                          progressId={stage.id} 
-                          showMore={true} 
-                          onShowMore={(height) => handleShowMore(stage, index, height)}
-                        />
-                      </StageItem>
-                    </StageContainer>
+                        <StageItem 
+                          ref={el => stageRefs.current[index] = el} 
+                        >
+                          <StageHeader>
+                            <StageTitle>{stage.name}</StageTitle>
+                          </StageHeader>
+                          <ApprovalProposal 
+                            progressId={stage.id} 
+                          />
+                    </StageItem>
+                      </StageContainer>
                   ))}
-              </StageGrid>
+                </StageGridColumn>
+              </StageSplitLayout>
             </StageSection>
             
                         <BoardSection>
@@ -316,53 +513,53 @@ const ProjectDetail = () => {
                                 </tr>
                               ) : (
                                 posts
-                                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                                  .reduce((acc, post) => {
-                                    if (!post.parentId) {
-                                      acc.push(post);
-                                      const replies = posts.filter(reply => reply.parentId === post.postId);
-                                      acc.push(...replies);
-                                    }
-                                    return acc;
-                                  }, [])
-                                  .map((post) => (
-                                    <BoardRow key={post.postId}>
-                                      <BoardCell 
-                                        className={`title-cell ${post.parentId ? 'child-post' : ''}`}
-                                        onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
-                                      >
-                                        {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
-                                        {post.title}
-                                      </BoardCell>
-                                      <BoardCell>
-                                        {!post.parentId && (
-                                          <ReplyButton onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/project/${id}/post/create`, {
-                                              state: { parentPost: post }
-                                            });
-                                          }}>
-                                            답글
-                                          </ReplyButton>
-                                        )}
-                                      </BoardCell>
-                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                        {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
-                                         post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
-                                      </BoardCell>
-                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                        {post.creatorName}
-                                      </BoardCell>
-                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                        <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
-                                      </BoardCell>
-                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                                      </BoardCell>
-                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                        {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
-                                      </BoardCell>
-                                    </BoardRow>
+                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                .reduce((acc, post) => {
+                                  if (!post.parentId) {
+                                    acc.push(post);
+                                    const replies = posts.filter(reply => reply.parentId === post.postId);
+                                    acc.push(...replies);
+                                  }
+                                  return acc;
+                                }, [])
+                                .map((post) => (
+                                  <BoardRow key={post.postId}>
+                                    <BoardCell 
+                                      className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                                    >
+                                      {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                                      {post.title}
+                                    </BoardCell>
+                                    <BoardCell>
+                                      {!post.parentId && (
+                                        <ReplyButton onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/project/${id}/post/create`, {
+                                            state: { parentPost: post }
+                                          });
+                                        }}>
+                                          답글
+                                        </ReplyButton>
+                                      )}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                                       post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.creatorName}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
+                                  </BoardRow>
                                   ))
                               )}
                             </tbody>
@@ -374,6 +571,120 @@ const ProjectDetail = () => {
         )}
       </MainContent>
     </ContentWrapper>
+    
+    {isProposalModalOpen && selectedProposal && (
+      <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>승인요청 상세보기</ModalTitle>
+            <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <ProposalTitle>{selectedProposal.title}</ProposalTitle>
+            <ProposalInfo>
+              <InfoItem>
+                <InfoLabel>작성자</InfoLabel>
+                <InfoValue>{selectedProposal.creator?.name} ({selectedProposal.creator?.companyName})</InfoValue>
+              </InfoItem>
+              <InfoItem>
+                <InfoLabel>작성일</InfoLabel>
+                <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
+              </InfoItem>
+              <InfoItem>
+                <InfoLabel>상태</InfoLabel>
+                <InfoValue>
+                  <ApprovalStatus status={selectedProposal.approvalProposalStatus}>
+                    {selectedProposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' ? '요청전' : 
+                     selectedProposal.approvalProposalStatus === 'REQUEST_PROPOSAL' ? '요청 중' : 
+                     selectedProposal.approvalProposalStatus === 'APPROVED' ? '승인됨' : 
+                     selectedProposal.approvalProposalStatus === 'REJECTED' ? '거절됨' : 
+                     selectedProposal.approvalProposalStatus}
+                  </ApprovalStatus>
+                </InfoValue>
+              </InfoItem>
+            </ProposalInfo>
+            <ContentSection>
+              {selectedProposal.content}
+            </ContentSection>
+            <ProposalSubtitle withMargin>
+              <span>승인권자별 응답목록</span>
+            </ProposalSubtitle>
+            <ApprovalDecision approvalId={selectedProposal.id} />
+          </ModalBody>
+          <ModalFooter>
+            <ModalButton onClick={() => setIsProposalModalOpen(false)}>닫기</ModalButton>
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    )}
+    {selectedApproval && (
+      <ApprovalDetailModal onClick={closeModal}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <h3>{selectedApproval.title}</h3>
+            <CloseButton onClick={closeModal}>&times;</CloseButton>
+          </ModalHeader>
+          
+          <ModalSection>
+            <h4>상태</h4>
+            <StatusBadge status={selectedApproval.status}>
+              {selectedApproval.status === 'APPROVED' ? '승인됨' : 
+               selectedApproval.status === 'REJECTED' ? '거절됨' : 
+               selectedApproval.status === 'PENDING' ? '대기중' : selectedApproval.status}
+            </StatusBadge>
+          </ModalSection>
+          
+          <ModalSection>
+            <h4>요청 정보</h4>
+            <p><strong>요청자:</strong> {selectedApproval.requestMemberName}</p>
+            <p><strong>요청일:</strong> {new Date(selectedApproval.createdAt).toLocaleString()}</p>
+            <p><strong>설명:</strong> {selectedApproval.description || '설명 없음'}</p>
+          </ModalSection>
+          
+          <ModalSection>
+            <h4>승인자 목록</h4>
+            {selectedApproval.approvalList && selectedApproval.approvalList.length > 0 ? (
+              <div>
+                {selectedApproval.approvalList.map((approver, index) => (
+                  <div key={index} style={{ 
+                    margin: '8px 0', 
+                    padding: '8px', 
+                    borderBottom: index < selectedApproval.approvalList.length - 1 ? '1px solid #e2e8f0' : 'none' 
+                  }}>
+                    <p><strong>{approver.approverName}</strong></p>
+                    <p>상태: {
+                      approver.status === 'APPROVED' ? '승인' :
+                      approver.status === 'REJECTED' ? '거절' :
+                      approver.status === 'PENDING' ? '대기중' :
+                      approver.status
+                    }</p>
+                    {approver.comment && <p>코멘트: {approver.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>승인자가 지정되지 않았습니다.</p>
+            )}
+          </ModalSection>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button 
+              onClick={closeModal}
+              style={{
+                background: '#f1f5f9',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              닫기
+            </button>
+          </div>
+        </ModalContent>
+      </ApprovalDetailModal>
+    )}
     </PageContainer>
   );
 };
@@ -387,7 +698,6 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-// MainContent 스타일 수정 (중복 선언 제거)
 const MainContent = styled.div`
   flex: 1;
   padding: 24px;
@@ -461,21 +771,40 @@ const InfoValue = styled.span`
 `;
 
 const StatusBadge = styled.span`
-  padding: 4px 8px;
+  display: inline-block;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
-  
-  ${props => props.isDeleted ? `
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-  ` : `
-    background: rgba(46, 125, 50, 0.1);
-    color: #2E7D32;
-  `}
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.status) {
+      case 'APPROVED':
+        return '#dcfce7';
+      case 'REJECTED':
+        return '#fee2e2';
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return '#f1f5f9';
+      case 'REQUEST_PROPOSAL':
+        return '#dbeafe';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'APPROVED':
+        return '#16a34a';
+      case 'REJECTED':
+        return '#dc2626';
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return '#64748b';
+      case 'REQUEST_PROPOSAL':
+        return '#2563eb';
+      default:
+        return '#64748b';
+    }
+  }};
 `;
-
-
-
 
 const ReplyButton = styled.button`
   padding: 4px 8px;
@@ -492,8 +821,6 @@ const ReplyButton = styled.button`
   }
 `;
 
-// Then, replace the BoardSection content with:
-
 const StageSection = styled.div`
   background: white;
   border-radius: 12px;
@@ -503,35 +830,54 @@ const StageSection = styled.div`
 
 const StageGrid = styled.div`
   display: flex;
-  gap: 16px;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  height: 600px; // 고정된 높이 설정
-  overflow: hidden; // 스크롤 제거
+  height: 600px;
+  overflow: hidden;
 `;
 
-// Update the StageItem styled component
 const StageItem = styled.div`
-  background: #f8fafc;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 320px;
-  max-width: 320px;
-  min-height: 480px;
-  max-height: 500px;
-  transition: height 0.3s ease;
-  overflow: hidden; // 스크롤 제거
+  gap: 16px;
+  width: 100%;
+  height: 550px;
+  max-height: 550px;
+  overflow-y: scroll;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 `;
 
 const StageHeader = styled.div`
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
   color: #1e293b;
-  margin-bottom: 12px;
-  padding: 15px 15px 0 10px;
+  margin-bottom: 16px;
+  padding: 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 12px;
 `;
 
 const ShowMoreButton = styled.button`
@@ -608,7 +954,7 @@ const CreateButton = styled.button`
 
 const BoardTable = styled.table`
   width: 100%;
-  border-collapse: collapse;  // separate를 collapse로 변경
+  border-collapse: collapse;
   border-spacing: 0;
 `;
 
@@ -621,11 +967,11 @@ const BoardCell = styled.td`
   white-space: normal;
   word-break: break-word;
   background: transparent;
-  vertical-align: middle; /* 수직 정렬 추가 */
-  line-height: 1.5; /* 줄 높이 추가 */
+  vertical-align: middle;
+  line-height: 1.5;
 
   &.title-cell {
-    display: table-cell; /* flex에서 table-cell로 변경 */
+    display: table-cell;
     align-items: center;
     max-width: 400px;
   }
@@ -653,21 +999,17 @@ const BoardRow = styled.tr`
   }
 `;
 
-// Add this new styled component
 const ReplyIndicator = styled.span`
   color: #64748b;
   margin-right: 8px;
   font-size: 14px;
 `;
 
-
-
 const InfoItemFull = styled(InfoItem)`
   grid-column: 1 / -1;
 `;
 
 export default ProjectDetail;
-
 
 const ProjectTitle = styled.h1`
   font-size: 32px;
@@ -720,7 +1062,6 @@ const ContentWrapper = styled.div`
   flex: 1;
 `;
 
-// Add these styled components at the bottom of the file
 const DropdownContainer = styled.div`
   position: relative;
   display: inline-block;
@@ -809,13 +1150,530 @@ const StageContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  max-width: 750px;
+  margin: 0 auto;
 `;
 
 const StageTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: #2E7D32;
+  margin: 0;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const StageNavigation = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const NavButton = styled.button`
+  padding: 8px 16px;
+  background: ${props => props.disabled ? '#f1f5f9' : '#f8fafc'};
+  color: ${props => props.disabled ? '#cbd5e1' : '#2E7D32'};
+  border: 1px solid ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  
+  &:hover {
+    background: ${props => props.disabled ? '#f1f5f9' : '#f1f9f1'};
+  }
+`;
+
+const ArrowIcon = styled.span`
+  font-size: 16px;
+  font-weight: bold;
+  color: inherit;
+`;
+
+const StageIndicator = styled.span`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const StageSplitLayout = styled.div`
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+`;
+
+const StageGridColumn = styled.div`
+  flex: 2;
+  min-width: 0;
+`;
+
+const StageProgressColumn = styled.div`
+  flex: 1;
+  min-width: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  max-height: 550px;
+  overflow-y: auto;
+`;
+
+const MilestoneColumn = styled.div`
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+`;
+
+const MilestoneHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const MilestoneTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+`;
+
+const AddMilestoneButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const MilestoneTimeline = styled.div`
+  position: relative;
+  margin: 30px 0;
+  padding: 0 10px;
+`;
+
+const TimelineBar = styled.div`
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: #e2e8f0;
+  z-index: 1;
+`;
+
+const MilestoneEndpoints = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const EndpointDate = styled.div`
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const MilestoneItems = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const MilestoneItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+`;
+
+const MilestoneMarker = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: ${props => props.completed ? '#22c55e' : props.current ? '#3b82f6' : '#e2e8f0'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  svg {
+    color: white;
+    font-size: 20px;
+  }
+`;
+
+const MilestoneContent = styled.div`
+  text-align: center;
+`;
+
+const MilestoneName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 4px;
+`;
+
+const MilestoneDate = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const MilestoneDescription = styled.p`
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  max-width: 120px;
+  text-align: center;
+`;
+
+const MilestoneStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StatLabel = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+`;
+
+const StatValue = styled.span`
   font-size: 16px;
   font-weight: 500;
   color: #1e293b;
-  margin: 0;
+`;
+
+// 모달 관련 스타일 컴포넌트 추가
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #64748b;
+  
+  &:hover {
+    color: #334155;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+const ModalFooter = styled.div`
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+const ModalButton = styled.button`
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+`;
+
+const ContentSection = styled.div`
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+`;
+
+const ProposalSubtitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  ${props => props.withMargin && `
+    margin-top: 32px;
+  `}
+`;
+
+// 날짜 포맷팅 함수
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const ApprovalDetailModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalSection = styled.div`
+  margin-bottom: 20px;
+  
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #475569;
+  }
+  
+  p {
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1e293b;
+`;
+
+const ProposalTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1e293b;
+`;
+
+const ProposalInfo = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+`;
+
+const ApprovalDecision = styled.div`
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+`;
+
+const ApprovalStatus = styled.span`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.status) {
+      case 'APPROVED':
+        return '#dcfce7';
+      case 'REJECTED':
+        return '#fee2e2';
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return '#f1f5f9';
+      case 'REQUEST_PROPOSAL':
+        return '#dbeafe';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'APPROVED':
+        return '#16a34a';
+      case 'REJECTED':
+        return '#dc2626';
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return '#64748b';
+      case 'REQUEST_PROPOSAL':
+        return '#2563eb';
+      default:
+        return '#64748b';
+    }
+  }};
+`;
+
+const StageProgressHeader = styled.div`
+  margin-bottom: 20px;
+`;
+
+const StageProgressTimeline = styled.div`
+  position: relative;
+  margin: 30px 0;
+  padding: 0 10px;
+`;
+
+const StageProgressList = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StageProgressItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  cursor: pointer;
+  ${props => props.active && `
+    font-weight: bold;
+  `}
+`;
+
+const StageProgressMarker = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: ${props => props.completed ? '#22c55e' : props.current ? '#3b82f6' : '#e2e8f0'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  svg {
+    color: white;
+    font-size: 20px;
+  }
+`;
+
+const StageProgressDetails = styled.div`
+  text-align: center;
+`;
+
+const StageProgressName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 4px;
+`;
+
+const StageProgressStatus = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const StageProgressInfo = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+`;
+
+const ProgressInfoItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ProgressInfoLabel = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+`;
+
+const ProgressInfoValue = styled.span`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 4px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  width: ${props => props.width};
+  height: 100%;
+  background-color: #22c55e;
+  border-radius: 2px;
 `;
 
 
