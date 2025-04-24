@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -20,99 +21,53 @@ import ProjectPostCreate from './pages/ProjectPostCreate';
 import ProjectPostDetail from './pages/ProjectPostDetail';
 import ProjectPostModify from './pages/ProjectPostModify';
 import AdminInquiry from './pages/AdminInquiry';
+import { setNavigate } from './utils/axiosInstance';
 
+const AppContent = () => {
+  const navigate = useNavigate();
+  
+  // axiosInstance에 navigate 함수 설정
+  React.useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate]);
 
-function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard-admin" element={
-          <ProtectedRoute>
-            <DashboardAdmin />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-inquiry" element={<AdminInquiry />} />
-
-        <Route path="/projectCreate" element={
-          <ProtectedRoute>
-            <ProjectCreate />
-          </ProtectedRoute>
-        } />
-        <Route path="/projectModify/:projectId" element={
-          <ProtectedRoute>
-            <ProjectModify />
-          </ProtectedRoute>
-        } />
-        <Route path="/company-management" element={
-          <ProtectedRoute>
-            <CompanyManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/user-management" element={
-          <ProtectedRoute>
-            <UserManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/company-create" element={
-          <ProtectedRoute>
-            <CompanyCreate />
-          </ProtectedRoute>
-        } />
-        <Route path="/user-create" element={
-          <ProtectedRoute>
-            <UserCreate />
-          </ProtectedRoute>
-        } />
-        <Route path="/company-edit/:id" element={
-          <ProtectedRoute>
-            <CompanyEdit />
-          </ProtectedRoute>
-        } />
-        <Route path="/project-list" element={
-          <ProtectedRoute>
-            <UserProjectList />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-projects" element={
-          <ProtectedRoute>
-            <AdminProjectList />
-          </ProtectedRoute>
-        } />
-        <Route path="/project/:id" element={
-          <ProtectedRoute>
-            <ProjectDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/project/:projectId/post/:postId" element={
-          <ProtectedRoute>
-            <ProjectPostDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/project/:projectId/post/create" element={
-          <ProtectedRoute>
-            <ProjectPostCreate />
-          </ProtectedRoute>
-        } />
-        <Route path="/project/:projectId/post/:postId/modify" element={
-          <ProtectedRoute>
-            <ProjectPostModify />
-          </ProtectedRoute>
-        } />
-        <Route path="/audit-log" element={
-          <ProtectedRoute>
-            <AuditLog />
-          </ProtectedRoute>
-        } />
-        <Route path="/user-edit/:userId" element={<UserEdit />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <Routes>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard-admin" element={<DashboardAdmin />} />
+            <Route path="/admin-inquiry" element={<AdminInquiry />} />
+            <Route path="/projectCreate" element={<ProjectCreate />} />
+            <Route path="/projectModify/:projectId" element={<ProjectModify />} />
+            <Route path="/company-management" element={<CompanyManagement />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/company-create" element={<CompanyCreate />} />
+            <Route path="/user-create" element={<UserCreate />} />
+            <Route path="/company-edit/:id" element={<CompanyEdit />} />
+            <Route path="/project-list" element={<UserProjectList />} />
+            <Route path="/admin-projects" element={<AdminProjectList />} />
+            <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/project/:projectId/post/:postId" element={<ProjectPostDetail />} />
+            <Route path="/project/:projectId/post/create" element={<ProjectPostCreate />} />
+            <Route path="/project/:projectId/post/:postId/modify" element={<ProjectPostModify />} />
+            <Route path="/audit-log" element={<AuditLog />} />
+            <Route path="/user-edit/:userId" element={<UserEdit />} />
+          </Routes>
+        </ProtectedRoute>
+      } />
+    </Routes>
   );
-}
+};
+
+const App = () => {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+};
 
 export default App;

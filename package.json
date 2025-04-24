@@ -17,7 +17,7 @@
     "react-minimal-pie-chart": "^9.1.0",
     "react-router-dom": "^7.4.0",
     "react-scripts": "5.0.1",
-    "recharts": "^2.15.2",
+    "recharts": "^2.15.3",
     "styled-components": "^6.1.16",
     "web-vitals": "^2.1.4"
   },

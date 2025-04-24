@@ -9,26 +9,80 @@ const AdminProjectList = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('프로젝트 관리 - 관리자');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [filters, setFilters] = useState({
+    name: '',
+    isDeleted: false
+  });
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [currentPage]);
 
   const fetchProjects = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.ADMIN_PROJECTS, {
+      setLoading(true);
+      
+      // 필터가 비어있는 경우 기본 페이지네이션 파라미터만 사용
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        size: 10
+      }).toString();
+
+      const response = await fetch(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`, {
         headers: {
-          'Authorization': token
+          'Authorization': `${localStorage.getItem('token')?.trim()}`
         }
       });
       const data = await response.json();
-      setProjects(data);
+      setProjects(data.content);
+      setTotalPages(data.totalPages);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching projects:', error);
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    
+    // 입력된 값만 필터링
+    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+      if (value !== '' && value !== false) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
+    const queryParams = new URLSearchParams({
+      ...activeFilters,
+      page: 0,
+      size: 10
+    }).toString();
+
+    fetch(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`, {
+      headers: {
+        'Authorization': `${localStorage.getItem('token')?.trim()}`
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        setProjects(data.content);
+        setTotalPages(data.totalPages);
+      })
+      .catch(error => {
+        console.error('Error searching projects:', error);
+      });
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleMenuClick = (menuItem) => {
@@ -75,6 +129,28 @@ const AdminProjectList = () => {
             새 프로젝트 등록
           </AddButton>
         </Header>
+
+        <SearchSection>
+          <SearchInput
+            type="text"
+            name="name"
+            placeholder="프로젝트명 검색"
+            value={filters.name}
+            onChange={handleFilterChange}
+          />
+          <SearchCheckbox>
+            <input
+              type="checkbox"
+              name="isDeleted"
+              checked={filters.isDeleted}
+              onChange={handleFilterChange}
+            />
+            <span>삭제된 프로젝트 포함</span>
+          </SearchCheckbox>
+          <SearchButton onClick={handleSearch}>
+            검색
+          </SearchButton>
+        </SearchSection>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -301,6 +377,57 @@ const LoadingMessage = styled.div`
   font-size: 16px;
   color: #64748b;
   font-family: 'SUIT', sans-serif;
+`;
+
+const SearchSection = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+`;
+
+const SearchInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 200px;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+`;
+
+const SearchCheckbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+`;
+
+const SearchButton = styled.button`
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #2563eb;
+  }
 `;
 
 export default AdminProjectList;
