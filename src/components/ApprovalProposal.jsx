@@ -147,11 +147,23 @@ const SendButton = styled(ActionButton)`
   width: 100%;
   text-align: center;
   padding: 8px 16px;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
 
   &:hover {
-    background: #2E7D32;
-    color: white;
+    transform: translateY(-1px);
+    color: #3b82f6;
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
   }
 `;
 
@@ -1106,11 +1118,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   };
 
   const handleShowMore = () => {
-    setShowAll(!showAll);
-    if (onShowMore) {
-      const fullHeight = contentRef.current?.scrollHeight || 0;
-      onShowMore(fullHeight);
-    }
+    // 더 이상 필요 없음
   };
 
   if (loading) {
@@ -1125,7 +1133,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
             <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
           ) : (
             <>
-              {proposals.slice(0, showAll ? proposals.length : 2).map((proposal) => {
+              {proposals.map((proposal) => {
                 const colors = getStatusColor(proposal.approvalProposalStatus);
                 return (
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
@@ -1162,11 +1170,6 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
             </>
           )}
         </ProposalList>
-        {showMore && proposals.length > 2 && (
-          <ShowMoreButton onClick={handleShowMore}>
-            {showAll ? '접기' : '더보기'}
-          </ShowMoreButton>
-        )}
         <AddButtonContainer>
           <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
             + 승인요청 추가
