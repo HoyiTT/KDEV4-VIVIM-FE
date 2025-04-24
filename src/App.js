@@ -15,6 +15,7 @@ import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
 import AuditLog from './pages/AuditLog';
+import ApprovalDetail from './pages/ApprovalDetail';
 
 import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
@@ -28,7 +29,7 @@ import { setNavigate } from './utils/axiosInstance';
 
 const AppContent = () => {
   const navigate = useNavigate();
-  
+
   // axiosInstance에 navigate 함수 설정
   React.useEffect(() => {
     setNavigate(navigate);
