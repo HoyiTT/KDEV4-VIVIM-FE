@@ -12,9 +12,10 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding: 0 270px;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  margin: 0 270px;
+  
   @media (max-width: 1400px) {
     padding: 0 10%;
   }
@@ -73,18 +74,30 @@ const BackButton = styled.button`
 `;
 
 const ContentContainer = styled.div`
-  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const ProposalInfoSection = styled.div`
+  background: white;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+`;
+
+const ProposalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
 `;
 
 const ProposalTitle = styled.h1`
   font-size: 24px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 24px;
-  text-align: center;
+  margin-bottom: 16px;
 `;
 
 const ProposalInfo = styled.div`
@@ -92,10 +105,6 @@ const ProposalInfo = styled.div`
   flex-direction: column;
   gap: 16px;
   margin-bottom: 24px;
-  padding: 16px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 `;
 
 const InfoItem = styled.div`
@@ -119,13 +128,25 @@ const ContentSection = styled.div`
   font-size: 16px;
   color: #475569;
   line-height: 1.6;
-  margin-bottom: 70px;
-  padding: 16px;
+  margin-bottom: 24px;
+  padding: 24px;
   background-color: white;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   white-space: pre-wrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+`;
+
+const DecisionSection = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+`;
+
+const ProposalContent = styled.div`
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
 `;
 
 const ProposalSubtitle = styled.h2`
@@ -346,7 +367,7 @@ const ApprovalDetail = () => {
           ) : error ? (
             <ErrorMessage>{error}</ErrorMessage>
           ) : proposal ? (
-            <>
+            <ContentContainer>
               {/* 프로젝트 단계 진행 상황 표시 */}
               {progressLoading ? (
                 <div style={{ marginBottom: '24px', padding: '20px', background: 'white', borderRadius: '8px', textAlign: 'center' }}>
@@ -361,13 +382,14 @@ const ApprovalDetail = () => {
                     title="프로젝트 진행 단계"
                   />
                 </div>
-              ) : (
-                <div style={{ marginBottom: '24px', padding: '20px', background: 'white', borderRadius: '8px', textAlign: 'center' }}>
-                  <p>이 승인요청에 대한 프로젝트 진행 단계 정보가 없습니다.</p>
-                </div>
-              )}
+              ) : null}
               
-              <ContentContainer>
+              <ProposalInfoSection>
+                {progressList && progressList.length > 0 && currentStageIndex >= 0 && currentStageIndex < progressList.length && (
+                  <ProposalSubtitle style={{ marginTop: 0, marginBottom: '8px', color: '#4b5563' }}>
+                    {progressList[currentStageIndex].name}
+                  </ProposalSubtitle>
+                )}
                 <ProposalTitle>{proposal.title}</ProposalTitle>
                 <ProposalInfo>
                   <InfoItem>
@@ -387,12 +409,21 @@ const ApprovalDetail = () => {
                     </InfoValue>
                   </InfoItem>
                 </ProposalInfo>
-                <ContentSection>
-                  {proposal.content}
-                </ContentSection>
-                <ApprovalDecision approvalId={proposal.id} />
-              </ContentContainer>
-            </>
+                <ProposalContent> 
+                  <div style={{ 
+                      fontSize: '16px',
+                      color: '#475569',
+                      lineHeight: '1.6',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                    {proposal.content}
+                  </div>
+                </ProposalContent>
+              </ProposalInfoSection>
+              
+              <ApprovalDecision approvalId={proposal.id} />
+
+            </ContentContainer>
           ) : (
             <ErrorMessage>승인요청을 찾을 수 없습니다.</ErrorMessage>
           )}

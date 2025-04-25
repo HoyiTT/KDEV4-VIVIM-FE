@@ -442,36 +442,35 @@ const ProjectDetail = () => {
                   title="프로젝트 진행 단계"
                   isAdmin={isAdmin}
                   openStageModal={openStageModal}
-                />
-                
-                <StageGridColumn>
-                {progressList.length > 0 ? (
-                  progressList
-                    .sort((a, b) => a.position - b.position)
-                    .map((stage, index) => (
-                      <StageContainer 
-                        key={stage.id} 
-                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
-                      >
-                        <StageItem 
-                          ref={el => stageRefs.current[index] = el} 
+                >
+                  {/* 승인요청 목록을 타임라인 컴포넌트 내부에 포함 */}
+                  {progressList.length > 0 ? (
+                    progressList
+                      .sort((a, b) => a.position - b.position)
+                      .map((stage, index) => (
+                        <StageContainer 
+                          key={stage.id} 
+                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
                         >
-                          <StageHeader>
-                            <StageTitle>{stage.name} : 승인요청 목록보기</StageTitle>
-                          </StageHeader>
-                          <ApprovalProposal 
-                            progressId={stage.id} 
-                          />
-                        </StageItem>
-                      </StageContainer>
-                    ))
-                ) : (
-                  <EmptyStageMessage>
-                    등록된 진행 단계가 없습니다.
-                    {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
-                  </EmptyStageMessage>
-                )}
-                </StageGridColumn>
+                          <StageItem 
+                            ref={el => stageRefs.current[index] = el} 
+                          >
+                            <StageHeader>
+                              <StageTitle>{stage.name}</StageTitle>
+                            </StageHeader>
+                            <ApprovalProposal 
+                              progressId={stage.id} 
+                            />
+                          </StageItem>
+                        </StageContainer>
+                      ))
+                  ) : (
+                    <EmptyStageMessage>
+                      등록된 진행 단계가 없습니다.
+                      {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
+                    </EmptyStageMessage>
+                  )}
+                </ProjectStageProgress>
               </StageSplitLayout>
             </StageSection>
                         <BoardSection>
@@ -871,13 +870,11 @@ const ReplyButton = styled.button`
 `;
 
 const StageSection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  background: transparent;
   width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+  padding: 0;
 `;
 
 const StageGrid = styled.div`
@@ -890,8 +887,7 @@ const StageGrid = styled.div`
 `;
 
 const StageItem = styled.div`
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #f8fafc;
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -1221,11 +1217,21 @@ const StageContainer = styled.div`
 `;
 
 const StageTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 600;
-  color:rgb(0, 0, 0);
+  font-size: 16px;
+  font-weight: 500;
+  color: #475569;
   margin: 0;
   padding: 5px;
+  display: flex;
+  align-items: center;
+  
+  &::after {
+    content: ': 승인요청 목록보기';
+    font-size: 14px;
+    color: #64748b;
+    margin-left: 5px;
+    font-weight: 400;
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -1270,7 +1276,8 @@ const StageIndicator = styled.span`
 const StageSplitLayout = styled.div`
   display: flex;
   gap: 24px;
-  margin-top: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
   flex-direction: column;
 `;
 

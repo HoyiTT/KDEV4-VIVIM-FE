@@ -763,6 +763,9 @@ const ProposalHeader = styled.div`
 `;
 
 const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
   min-width: 0; /* 텍스트 말줄임을 위해 필요 */
 `;
@@ -1301,16 +1304,27 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                     <ProposalContent>
                       <ProposalHeader>
                         <HeaderLeft>
+                          {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
+                            <StatusBadge
+                              background={colors.background}
+                              text={colors.text}
+                              border={colors.border}
+                            >
+                              {getStatusText(proposal.approvalProposalStatus)}
+                            </StatusBadge>
+                          )}
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          <StatusBadge
-                            background={colors.background}
-                            text={colors.text}
-                            border={colors.border}
-                          >
-                            {getStatusText(proposal.approvalProposalStatus)}
-                          </StatusBadge>
+                          {proposal.approvalProposalStatus !== 'BEFORE_REQUEST_PROPOSAL' && (
+                            <StatusBadge
+                              background={colors.background}
+                              text={colors.text}
+                              border={colors.border}
+                            >
+                              {getStatusText(proposal.approvalProposalStatus)}
+                            </StatusBadge>
+                          )}
                           {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
                             proposal.approvalProposalStatus === 'REJECTED') && (
                             <SendButtonSmall onClick={(e) => {

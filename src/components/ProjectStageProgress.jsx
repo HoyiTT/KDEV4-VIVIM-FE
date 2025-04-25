@@ -9,12 +9,11 @@ const StageProgressColumn = styled.div`
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  max-height: 550px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   
-  /* 화면 너비가 좁을 때 높이 제한 줄이기 */
+  /* 화면 너비가 좁을 때 너비 조정 */
   @media (max-width: 1024px) {
-    max-height: 400px;
     width: 95%;
   }
 `;
@@ -51,6 +50,7 @@ const StageProgressItem = styled.div`
   align-items: center;
   width: 120px;
   cursor: pointer;
+  
   ${props => props.active && `
     font-weight: bold;
   `}
@@ -82,6 +82,7 @@ const StageProgressName = styled.div`
   font-size: 14px;
   color: #334155;
   margin-bottom: 4px;
+
 `;
 
 const StageProgressStatus = styled.div`
@@ -141,6 +142,7 @@ const ProgressFill = styled.div`
  * @param {Boolean} isAdmin - 관리자 여부
  * @param {Function} handleAddStage - 단계 추가 함수
  * @param {Function} openStageModal - 단계 추가 모달을 여는 함수
+ * @param {Node} children - 컴포넌트 내부에 표시할 자식 요소
  */
 const ProjectStageProgress = ({ 
   progressList, 
@@ -148,7 +150,8 @@ const ProjectStageProgress = ({
   setCurrentStageIndex,
   title = "프로젝트 진행 단계",
   isAdmin = false,
-  openStageModal
+  openStageModal,
+  children
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -285,6 +288,11 @@ const ProjectStageProgress = ({
           <ProgressInfoValue>{progressList.length > 0 ? Math.round((currentStageIndex / progressList.length) * 100) : 0}%</ProgressInfoValue>
         </ProgressInfoItem>
       </StageProgressInfo>
+      
+      {/* 추가된 부분: 승인요청 목록 등 자식 요소 표시 */}
+      <ApprovalRequestContainer>
+        {children}
+      </ApprovalRequestContainer>
     </StageProgressColumn>
   );
 };
@@ -397,6 +405,13 @@ const NavButton = styled.button`
 const StageIndicator = styled.span`
   font-size: 14px;
   color: #64748b;
+`;
+
+// 추가된 스타일 컴포넌트
+const ApprovalRequestContainer = styled.div`
+  margin-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 20px;
 `;
 
 export default ProjectStageProgress; 
