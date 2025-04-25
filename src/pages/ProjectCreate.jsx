@@ -21,22 +21,39 @@ const ProjectCreate = () => {
   // Add date change handlers
   const handleStartDateChange = (e) => {
     const newStartDate = e.target.value;
-    if (endDate && newStartDate > endDate) {
-      alert('시작일은 종료일보다 늦을 수 없습니다.');
-      return;
-    }
     setStartDate(newStartDate);
   };
   
   const handleEndDateChange = (e) => {
     const newEndDate = e.target.value;
-    if (startDate && newEndDate < startDate) {
-      alert('종료일은 시작일보다 빠를 수 없습니다.');
-      return;
-    }
     setEndDate(newEndDate);
   };
-  
+
+  // 날짜 입력 완료 후 유효성 검사
+  const validateDates = () => {
+    if (startDate && endDate && startDate > endDate) {
+      alert('시작일은 종료일보다 늦을 수 없습니다.');
+      return false;
+    }
+    return true;
+  };
+
+  // 시작일 입력 완료 후 유효성 검사
+  const handleStartDateBlur = () => {
+    if (startDate && endDate && startDate > endDate) {
+      alert('시작일은 종료일보다 늦을 수 없습니다.');
+      setStartDate('');
+    }
+  };
+
+  // 종료일 입력 완료 후 유효성 검사
+  const handleEndDateBlur = () => {
+    if (startDate && endDate && endDate < startDate) {
+      alert('종료일은 시작일보다 빠를 수 없습니다.');
+      setEndDate('');
+    }
+  };
+
   // Selected users
   const [clientManagers, setClientManagers] = useState([]);
   const [clientUsers, setClientUsers] = useState([]);
@@ -273,12 +290,25 @@ const ProjectCreate = () => {
       return;
     }
 
-    // 모든 개발사가 선택되었는지 확인
-    if (devCompanySelections.some(selection => !selection.companyId)) {
-      alert('모든 개발사를 선택해주세요.');
+    if (!selectedClientCompany) {
+      alert('고객사를 선택해주세요.');
       return;
     }
-    
+
+    if (!startDate) {
+      alert('시작일을 선택해주세요.');
+      return;
+    }
+
+    if (!endDate) {
+      alert('종료일을 선택해주세요.');
+      return;
+    }
+
+    if (!validateDates()) {
+      return;
+    }
+
     const token = localStorage.getItem('token');
     
     // 모든 개발사의 담당자와 개발자 정보를 하나의 배열로 합치기
@@ -450,6 +480,7 @@ const ProjectCreate = () => {
                   type="date" 
                   value={startDate} 
                   onChange={handleStartDateChange}
+                  onBlur={handleStartDateBlur}
                   required
                 />
               </FormGroup>
@@ -459,6 +490,7 @@ const ProjectCreate = () => {
                   type="date" 
                   value={endDate} 
                   onChange={handleEndDateChange}
+                  onBlur={handleEndDateBlur}
                   min={startDate}
                   required
                 />
@@ -482,16 +514,16 @@ const ProjectCreate = () => {
                       </DetailItem>
                     </CompanyDetails>
                     <ButtonGroup>
-                      <EditButton onClick={() => setShowClientUserModal(true)}>
+                      <EditButton type="button" onClick={() => setShowClientUserModal(true)}>
                         수정
                       </EditButton>
-                      <RemoveButton onClick={() => setSelectedClientCompany(null)}>
+                      <RemoveButton type="button" onClick={() => setSelectedClientCompany(null)}>
                         삭제
                       </RemoveButton>
                     </ButtonGroup>
                   </SelectedCompanyInfo>
                 ) : (
-                  <SelectCompanyButton onClick={() => setShowClientCompanyModal(true)}>
+                  <SelectCompanyButton type="button" onClick={() => setShowClientCompanyModal(true)}>
                     <span>+</span> 고객사 선택
                   </SelectCompanyButton>
                 )}
@@ -530,19 +562,19 @@ const ProjectCreate = () => {
                             </DetailItem>
                           </CompanyDetails>
                           <ButtonGroup>
-                            <EditButton onClick={() => {
+                            <EditButton type="button" onClick={() => {
                               setSelectedDevCompany(selection);
                               setShowDevUserModal(true);
                             }}>
                               수정
                             </EditButton>
-                            <RemoveButton onClick={() => handleRemoveDevCompany(selection.id)}>
+                            <RemoveButton type="button" onClick={() => handleRemoveDevCompany(selection.id)}>
                               삭제
                             </RemoveButton>
                           </ButtonGroup>
                         </SelectedCompanyInfo>
                       ) : (
-                        <SelectCompanyButton onClick={() => {
+                        <SelectCompanyButton type="button" onClick={() => {
                           setSelectedDevCompany(selection);
                           setShowDevCompanyModal(true);
                         }}>
