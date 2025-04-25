@@ -617,36 +617,50 @@ const getStatusColor = (status) => {
   }
 };
 
-const StatusBadge = styled.div`
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  background-color: ${props => props.background};
-  color: ${props => props.text};
-  border: ${props => props.border};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+const StatusBadge = styled.span`
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: ${props => props.background || '#f1f5f9'};
+  border: 1px solid ${props => props.border || '#e2e8f0'};
+  color: ${props => props.text || '#475569'};
 `;
 
-const ListProposalTitle = styled.div`
-  font-size: 14px;
-  font-weight: 600;
+const ListProposalTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
   color: #1e293b;
-  line-height: 1.4;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 6px 0;
 `;
 
 const ProposalHeader = styled.div`
   display: flex;
-  flex-direction: row;
-  gap: 12px;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const SendButtonSmall = styled.button`
+  padding: 4px 8px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
 `;
 
 const AddButtonContainer = styled.div`
@@ -1121,14 +1135,27 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
                     <ProposalContent>
                       <ProposalHeader>
-                        <StatusBadge
-                          background={colors.background}
-                          text={colors.text}
-                          border={colors.border}
-                        >
-                          {getStatusText(proposal.approvalProposalStatus)}
-                        </StatusBadge>
-                        <ListProposalTitle>{proposal.title}</ListProposalTitle>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <StatusBadge
+                            background={colors.background}
+                            text={colors.text}
+                            border={colors.border}
+                          >
+                            {getStatusText(proposal.approvalProposalStatus)}
+                          </StatusBadge>
+                          <ListProposalTitle>{proposal.title}</ListProposalTitle>
+                        </div>
+                        <HeaderActions>
+                          {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
+                            proposal.approvalProposalStatus === 'REJECTED') && (
+                            <SendButtonSmall onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendProposal(proposal.id);
+                            }}>
+                              승인요청 전송
+                            </SendButtonSmall>
+                          )}
+                        </HeaderActions>
                       </ProposalHeader>
                     </ProposalContent>
                     <ListProposalInfo>
@@ -1138,17 +1165,6 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                       </CreatorInfo>
                       <DateInfo>{formatDate(proposal.createdAt)}</DateInfo>
                     </ListProposalInfo>
-                    <ProposalActions>
-                      {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
-                        proposal.approvalProposalStatus === 'REJECTED') && (
-                        <SendButton onClick={(e) => {
-                          e.stopPropagation();
-                          handleSendProposal(proposal.id);
-                        }}>
-                          승인요청 전송
-                        </SendButton>
-                      )}
-                    </ProposalActions>
                   </ProposalItem>
                 );
               })}

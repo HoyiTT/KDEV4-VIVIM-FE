@@ -5,7 +5,8 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt } from 'react-icons/fa';
+import ProjectStageProgress from '../components/ProjectStageProgress';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -25,6 +26,10 @@ const ProjectDetail = () => {
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [approvalRequestsForStage, setApprovalRequestsForStage] = useState([]);
+  const [showStageModal, setShowStageModal] = useState(false);
+  const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
+  const [editingStage, setEditingStage] = useState(null);
+  const [stageName, setStageName] = useState('');
 
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -244,6 +249,134 @@ const ProjectDetail = () => {
     }
   }, [currentStageIndex, progressList, approvalRequestsForStage]);
   
+  // 프로젝트 진행단계 추가
+  const handleAddStage = async () => {
+    if (!stageName.trim()) {
+      alert('단계명을 입력해주세요.');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: stageName,
+          position: progressList.length + 1
+        })
+      });
+      
+      if (response.ok) {
+        alert('진행 단계가 추가되었습니다.');
+        fetchProjectProgress();
+        setShowStageModal(false);
+        setStageName('');
+      } else {
+        alert('진행 단계 추가에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error adding stage:', error);
+      alert('진행 단계 추가 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 프로젝트 진행단계 수정
+  const handleEditStage = async () => {
+    if (!stageName.trim() || !editingStage) {
+      alert('단계명을 입력해주세요.');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: stageName,
+          position: editingStage.position
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // 응답 데이터 확인
+        console.log('Progress 수정 응답:', data);
+        
+        // 수정된 진행단계 정보로 progressList 업데이트
+        setProgressList(prev => 
+          prev.map(item => 
+            item.id === data.id 
+              ? { ...item, name: data.name, position: data.position } 
+              : item
+          )
+        );
+        
+        alert('진행 단계가 수정되었습니다.');
+        fetchProjectProgress();
+        setShowStageModal(false);
+        setStageName('');
+        setEditingStage(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Progress 수정 실패:', errorData);
+        alert(errorData.message || '진행 단계 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error editing stage:', error);
+      alert('진행 단계 수정 중 오류가 발생했습니다.');
+    }
+  };
+  
+  // 프로젝트 진행단계 삭제
+  const handleDeleteStage = async () => {
+    if (!editingStage) return;
+    
+    if (window.confirm('정말로 이 진행 단계를 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (response.ok) {
+          alert('진행 단계가 삭제되었습니다.');
+          fetchProjectProgress();
+          setShowStageModal(false);
+          setStageName('');
+          setEditingStage(null);
+          // 현재 보고 있는 단계가 삭제된 경우, 첫 번째 단계로 이동
+          if (currentStageIndex >= progressList.length - 1) {
+            setCurrentStageIndex(0);
+          }
+        } else {
+          alert('진행 단계 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting stage:', error);
+        alert('진행 단계 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  // 진행단계 모달 열기
+  const openStageModal = (action, stage = null) => {
+    setStageAction(action);
+    setEditingStage(stage);
+    setStageName(stage ? stage.name : '');
+    setShowStageModal(true);
+  };
+  
   return (
     <PageContainer>
       <Navbar 
@@ -302,163 +435,45 @@ const ProjectDetail = () => {
             <StageSection>
               <SectionHeader>
                 <SectionTitle>진행단계별 승인요청</SectionTitle>
-                <StageNavigation>
-                  <NavButton 
-                    onClick={handlePrevStage} 
-                    disabled={currentStageIndex === 0}
-                  >
-                    <ArrowIcon>←</ArrowIcon>
-                  </NavButton>
-                  <StageIndicator>
-                    {currentStageIndex + 1} / {progressList.length}
-                  </StageIndicator>
-                  <NavButton 
-                    onClick={handleNextStage} 
-                    disabled={currentStageIndex === progressList.length - 1}
-                  >
-                    <ArrowIcon>→</ArrowIcon>
-                  </NavButton>
-                </StageNavigation>
+                <StageHeaderActions>
+                  {isAdmin && (
+                    <StageActionButton onClick={() => openStageModal('add')}>
+                      <FaPlus /> 프로젝트 진행단계 추가
+                    </StageActionButton>
+                  )}
+                  <StageNavigation>
+                    <NavButton 
+                      onClick={handlePrevStage} 
+                      disabled={currentStageIndex === 0}
+                    >
+                      <ArrowIcon>←</ArrowIcon>
+                    </NavButton>
+                    <StageIndicator>
+                      {currentStageIndex + 1} / {progressList.length}
+                    </StageIndicator>
+                    <NavButton 
+                      onClick={handleNextStage} 
+                      disabled={currentStageIndex === progressList.length - 1}
+                    >
+                      <ArrowIcon>→</ArrowIcon>
+                    </NavButton>
+                  </StageNavigation>
+                </StageHeaderActions>
               </SectionHeader>
               
               <StageSplitLayout>
-                {/* 마일스톤 컴포넌트 (임시 주석 처리)
-                <MilestoneColumn>
-                  <MilestoneHeader>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>프로젝트 마일스톤</h3>
-                    <AddMilestoneButton onClick={() => alert('마일스톤 추가 기능은 개발 중입니다.')}>
-                      마일스톤 추가
-                    </AddMilestoneButton>
-                  </MilestoneHeader>
-                  
-                  <MilestoneTimeline>
-                    {project && project.startDate && project.endDate ? (
-                      <>
-                        <MilestoneItem completed>
-                          <MilestoneMarker completed/>
-                          <MilestoneContent>
-                            <MilestoneTitle>프로젝트 시작</MilestoneTitle>
-                            <MilestoneDate>{project.startDate}</MilestoneDate>
-                            <MilestoneDescription>프로젝트가 공식적으로 시작되었습니다.</MilestoneDescription>
-                          </MilestoneContent>
-                        </MilestoneItem>
-                        
-                        {progressList.map((stage, index) => (
-                          <MilestoneItem 
-                            key={stage.id}
-                            completed={index < currentStageIndex}
-                            inProgress={index === currentStageIndex}
-                          >
-                            <MilestoneMarker 
-                              completed={index < currentStageIndex}
-                              inProgress={index === currentStageIndex}
-                            />
-                            <MilestoneContent>
-                              <MilestoneTitle>{stage.name}</MilestoneTitle>
-                              <MilestoneDate>
-                                {new Date().toLocaleDateString()}
-                              </MilestoneDate>
-                              <MilestoneDescription>
-                                {index < currentStageIndex 
-                                  ? '완료된 단계입니다.' 
-                                  : index === currentStageIndex 
-                                    ? '현재 진행 중인 단계입니다.' 
-                                    : '향후 진행될 단계입니다.'}
-                              </MilestoneDescription>
-                            </MilestoneContent>
-                          </MilestoneItem>
-                        ))}
-                        
-                        <MilestoneItem>
-                          <MilestoneMarker/>
-                          <MilestoneContent>
-                            <MilestoneTitle>프로젝트 종료</MilestoneTitle>
-                            <MilestoneDate>{project.endDate}</MilestoneDate>
-                            <MilestoneDescription>프로젝트 완료 예정일입니다.</MilestoneDescription>
-                          </MilestoneContent>
-                        </MilestoneItem>
-                      </>
-                    ) : (
-                      <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
-                        프로젝트 일정 정보가 없습니다.
-                      </p>
-                    )}
-                  </MilestoneTimeline>
-                  
-                  <MilestoneStats>
-                    <StatItem>
-                      <StatLabel>현재 단계</StatLabel>
-                      <StatValue>{progressList[currentStageIndex]?.name || '정보 없음'}</StatValue>
-                    </StatItem>
-                    <StatItem>
-                      <StatLabel>완료 단계</StatLabel>
-                      <StatValue>{currentStageIndex} / {progressList.length}</StatValue>
-                    </StatItem>
-                    <StatItem>
-                      <StatLabel>예상 종료일까지</StatLabel>
-                      <StatValue>
-                        {project && project.endDate 
-                          ? `${Math.max(0, Math.ceil((new Date(project.endDate) - new Date()) / (1000 * 60 * 60 * 24)))}일 남음` 
-                          : '정보 없음'}
-                      </StatValue>
-                    </StatItem>
-                  </MilestoneStats>
-                </MilestoneColumn>
-                */}
-                
-                <StageProgressColumn>
-                  <StageProgressHeader>
-                    <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>프로젝트 진행 단계</h3>
-                  </StageProgressHeader>
-                  
-                  <StageProgressTimeline>
-                    <TimelineBar />
-                    <StageProgressList>
-                      {progressList.map((stage, index) => (
-                        <StageProgressItem 
-                          key={stage.id}
-                          onClick={() => setCurrentStageIndex(index)}
-                          active={index === currentStageIndex}
-                        >
-                          <StageProgressMarker 
-                            completed={index < currentStageIndex} 
-                            current={index === currentStageIndex}
-                          >
-                            {index < currentStageIndex ? <FaCheck /> : index === currentStageIndex ? <FaClock /> : index}
-                          </StageProgressMarker>
-                          <StageProgressDetails>
-                            <StageProgressName>{stage.name}</StageProgressName>
-                            <StageProgressStatus>
-                              {index < currentStageIndex 
-                                ? '완료' 
-                                : index === currentStageIndex 
-                                  ? '진행 중' 
-                                  : '예정됨'}
-                            </StageProgressStatus>
-                          </StageProgressDetails>
-                        </StageProgressItem>
-                      ))}
-                    </StageProgressList>
-                  </StageProgressTimeline>
-                  
-                  <StageProgressInfo>
-                    <ProgressInfoItem>
-                      <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
-                      <ProgressInfoValue>{progressList[currentStageIndex]?.name || '정보 없음'}</ProgressInfoValue>
-                    </ProgressInfoItem>
-                    <ProgressInfoItem>
-                      <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
-                      <ProgressBar>
-                        <ProgressFill width={`${progressList.length > 0 ? (currentStageIndex / progressList.length) * 100 : 0}%`} />
-                      </ProgressBar>
-                      <ProgressInfoValue>{progressList.length > 0 ? Math.round((currentStageIndex / progressList.length) * 100) : 0}%</ProgressInfoValue>
-                    </ProgressInfoItem>
-                  </StageProgressInfo>
-                </StageProgressColumn>
+                {/* ProjectStageProgress 컴포넌트를 사용하여 타임라인 표시 */}
+                <ProjectStageProgress 
+                  progressList={progressList}
+                  currentStageIndex={currentStageIndex}
+                  setCurrentStageIndex={setCurrentStageIndex}
+                  title="프로젝트 진행 단계"
+                />
                 
                 <StageGridColumn>
-                {progressList
-                  .sort((a, b) => a.position - b.position)
+                {progressList.length > 0 ? (
+                  progressList
+                    .sort((a, b) => a.position - b.position)
                     .map((stage, index) => (
                       <StageContainer 
                         key={stage.id} 
@@ -467,19 +482,34 @@ const ProjectDetail = () => {
                         <StageItem 
                           ref={el => stageRefs.current[index] = el} 
                         >
+                          {isAdmin && (
+                            <StageEditActions>
+                              <StageActionIcon onClick={() => openStageModal('edit', stage)}>
+                                <FaEdit />
+                              </StageActionIcon>
+                              <StageActionIcon onClick={() => openStageModal('delete', stage)}>
+                                <FaTrashAlt />
+                              </StageActionIcon>
+                            </StageEditActions>
+                          )}
                           <StageHeader>
                             <StageTitle>{stage.name}</StageTitle>
                           </StageHeader>
                           <ApprovalProposal 
                             progressId={stage.id} 
                           />
-                    </StageItem>
+                        </StageItem>
                       </StageContainer>
-                  ))}
+                    ))
+                ) : (
+                  <EmptyStageMessage>
+                    등록된 진행 단계가 없습니다.
+                    {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
+                  </EmptyStageMessage>
+                )}
                 </StageGridColumn>
               </StageSplitLayout>
             </StageSection>
-            
                         <BoardSection>
                           <BoardHeader>
                             <SectionTitle>게시판</SectionTitle>
@@ -685,6 +715,52 @@ const ProjectDetail = () => {
         </ModalContent>
       </ApprovalDetailModal>
     )}
+    {/* 진행단계 추가/수정/삭제 모달 */}
+    {showStageModal && (
+      <ModalOverlay onClick={() => setShowStageModal(false)}>
+        <StageModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>
+              {stageAction === 'add' ? '진행 단계 추가' : 
+               stageAction === 'edit' ? '진행 단계 수정' : '진행 단계 삭제'}
+            </ModalTitle>
+            <CloseButton onClick={() => setShowStageModal(false)}>×</CloseButton>
+          </ModalHeader>
+          <ModalBody>
+            {stageAction !== 'delete' && (
+              <ModalForm>
+                <FormField>
+                  <FormLabel>단계명</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={stageName}
+                    onChange={(e) => setStageName(e.target.value)}
+                    placeholder="단계명을 입력하세요"
+                  />
+                </FormField>
+              </ModalForm>
+            )}
+            {stageAction === 'delete' && (
+              <DeleteConfirmMessage>
+                정말로 '{editingStage?.name}' 단계를 삭제하시겠습니까?
+              </DeleteConfirmMessage>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {stageAction === 'add' && (
+              <ActionButton onClick={handleAddStage}>추가</ActionButton>
+            )}
+            {stageAction === 'edit' && (
+              <ActionButton onClick={handleEditStage}>수정</ActionButton>
+            )}
+            {stageAction === 'delete' && (
+              <ActionButton className="delete" onClick={handleDeleteStage}>삭제</ActionButton>
+            )}
+            <CancelButton onClick={() => setShowStageModal(false)}>취소</CancelButton>
+          </ModalFooter>
+        </StageModalContent>
+      </ModalOverlay>
+    )}
     </PageContainer>
   );
 };
@@ -850,6 +926,7 @@ const StageItem = styled.div`
   max-height: 550px;
   overflow-y: scroll;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  position: relative;
   
   &::-webkit-scrollbar {
     width: 8px;
@@ -878,6 +955,15 @@ const StageHeader = styled.div`
   padding: 0;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 12px;
+`;
+
+const StageEditActions = styled.div`
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 5;
 `;
 
 const ShowMoreButton = styled.button`
@@ -1207,25 +1293,8 @@ const StageSplitLayout = styled.div`
   margin-top: 20px;
   
   /* 화면 너비가 1024px 이하일 때 세로 배치로 변경 */
-  @media (max-width: 1024px) {
+  @media (max-width: 800px) {
     flex-direction: column;
-  }
-`;
-
-const StageProgressColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  max-height: 550px;
-  overflow-y: auto;
-  
-  /* 화면 너비가 좁을 때 높이 제한 줄이기 */
-  @media (max-width: 1024px) {
-    max-height: 400px;
-    width: 100%;
   }
 `;
 
@@ -1234,7 +1303,7 @@ const StageGridColumn = styled.div`
   min-width: 0;
   
   /* 화면 너비가 좁을 때 너비 100%로 변경 */
-  @media (max-width: 1024px) {
+  @media (max-width: 400px) {
     width: 100%;
     margin-top: 20px;
   }
@@ -1691,6 +1760,155 @@ const ProgressFill = styled.div`
   height: 100%;
   background-color: #22c55e;
   border-radius: 2px;
+`;
+
+// 새로 추가된 스타일 컴포넌트
+const StageHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const StageActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const StageActionIcon = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background-color: #f3f4f6;
+    color: #4f46e5;
+  }
+`;
+
+const StageModalContent = styled(ModalContent)`
+  max-width: 500px;
+`;
+
+const ModalForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FormLabel = styled.label`
+  font-weight: 500;
+  color: #374151;
+`;
+
+const FormInput = styled.input`
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 16px;
+  
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+  }
+`;
+
+const ActionButton = styled.button`
+  padding: 10px 16px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #4338ca;
+  }
+  
+  &.delete {
+    background-color: #ef4444;
+    
+    &:hover {
+      background-color: #dc2626;
+    }
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 10px 16px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
+`;
+
+const DeleteConfirmMessage = styled.div`
+  padding: 16px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-radius: 4px;
+  margin: 16px 0;
+  text-align: center;
+  font-weight: 500;
+`;
+
+const EmptyStageMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const AddStageButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
 `;
 
 
