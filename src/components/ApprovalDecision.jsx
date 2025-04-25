@@ -116,34 +116,59 @@ const ResponseContent = styled.div`
 `;
 
 const ResponseStatus = styled.div`
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
-  background-color: ${props => {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 6px;
+  
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  
+  ${props => {
     const status = props.status;
     switch (status) {
       case ApprovalDecisionStatus.APPROVED:
-        return '#dcfce7';
+        return `
+          background-color: #ecfdf5;
+          color: #047857;
+          border: 1px solid #a7f3d0;
+          
+          &::before {
+            background-color: #10b981;
+          }
+        `;
       case ApprovalDecisionStatus.REJECTED:
-        return '#fee2e2';
+        return `
+          background-color: #fef2f2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+          
+          &::before {
+            background-color: #ef4444;
+          }
+        `;
       default:
-        return '#f1f5f9';
+        return `
+          background-color: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          
+          &::before {
+            background-color: #94a3b8;
+          }
+        `;
     }
-  }};
-  color: ${props => {
-    const status = props.status;
-    switch (status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '#16a34a';
-      case ApprovalDecisionStatus.REJECTED:
-        return '#dc2626';
-      default:
-        return '#64748b';
-    }
-  }};
+  }}
 `;
 
 const ResponseText = styled.div`
@@ -701,7 +726,12 @@ const ApprovalDecision = ({ approvalId }) => {
       
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      const response = await fetch(API_ENDPOINTS.DECISION.LIST(approvalId), {
+      
+      // 백엔드 API 엔드포인트 확인
+      const apiUrl = API_ENDPOINTS.DECISION.LIST(approvalId);
+      console.log(`승인응답 목록 조회 URL: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': authToken,
@@ -709,20 +739,44 @@ const ApprovalDecision = ({ approvalId }) => {
         }
       });
 
+      console.log(`승인응답 목록 조회 상태: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Fetched decisions:', data);
+      // 응답 내용 로깅
+      const responseText = await response.text();
+      console.log('승인응답 목록 원본 응답:', responseText);
       
-      // 새로운 API 응답 구조에 맞게 데이터 처리
-      const approvers = data.decisionResponses || [];
-      setApproversData(approvers);
+      // 빈 응답 처리
+      if (!responseText.trim()) {
+        console.warn('승인응답 목록이 비어있습니다.');
+        setApproversData([]);
+        return;
+      }
+      
+      try {
+        // JSON 파싱 시도
+        const data = JSON.parse(responseText);
+        console.log('파싱된 승인응답 목록 데이터:', data);
+        
+        // 응답 구조에 맞게 데이터 처리 
+        // DecisionResponsesByAllApprover 타입의 응답을 처리
+        const approvers = data.decisionResponses || data.approvers || [];
+        console.log('처리된 승인응답 데이터:', approvers);
+        
+        setApproversData(approvers);
+      } catch (parseError) {
+        console.error('JSON 파싱 오류:', parseError);
+        alert('서버 응답을 처리할 수 없습니다. 관리자에게 문의하세요.');
+        setApproversData([]);
+      }
     } catch (error) {
       console.error('Error fetching decisions:', error);
       alert(error.message || '승인응답 목록을 불러오는데 실패했습니다.');
+      setApproversData([]);
     }
   };
 
@@ -733,8 +787,14 @@ const ApprovalDecision = ({ approvalId }) => {
     }
 
     try {
+      setLoading(true);
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
+      
+      console.log(`승인 응답 생성 요청: 승인권자 ID ${selectedApprover.approverId}`, {
+        content: newDecision.content,
+        decisionStatus: newDecision.status
+      });
       
       // 백엔드 엔드포인트 /approver/{approverId}/decision 사용
       const response = await fetch(API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId), {
@@ -747,7 +807,6 @@ const ApprovalDecision = ({ approvalId }) => {
         body: JSON.stringify({
           content: newDecision.content,
           decisionStatus: newDecision.status
-          // approverId는 URL에 이미 포함되어 있으므로 본문에서 제거
         })
       });
 
@@ -757,12 +816,21 @@ const ApprovalDecision = ({ approvalId }) => {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Create decision response:', data);
-      
-      if (data.statusCode === 201) {
-        // 성공적으로 생성됨
-        alert(data.statusMessage || '승인응답이 성공적으로 생성되었습니다.');
+      try {
+        const data = await response.json();
+        console.log('Create decision response:', data);
+        
+        if (data.statusCode === 201 || response.status === 201 || response.status === 200) {
+          // 성공적으로 생성됨
+          alert('승인응답이 성공적으로 등록되었습니다.');
+        }
+      } catch (jsonError) {
+        console.log('응답이 JSON 형식이 아닙니다. 응답 상태:', response.status);
+        if (response.status === 200 || response.status === 201) {
+          alert('승인응답이 성공적으로 등록되었습니다.');
+        } else {
+          throw new Error('서버 응답을 처리할 수 없습니다');
+        }
       }
 
       setIsInputOpen(false);
@@ -772,13 +840,15 @@ const ApprovalDecision = ({ approvalId }) => {
     } catch (error) {
       console.error('Error creating decision:', error);
       alert(error.message || '승인응답 생성에 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteDecision = async (decisionId, status, approverId, approverName) => {
     // 승인 결정 삭제 전 확인
     const statusText = status === ApprovalDecisionStatus.APPROVED ? '승인' : 
-                      status === ApprovalDecisionStatus.REJECTED ? '거절' : '대기중';
+                      status === ApprovalDecisionStatus.REJECTED ? '반려' : '대기중';
     
     const confirmMessage = `${approverName}님의 "${statusText}" 응답을 삭제하시겠습니까?\n\n이 작업은 취소할 수 없으며, 삭제 후에는 승인권자가 새로운 응답을 등록해야 합니다.`;
     
@@ -828,7 +898,7 @@ const ApprovalDecision = ({ approvalId }) => {
       case ApprovalDecisionStatus.APPROVED:
         return '승인';
       case ApprovalDecisionStatus.REJECTED:
-        return '거절';
+        return '반려';
       default:
         return '대기중';
     }
@@ -1575,7 +1645,7 @@ const ApprovalDecision = ({ approvalId }) => {
                                 >
                                   <option value="">승인 상태를 선택하세요</option>
                                   <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                                  <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
+                                  <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
                                 </StatusSelect>
                               </InputGroup>
                               <ResponseActionsContainer>
@@ -1628,7 +1698,7 @@ const ApprovalDecision = ({ approvalId }) => {
                                 >
                                   <option value="">승인 상태를 선택하세요</option>
                                   <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                                  <option value={ApprovalDecisionStatus.REJECTED}>거절</option>
+                                  <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
                                 </StatusSelect>
                               </InputGroup>
                               <ResponseActionsContainer>

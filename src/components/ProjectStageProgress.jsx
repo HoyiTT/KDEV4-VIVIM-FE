@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaCheck, FaClock } from 'react-icons/fa';
+import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV } from 'react-icons/fa';
 
 const StageProgressColumn = styled.div`
   flex: 1;
@@ -15,7 +15,7 @@ const StageProgressColumn = styled.div`
   /* 화면 너비가 좁을 때 높이 제한 줄이기 */
   @media (max-width: 1024px) {
     max-height: 400px;
-    width: 100%;
+    width: 95%;
   }
 `;
 
@@ -25,7 +25,6 @@ const StageProgressHeader = styled.div`
 
 const StageProgressTimeline = styled.div`
   position: relative;
-  margin: 30px 0;
   padding: 0 10px;
 `;
 
@@ -139,19 +138,108 @@ const ProgressFill = styled.div`
  * @param {Number} currentStageIndex - 현재 선택된 단계 인덱스
  * @param {Function} setCurrentStageIndex - 단계 선택 시 호출되는 함수
  * @param {String} title - 타임라인 제목 (기본값: "프로젝트 진행 단계")
+ * @param {Boolean} isAdmin - 관리자 여부
+ * @param {Function} handleAddStage - 단계 추가 함수
+ * @param {Function} openStageModal - 단계 추가 모달을 여는 함수
  */
 const ProjectStageProgress = ({ 
   progressList, 
   currentStageIndex, 
   setCurrentStageIndex,
-  title = "프로젝트 진행 단계"
+  title = "프로젝트 진행 단계",
+  isAdmin = false,
+  openStageModal
 }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  
+  // 메뉴 외부 클릭 시 메뉴 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuRef]);
+
+  const handlePrevStage = () => {
+    if (currentStageIndex > 0) {
+      setCurrentStageIndex(prev => prev - 1);
+    }
+  };
+  
+  const handleNextStage = () => {
+    if (currentStageIndex < progressList.length - 1) {
+      setCurrentStageIndex(prev => prev + 1);
+    }
+  };
+
+  // 현재 선택된 단계
+  const currentStage = progressList[currentStageIndex];
+
   return (
     <StageProgressColumn>
       <StageProgressHeader>
-        <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>
-          {title}
-        </h3>
+        <HeaderContent>
+          <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>
+            {title}
+          </h3>
+          <StageActions>
+            <StageNavigation>
+              <NavButton 
+                onClick={handlePrevStage} 
+                disabled={currentStageIndex === 0}
+              >
+                <FaArrowLeft />
+              </NavButton>
+              <StageIndicator>
+                {currentStageIndex + 1} / {progressList.length}
+              </StageIndicator>
+              <NavButton 
+                onClick={handleNextStage} 
+                disabled={currentStageIndex === progressList.length - 1}
+              >
+                <FaArrowRight />
+              </NavButton>
+            </StageNavigation>
+            {isAdmin && (
+              <ManageButtonContainer ref={menuRef}>
+                <ManageButton onClick={() => setShowMenu(!showMenu)}>
+                  <FaEllipsisV /> 단계 관리
+                </ManageButton>
+                {showMenu && (
+                  <ManageDropdown>
+                    <DropdownItem onClick={() => {
+                      openStageModal('add');
+                      setShowMenu(false);
+                    }}>
+                      <FaPlus /> 단계 추가
+                    </DropdownItem>
+                    {currentStage && (
+                      <>
+                        <DropdownItem onClick={() => {
+                          openStageModal('edit', currentStage);
+                          setShowMenu(false);
+                        }}>
+                          <FaEdit /> 현재 단계 수정
+                        </DropdownItem>
+                        <DropdownItem onClick={() => {
+                          openStageModal('delete', currentStage);
+                          setShowMenu(false);
+                        }}>
+                          <FaTrashAlt /> 현재 단계 삭제
+                        </DropdownItem>
+                      </>
+                    )}
+                  </ManageDropdown>
+                )}
+              </ManageButtonContainer>
+            )}
+          </StageActions>
+        </HeaderContent>
       </StageProgressHeader>
       
       <StageProgressTimeline>
@@ -200,5 +288,115 @@ const ProjectStageProgress = ({
     </StageProgressColumn>
   );
 };
+
+// 새로 추가된 스타일 컴포넌트
+const HeaderContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StageActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const ManageButtonContainer = styled.div`
+  position: relative;
+`;
+
+const ManageButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const ManageDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 180px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 5px;
+  z-index: 10;
+`;
+
+const DropdownItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+
+  svg {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  &:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+
+  &:last-child {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+`;
+
+const StageNavigation = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const NavButton = styled.button`
+  padding: 6px 10px;
+  background: ${props => props.disabled ? '#f1f5f9' : '#f8fafc'};
+  color: ${props => props.disabled ? '#cbd5e1' : '#2563eb'};
+  border: 1px solid ${props => props.disabled ? '#e2e8f0' : '#2563eb'};
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: ${props => props.disabled ? '#f1f5f9' : '#f0f7ff'};
+  }
+`;
+
+const StageIndicator = styled.span`
+  font-size: 14px;
+  color: #64748b;
+`;
 
 export default ProjectStageProgress; 

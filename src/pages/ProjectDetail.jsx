@@ -294,7 +294,7 @@ const ProjectDetail = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
@@ -433,34 +433,6 @@ const ProjectDetail = () => {
             </ProjectInfoSection>
 
             <StageSection>
-              <SectionHeader>
-                <SectionTitle>진행단계별 승인요청</SectionTitle>
-                <StageHeaderActions>
-                  {isAdmin && (
-                    <StageActionButton onClick={() => openStageModal('add')}>
-                      <FaPlus /> 프로젝트 진행단계 추가
-                    </StageActionButton>
-                  )}
-                  <StageNavigation>
-                    <NavButton 
-                      onClick={handlePrevStage} 
-                      disabled={currentStageIndex === 0}
-                    >
-                      <ArrowIcon>←</ArrowIcon>
-                    </NavButton>
-                    <StageIndicator>
-                      {currentStageIndex + 1} / {progressList.length}
-                    </StageIndicator>
-                    <NavButton 
-                      onClick={handleNextStage} 
-                      disabled={currentStageIndex === progressList.length - 1}
-                    >
-                      <ArrowIcon>→</ArrowIcon>
-                    </NavButton>
-                  </StageNavigation>
-                </StageHeaderActions>
-              </SectionHeader>
-              
               <StageSplitLayout>
                 {/* ProjectStageProgress 컴포넌트를 사용하여 타임라인 표시 */}
                 <ProjectStageProgress 
@@ -468,6 +440,8 @@ const ProjectDetail = () => {
                   currentStageIndex={currentStageIndex}
                   setCurrentStageIndex={setCurrentStageIndex}
                   title="프로젝트 진행 단계"
+                  isAdmin={isAdmin}
+                  openStageModal={openStageModal}
                 />
                 
                 <StageGridColumn>
@@ -482,18 +456,8 @@ const ProjectDetail = () => {
                         <StageItem 
                           ref={el => stageRefs.current[index] = el} 
                         >
-                          {isAdmin && (
-                            <StageEditActions>
-                              <StageActionIcon onClick={() => openStageModal('edit', stage)}>
-                                <FaEdit />
-                              </StageActionIcon>
-                              <StageActionIcon onClick={() => openStageModal('delete', stage)}>
-                                <FaTrashAlt />
-                              </StageActionIcon>
-                            </StageEditActions>
-                          )}
                           <StageHeader>
-                            <StageTitle>{stage.name}</StageTitle>
+                            <StageTitle>{stage.name} : 승인요청 목록보기</StageTitle>
                           </StageHeader>
                           <ApprovalProposal 
                             progressId={stage.id} 
@@ -770,8 +734,17 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding: 0 270px;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  
+  @media (max-width: 1400px) {
+    padding: 0 10%;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0 5%;
+  }
 `;
 
 const MainContent = styled.div`
@@ -900,8 +873,11 @@ const ReplyButton = styled.button`
 const StageSection = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 `;
 
 const StageGrid = styled.div`
@@ -920,13 +896,16 @@ const StageItem = styled.div`
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   width: 100%;
+  max-width: 100%;
   height: 550px;
   max-height: 550px;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   position: relative;
+  margin: 0 auto;
+  box-sizing: border-box;
   
   &::-webkit-scrollbar {
     width: 8px;
@@ -1237,15 +1216,16 @@ const StageContainer = styled.div`
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-width: 750px;
   margin: 0 auto;
+  box-sizing: border-box;
 `;
 
 const StageTitle = styled.h3`
   font-size: 18px;
   font-weight: 600;
-  color: #2E7D32;
+  color:rgb(0, 0, 0);
   margin: 0;
+  padding: 5px;
 `;
 
 const SectionHeader = styled.div`
@@ -1291,11 +1271,7 @@ const StageSplitLayout = styled.div`
   display: flex;
   gap: 24px;
   margin-top: 20px;
-  
-  /* 화면 너비가 1024px 이하일 때 세로 배치로 변경 */
-  @media (max-width: 800px) {
-    flex-direction: column;
-  }
+  flex-direction: column;
 `;
 
 const StageGridColumn = styled.div`

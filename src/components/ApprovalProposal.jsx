@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus } from '../constants/enums';
 import ApprovalDecision from './ApprovalDecision';
 import { useNavigate } from 'react-router-dom';
+import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
 
 // Styled Components
 const LoadingMessage = styled.div`
@@ -224,6 +225,16 @@ const ModalContent = styled.div`
   max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 0 270px;
+  box-sizing: border-box;
+  
+  @media (max-width: 1400px) {
+    padding: 0 10%;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0 5%;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -465,31 +476,79 @@ const ResponseContent = styled.div`
 `;
 
 const ResponseStatus = styled.span`
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 500;
-  background-color: ${props => {
-    switch (props.status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '#dcfce7';
-      case ApprovalDecisionStatus.REJECTED:
-        return '#fee2e2';
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  gap: 5px;
+  
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  
+  ${props => {
+    const status = props.status;
+    switch (status) {
+      case 'APPROVED':
+        return `
+          background-color: #ecfdf5;
+          color: #047857;
+          border: 1px solid #a7f3d0;
+          
+          &::before {
+            background-color: #10b981;
+          }
+        `;
+      case 'REJECTED':
+        return `
+          background-color: #fef2f2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+          
+          &::before {
+            background-color: #ef4444;
+          }
+        `;
+      case 'BEFORE_REQUEST_PROPOSAL':
+        return `
+          background-color: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          
+          &::before {
+            background-color: #94a3b8;
+          }
+        `;
+      case 'REQUEST_PROPOSAL':
+        return `
+          background-color: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+          
+          &::before {
+            background-color: #3b82f6;
+          }
+        `;
       default:
-        return '#f1f5f9';
+        return `
+          background-color: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          
+          &::before {
+            background-color: #94a3b8;
+          }
+        `;
     }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '#16a34a';
-      case ApprovalDecisionStatus.REJECTED:
-        return '#dc2626';
-      default:
-        return '#64748b';
-    }
-  }};
+  }}
 `;
 
 const EmptyResponseMessage = styled.div`
@@ -618,14 +677,68 @@ const getStatusColor = (status) => {
 };
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 500;
-  background-color: ${props => props.background || '#f1f5f9'};
-  border: 1px solid ${props => props.border || '#e2e8f0'};
-  color: ${props => props.text || '#475569'};
+  font-weight: 600;
+  gap: 5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  
+  ${props => {
+    switch (props.background) {
+      case '#dcfce7':
+        return `
+          background-color: #ecfdf5;
+          color: #047857;
+          border: 1px solid #a7f3d0;
+          
+          &::before {
+            background-color: #10b981;
+          }
+        `;
+      case '#fee2e2':
+        return `
+          background-color: #fef2f2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+          
+          &::before {
+            background-color: #ef4444;
+          }
+        `;
+      case '#dbeafe':
+        return `
+          background-color: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+          
+          &::before {
+            background-color: #3b82f6;
+          }
+        `;
+      default:
+        return `
+          background-color: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          
+          &::before {
+            background-color: #94a3b8;
+          }
+        `;
+    }
+  }}
 `;
 
 const ListProposalTitle = styled.h3`
@@ -633,13 +746,33 @@ const ListProposalTitle = styled.h3`
   font-weight: 500;
   color: #1e293b;
   margin: 6px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 44px; /* 대략 두 줄에 해당하는 높이 */
 `;
 
 const ProposalHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 8px;
+`;
+
+const HeaderLeft = styled.div`
+  flex: 1;
+  min-width: 0; /* 텍스트 말줄임을 위해 필요 */
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  margin-left: 8px;
 `;
 
 const HeaderActions = styled.div`
@@ -650,16 +783,18 @@ const HeaderActions = styled.div`
 
 const SendButtonSmall = styled.button`
   padding: 4px 8px;
-  background: #2563eb;
-  color: white;
-  border: none;
+  background: white;
+  color: #2E7D32;
+  border: 1px solid #2E7D32;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #1d4ed8;
+    background: #f0f9f0;
+    color: #1B5E20;
+    border-color: #1B5E20;
   }
 `;
 
@@ -706,6 +841,36 @@ const EmployeeItem = styled.label`
   gap: 8px;
   font-size: 13px;
   color: #475569;
+`;
+
+const ActionIcons = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-left: 8px;
+`;
+
+const ActionIcon = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #2563eb;
+    background-color: #f0f7ff;
+  }
+  
+  &.delete:hover {
+    color: #dc2626;
+    background-color: #fee2e2;
+  }
 `;
 
 const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
@@ -1102,7 +1267,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       case 'APPROVED':
         return '승인됨';
       case 'REJECTED':
-        return '거절됨';
+        return '반려됨';
       default:
         return status;
     }
@@ -1135,7 +1300,10 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
                     <ProposalContent>
                       <ProposalHeader>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <HeaderLeft>
+                          <ListProposalTitle>{proposal.title}</ListProposalTitle>
+                        </HeaderLeft>
+                        <HeaderRight>
                           <StatusBadge
                             background={colors.background}
                             text={colors.text}
@@ -1143,19 +1311,34 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                           >
                             {getStatusText(proposal.approvalProposalStatus)}
                           </StatusBadge>
-                          <ListProposalTitle>{proposal.title}</ListProposalTitle>
-                        </div>
-                        <HeaderActions>
                           {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
                             proposal.approvalProposalStatus === 'REJECTED') && (
                             <SendButtonSmall onClick={(e) => {
                               e.stopPropagation();
                               handleSendProposal(proposal.id);
                             }}>
-                              승인요청 전송
+                              전송
                             </SendButtonSmall>
                           )}
-                        </HeaderActions>
+                          <ActionIcons>
+                            {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
+                              <>
+                                <ActionIcon onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditClick(proposal);
+                                }} title="수정">
+                                  <FaEdit />
+                                </ActionIcon>
+                                <ActionIcon className="delete" onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteProposal(proposal.id);
+                                }} title="삭제">
+                                  <FaTrashAlt />
+                                </ActionIcon>
+                              </>
+                            )}
+                          </ActionIcons>
+                        </HeaderRight>
                       </ProposalHeader>
                     </ProposalContent>
                     <ListProposalInfo>
@@ -1278,6 +1461,42 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
             </ModalBody>
             <ModalFooter>
               <ModalButton onClick={() => setIsProposalModalOpen(false)}>닫기</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {isEditModalOpen && editingProposal && (
+        <ModalOverlay onClick={() => setIsEditModalOpen(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>승인요청 수정</ModalTitle>
+              <CloseButton onClick={() => setIsEditModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <InputGroup>
+                <Label>제목</Label>
+                <Input
+                  type="text"
+                  name="title"
+                  value={editingProposal.title || ''}
+                  onChange={(e) => setEditingProposal({...editingProposal, title: e.target.value})}
+                  placeholder="제목을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>내용</Label>
+                <TextArea
+                  name="content"
+                  value={editingProposal.content || ''}
+                  onChange={(e) => setEditingProposal({...editingProposal, content: e.target.value})}
+                  placeholder="내용을 입력하세요"
+                />
+              </InputGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => setIsEditModalOpen(false)}>취소</ModalButton>
+              <ModalButton primary onClick={handleModifyProposal}>저장</ModalButton>
             </ModalFooter>
           </ModalContent>
         </ModalOverlay>

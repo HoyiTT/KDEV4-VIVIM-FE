@@ -14,6 +14,14 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  margin: 0 270px;
+  @media (max-width: 1400px) {
+    padding: 0 10%;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0 5%;
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -65,7 +73,7 @@ const BackButton = styled.button`
 `;
 
 const ContentContainer = styled.div`
-  background: white;
+  background: #f5f7fa;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
@@ -85,8 +93,9 @@ const ProposalInfo = styled.div`
   gap: 16px;
   margin-bottom: 24px;
   padding: 16px;
-  background-color: #f8fafc;
+  background-color: white;
   border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 `;
 
 const InfoItem = styled.div`
@@ -116,6 +125,7 @@ const ContentSection = styled.div`
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   white-space: pre-wrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 `;
 
 const ProposalSubtitle = styled.h2`
