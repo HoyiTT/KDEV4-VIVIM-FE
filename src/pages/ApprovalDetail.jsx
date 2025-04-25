@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalDecision from '../components/ApprovalDecision';
 import { ApprovalDecisionStatus } from '../constants/enums';
+import ProjectStageProgress from '../components/ProjectStageProgress';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -188,14 +189,28 @@ const ApprovalDetail = () => {
   const [proposal, setProposal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [progressList, setProgressList] = useState([]);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [projectId, setProjectId] = useState(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
     fetchProposalDetail();
   }, [id]);
 
+  // 프로젝트 진행 상태 조회
+  useEffect(() => {
+    if (projectId) {
+      console.log("프로젝트 ID 감지됨:", projectId);
+      fetchProjectProgress();
+    }
+  }, [projectId]);
+
   const fetchProposalDetail = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log("승인요청 상세 조회 시작:", id);
+      
       const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(id), {
         headers: {
           'Authorization': token,
@@ -208,12 +223,67 @@ const ApprovalDetail = () => {
       }
 
       const data = await response.json();
+      console.log("승인요청 데이터:", data);
       setProposal(data);
+      
+      // 프로젝트 ID 설정
+      if (data.projectId) {
+        console.log("프로젝트 ID 설정:", data.projectId);
+        setProjectId(data.projectId);
+      } else {
+        console.error("승인요청에 프로젝트 ID가 없습니다");
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching proposal detail:', error);
       setError('승인요청 상세 정보를 불러오는데 실패했습니다.');
       setLoading(false);
+    }
+  };
+
+  // 프로젝트 진행 단계 조회
+  const fetchProjectProgress = async () => {
+    try {
+      setProgressLoading(true);
+      const token = localStorage.getItem('token');
+      console.log("프로젝트 진행 단계 조회 시작:", projectId);
+      
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('프로젝트 진행 상태 조회에 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      console.log("프로젝트 진행 단계 데이터:", data);
+      
+      if (data.progressList && data.progressList.length > 0) {
+        setProgressList(data.progressList);
+        console.log("프로젝트 진행 단계 설정 완료:", data.progressList.length, "개 항목");
+        
+        // 승인 요청이 속한 단계 찾기
+        const stageIndex = data.progressList.findIndex(
+          stage => stage.id === proposal.progressId
+        );
+        
+        if (stageIndex >= 0) {
+          console.log("현재 단계 찾음:", stageIndex, data.progressList[stageIndex].name);
+          setCurrentStageIndex(stageIndex);
+        } else {
+          console.log("승인요청의 단계를 찾지 못함. progressId:", proposal.progressId);
+        }
+      } else {
+        console.log("프로젝트 진행 단계 데이터가 없거나 비어있습니다");
+      }
+      setProgressLoading(false);
+    } catch (error) {
+      console.error('Error fetching project progress:', error);
+      setProgressLoading(false);
     }
   };
 
@@ -266,31 +336,53 @@ const ApprovalDetail = () => {
           ) : error ? (
             <ErrorMessage>{error}</ErrorMessage>
           ) : proposal ? (
-            <ContentContainer>
-              <ProposalTitle>{proposal.title}</ProposalTitle>
-              <ProposalInfo>
-                <InfoItem>
-                  <InfoLabel>작성자</InfoLabel>
-                  <InfoValue>{proposal.creator?.name} ({proposal.creator?.companyName})</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>작성일</InfoLabel>
-                  <InfoValue>{formatDate(proposal.createdAt)}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>상태</InfoLabel>
-                  <InfoValue>
-                    <ResponseStatus status={proposal.approvalProposalStatus}>
-                      {getStatusText(proposal.approvalProposalStatus)}
-                    </ResponseStatus>
-                  </InfoValue>
-                </InfoItem>
-              </ProposalInfo>
-              <ContentSection>
-                {proposal.content}
-              </ContentSection>
-              <ApprovalDecision approvalId={proposal.id} />
-            </ContentContainer>
+            <>
+              {/* 프로젝트 단계 진행 상황 표시 */}
+              {progressLoading ? (
+                <div style={{ marginBottom: '24px', padding: '20px', background: 'white', borderRadius: '8px', textAlign: 'center' }}>
+                  <p>프로젝트 진행 단계를 불러오는 중...</p>
+                </div>
+              ) : progressList && progressList.length > 0 ? (
+                <div style={{ marginBottom: '24px' }}>
+                  <ProjectStageProgress 
+                    progressList={progressList}
+                    currentStageIndex={currentStageIndex}
+                    setCurrentStageIndex={setCurrentStageIndex}
+                    title="프로젝트 진행 단계"
+                  />
+                </div>
+              ) : (
+                <div style={{ marginBottom: '24px', padding: '20px', background: 'white', borderRadius: '8px', textAlign: 'center' }}>
+                  <p>이 승인요청에 대한 프로젝트 진행 단계 정보가 없습니다.</p>
+                </div>
+              )}
+              
+              <ContentContainer>
+                <ProposalTitle>{proposal.title}</ProposalTitle>
+                <ProposalInfo>
+                  <InfoItem>
+                    <InfoLabel>작성자</InfoLabel>
+                    <InfoValue>{proposal.creator?.name} ({proposal.creator?.companyName})</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>작성일</InfoLabel>
+                    <InfoValue>{formatDate(proposal.createdAt)}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>상태</InfoLabel>
+                    <InfoValue>
+                      <ResponseStatus status={proposal.approvalProposalStatus}>
+                        {getStatusText(proposal.approvalProposalStatus)}
+                      </ResponseStatus>
+                    </InfoValue>
+                  </InfoItem>
+                </ProposalInfo>
+                <ContentSection>
+                  {proposal.content}
+                </ContentSection>
+                <ApprovalDecision approvalId={proposal.id} />
+              </ContentContainer>
+            </>
           ) : (
             <ErrorMessage>승인요청을 찾을 수 없습니다.</ErrorMessage>
           )}
