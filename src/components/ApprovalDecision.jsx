@@ -1770,6 +1770,10 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                   <StatusCount>{statusSummary.totalApproverCount}명</StatusCount>
                 </StatusItem>
               )}
+              <StatusItem bgColor="#eff6ff">
+                <StatusLabel color="#1e40af">대기</StatusLabel>
+                <StatusCount color="#1e40af">{statusSummary.waitingApproverCount}명</StatusCount>
+              </StatusItem>
               <StatusItem bgColor="#f0fdf4">
                 <StatusLabel color="#166534">승인</StatusLabel>
                 <StatusCount color="#166534">{statusSummary.approvedApproverCount}명</StatusCount>
@@ -1777,10 +1781,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
               <StatusItem bgColor="#fef2f2">
                 <StatusLabel color="#991b1b">반려</StatusLabel>
                 <StatusCount color="#991b1b">{statusSummary.modificationRequestedApproverCount}명</StatusCount>
-              </StatusItem>
-              <StatusItem bgColor="#eff6ff">
-                <StatusLabel color="#1e40af">요청후 응답대기</StatusLabel>
-                <StatusCount color="#1e40af">{statusSummary.waitingApproverCount}명</StatusCount>
               </StatusItem>
             </StatusSummaryGrid>
           </StatusSummary>

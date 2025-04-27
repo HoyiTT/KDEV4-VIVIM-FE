@@ -12,19 +12,15 @@ export const getApprovalStatusText = (status) => {
     case ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL:
       return '요청전';
     case ApprovalProposalStatus.WAITING_FOR_DECISIONS:
-      return '요청후 응답대기';
-    case ApprovalProposalStatus.IN_PROGRESS_DECISIONS:
-      return '승인 진행중';
+      return '응답 대기중';
     case ApprovalProposalStatus.REJECTED_BY_ANY_DECISION:
-      return '반려됨';
+      return '응답 진행중';
     case ApprovalProposalStatus.APPROVED_BY_ALL_DECISIONS:
       return '최종 승인됨';
     case 'APPROVED':
       return '승인됨';
     case 'REJECTED':
       return '반려됨';
-    case 'REQUEST_PROPOSAL':
-      return '요청후 응답대기';
     default:
       return status;
   }
