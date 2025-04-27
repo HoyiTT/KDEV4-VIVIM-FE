@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { API_ENDPOINTS } from '../config/api';
-import { ApprovalDecisionStatus } from '../constants/enums';
+import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import ApprovalDecision from './ApprovalDecision';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
+import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
 
 // Styled Components
 const LoadingMessage = styled.div`
@@ -225,7 +226,7 @@ const ModalContent = styled.div`
   max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 270px;
+  padding: 0;
   box-sizing: border-box;
   
   @media (max-width: 1400px) {
@@ -267,7 +268,7 @@ const CloseButton = styled.button`
 `;
 
 const ModalBody = styled.div`
-  padding: 16px;
+  padding: 16px 24px;
   width: 100%;
   box-sizing: border-box;
 `;
@@ -318,6 +319,7 @@ const SidePanelContent = styled.div`
   height: 100vh;
   overflow-y: auto;
   position: relative;
+  padding: 0;
   ${props => props.isFullscreen && `
     max-width: 100%;
   `}
@@ -336,7 +338,7 @@ const SidePanelHeader = styled(ModalHeader)`
 `;
 
 const SidePanelBody = styled.div`
-  padding: 16px;
+  padding: 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -649,18 +651,27 @@ const getStatusColor = (status) => {
         text: '#64748b',
         border: '1px solid #e2e8f0'
       };
+    case 'WAITING_FOR_DECISIONS':
     case 'REQUEST_PROPOSAL':
       return {
         background: '#dbeafe',
         text: '#2563eb',
         border: '1px solid #bfdbfe'
       };
+    case 'IN_PROGRESS_DECISIONS':
+      return {
+        background: '#fef9c3',
+        text: '#ca8a04',
+        border: '1px solid #fde047'
+      };
+    case 'APPROVED_BY_ALL_DECISIONS':
     case 'APPROVED':
       return {
         background: '#dcfce7',
         text: '#16a34a',
         border: '1px solid #bbf7d0'
       };
+    case 'REJECTED_BY_ANY_DECISION':
     case 'REJECTED':
       return {
         background: '#fee2e2',
@@ -1240,6 +1251,62 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   const handleSendProposal = async (approvalId) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // 전송 전 승인권자 수 확인
+      console.log('승인요청 전송 전 승인권자 확인 중...', approvalId);
+      
+      try {
+        const checkApproversResponse = await fetch(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json',
+            'accept': '*/*'
+          }
+        });
+  
+        console.log('승인권자 확인 API 응답 상태:', checkApproversResponse.status);
+        
+        // 응답 텍스트 먼저 확인
+        const responseText = await checkApproversResponse.text();
+        console.log('승인권자 확인 API 응답 텍스트:', responseText);
+  
+        // 응답이 있으면 JSON으로 파싱
+        let approversList = [];
+        if (responseText) {
+          try {
+            const approversData = JSON.parse(responseText);
+            console.log('파싱된 승인권자 데이터:', approversData);
+            
+            // 다양한 응답 형식 처리
+            if (approversData.approverResponses) {
+              approversList = approversData.approverResponses;
+            } else if (Array.isArray(approversData)) {
+              approversList = approversData;
+            } else if (approversData.data && Array.isArray(approversData.data)) {
+              approversList = approversData.data;
+            } else if (approversData.approvers && Array.isArray(approversData.approvers)) {
+              approversList = approversData.approvers;
+            }
+            
+            console.log('승인권자 수:', approversList.length);
+          } catch (jsonError) {
+            console.error('승인권자 데이터 파싱 오류:', jsonError);
+          }
+        }
+        
+        // 승인권자가 한 명도 없으면 전송 중단
+        if (approversList.length === 0) {
+          window.alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
+          return;
+        }
+      } catch (approversError) {
+        console.error('승인권자 확인 중 오류:', approversError);
+        window.alert('승인권자 확인 중 오류가 발생했습니다. 승인권자가 한 명 이상 등록되어야 합니다.');
+        return;
+      }
+      
+      // 승인권자가 있으면 전송 진행
+      console.log('승인요청 전송 API 호출 시작');
       const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(approvalId), {
         method: 'POST',
         headers: {
@@ -1250,29 +1317,32 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`승인요청 전송에 실패했습니다: ${response.status} ${errorText}`);
+        console.error('승인요청 전송 실패 응답:', errorText);
+        
+        // 특정 에러 메시지 처리
+        if (errorText.includes('AP006') || errorText.includes('지정된 승인권자가 있어야 승인요청을 보낼 수 있습니다')) {
+          window.alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
+          return;
+        }
+        
+        // 400 에러인 경우 특별 처리
+        if (response.status === 400) {
+          if (errorText.includes('이미 전송된 승인요청')) {
+            window.alert('이미 전송된 승인요청입니다. 내용 변경 후 다시 시도해주세요.');
+          } else {
+            window.alert('승인요청 전송에 실패했습니다. 필수 정보가 모두 입력되었는지 확인해주세요.');
+          }
+          return;
+        }
+        
+        throw new Error(`승인요청 전송에 실패했습니다: ${response.status}`);
       }
 
-      alert('승인요청이 성공적으로 전송되었습니다.');
+      window.alert('승인요청이 성공적으로 전송되었습니다.');
       fetchProposals();
     } catch (error) {
       console.error('Error sending proposal:', error);
-      alert(error.message || '승인요청 전송에 실패했습니다.');
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '요청전';
-      case 'REQUEST_PROPOSAL':
-        return '요청 중';
-      case 'APPROVED':
-        return '승인됨';
-      case 'REJECTED':
-        return '반려됨';
-      default:
-        return status;
+      window.alert(error.message || '승인요청 전송에 실패했습니다.');
     }
   };
 
@@ -1304,29 +1374,20 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                     <ProposalContent>
                       <ProposalHeader>
                         <HeaderLeft>
-                          {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
-                            <StatusBadge
-                              background={colors.background}
-                              text={colors.text}
-                              border={colors.border}
-                            >
-                              {getStatusText(proposal.approvalProposalStatus)}
-                            </StatusBadge>
-                          )}
+                          <StatusBadge
+                            background={colors.background}
+                            text={colors.text}
+                            border={colors.border}
+                          >
+                            {getApprovalStatusText(proposal.approvalProposalStatus)}
+                          </StatusBadge>
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          {proposal.approvalProposalStatus !== 'BEFORE_REQUEST_PROPOSAL' && (
-                            <StatusBadge
-                              background={colors.background}
-                              text={colors.text}
-                              border={colors.border}
-                            >
-                              {getStatusText(proposal.approvalProposalStatus)}
-                            </StatusBadge>
-                          )}
                           {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
-                            proposal.approvalProposalStatus === 'REJECTED') && (
+                            proposal.approvalProposalStatus === 'REJECTED_BY_ANY_DECISION' || 
+                            proposal.approvalProposalStatus === 'REJECTED') && 
+                            !window.location.pathname.includes('/project/') && (
                             <SendButtonSmall onClick={(e) => {
                               e.stopPropagation();
                               handleSendProposal(proposal.id);
@@ -1335,22 +1396,18 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                             </SendButtonSmall>
                           )}
                           <ActionIcons>
-                            {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
-                              <>
-                                <ActionIcon onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditClick(proposal);
-                                }} title="수정">
-                                  <FaEdit />
-                                </ActionIcon>
-                                <ActionIcon className="delete" onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteProposal(proposal.id);
-                                }} title="삭제">
-                                  <FaTrashAlt />
-                                </ActionIcon>
-                              </>
-                            )}
+                            <ActionIcon onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(proposal);
+                            }} title="수정">
+                              <FaEdit />
+                            </ActionIcon>
+                            <ActionIcon className="delete" onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProposal(proposal.id);
+                            }} title="삭제">
+                              <FaTrashAlt />
+                            </ActionIcon>
                           </ActionIcons>
                         </HeaderRight>
                       </ProposalHeader>
@@ -1460,7 +1517,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                   <InfoLabel>상태</InfoLabel>
                   <InfoValue>
                     <ResponseStatus status={selectedProposal.approvalProposalStatus}>
-                      {getStatusText(selectedProposal.approvalProposalStatus)}
+                      {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
                     </ResponseStatus>
                   </InfoValue>
                 </InfoItem>

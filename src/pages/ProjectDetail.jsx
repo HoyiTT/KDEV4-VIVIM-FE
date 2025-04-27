@@ -6,7 +6,8 @@ import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
 import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt } from 'react-icons/fa';
-import ProjectStageProgress from '../components/ProjectStageProgress';
+import ProjectStageProgress from '../components/ProjectStage';
+import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -30,6 +31,7 @@ const ProjectDetail = () => {
   const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
+  const [statusSummary, setStatusSummary] = useState(null); // 추가: 상태 요약 정보를 저장할 state
 
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -221,10 +223,49 @@ const ProjectDetail = () => {
 
       const data = await response.json();
       setSelectedProposal(data);
+      
+      // 승인 상태 요약 정보 조회
+      fetchStatusSummary(approval.id);
+      
       setIsProposalModalOpen(true);
     } catch (error) {
       console.error('Error fetching approval detail:', error);
       alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  // 승인 상태 요약 정보 조회 함수 추가
+  const fetchStatusSummary = async (approvalId) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log("승인요청 상태 요약 조회 시작:", approvalId);
+      
+      const response = await fetch(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(approvalId), {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('승인요청 상태 요약 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      console.log("승인요청 상태 요약 데이터:", data);
+      
+      // 주요 상태 정보 로그 출력
+      console.log(`총 승인권자: ${data.totalApproverCount}명`);
+      console.log(`승인 완료: ${data.approvedApproverCount}명`);
+      console.log(`반려: ${data.modificationRequestedApproverCount}명`);
+      console.log(`대기중: ${data.waitingApproverCount}명`);
+      console.log(`요청전: ${data.beforeRequestCount}명`);
+      console.log(`최종 상태: ${getApprovalStatusText(data.proposalStatus)}`);
+      
+      setStatusSummary(data);
+    } catch (error) {
+      console.error('Error fetching status summary:', error);
+      // 요약 정보는 실패해도 전체 페이지에 영향 없음
     }
   };
 
@@ -446,7 +487,7 @@ const ProjectDetail = () => {
                   {/* 승인요청 목록을 타임라인 컴포넌트 내부에 포함 */}
                   {progressList.length > 0 ? (
                     progressList
-                      .sort((a, b) => a.position - b.position)
+                  .sort((a, b) => a.position - b.position)
                       .map((stage, index) => (
                         <StageContainer 
                           key={stage.id} 
@@ -456,12 +497,12 @@ const ProjectDetail = () => {
                             ref={el => stageRefs.current[index] = el} 
                           >
                             <StageHeader>
-                              <StageTitle>{stage.name}</StageTitle>
+                              <StageTitle title={stage.name} />
                             </StageHeader>
                             <ApprovalProposal 
                               progressId={stage.id} 
                             />
-                          </StageItem>
+                    </StageItem>
                         </StageContainer>
                       ))
                   ) : (
@@ -566,7 +607,10 @@ const ProjectDetail = () => {
     </ContentWrapper>
     
     {isProposalModalOpen && selectedProposal && (
-      <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
+      <ModalOverlay onClick={() => {
+        setIsProposalModalOpen(false);
+        setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+      }}>
         <ModalContent onClick={(e) => e.stopPropagation()}>
           <ModalHeader>
             <ModalTitle>승인요청 상세보기</ModalTitle>
@@ -587,11 +631,7 @@ const ProjectDetail = () => {
                 <InfoLabel>상태</InfoLabel>
                 <InfoValue>
                   <ApprovalStatus status={selectedProposal.approvalProposalStatus}>
-                    {selectedProposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' ? '요청전' : 
-                     selectedProposal.approvalProposalStatus === 'REQUEST_PROPOSAL' ? '요청 중' : 
-                     selectedProposal.approvalProposalStatus === 'APPROVED' ? '승인됨' : 
-                     selectedProposal.approvalProposalStatus === 'REJECTED' ? '거절됨' : 
-                     selectedProposal.approvalProposalStatus}
+                    {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
                   </ApprovalStatus>
                 </InfoValue>
               </InfoItem>
@@ -599,13 +639,47 @@ const ProjectDetail = () => {
             <ContentSection>
               {selectedProposal.content}
             </ContentSection>
+            
+            {statusSummary && (
+              <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>승인 상태 요약</h3>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dcfce7', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#16a34a' }}>{statusSummary.approvedApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>승인</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fee2e2', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#dc2626' }}>{statusSummary.modificationRequestedApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>반려</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dbeafe', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#2563eb' }}>{statusSummary.waitingApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>요청후 응답대기</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f1f5f9', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#64748b' }}>{statusSummary.beforeRequestCount}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>요청전</div>
+                  </div>
+                  {statusSummary.totalApproverCount > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', minWidth: '80px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>{statusSummary.totalApproverCount}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>전체</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <ProposalSubtitle withMargin>
               <span>승인권자별 응답목록</span>
             </ProposalSubtitle>
             <ApprovalDecision approvalId={selectedProposal.id} />
           </ModalBody>
           <ModalFooter>
-            <ModalButton onClick={() => setIsProposalModalOpen(false)}>닫기</ModalButton>
+            <ModalButton onClick={() => {
+              setIsProposalModalOpen(false);
+              setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+            }}>닫기</ModalButton>
           </ModalFooter>
         </ModalContent>
       </ModalOverlay>
@@ -621,9 +695,7 @@ const ProjectDetail = () => {
           <ModalSection>
             <h4>상태</h4>
             <StatusBadge status={selectedApproval.status}>
-              {selectedApproval.status === 'APPROVED' ? '승인됨' : 
-               selectedApproval.status === 'REJECTED' ? '거절됨' : 
-               selectedApproval.status === 'PENDING' ? '대기중' : selectedApproval.status}
+              {getApprovalStatusText(selectedApproval.status)}
             </StatusBadge>
           </ModalSection>
           
@@ -645,12 +717,7 @@ const ProjectDetail = () => {
                     borderBottom: index < selectedApproval.approvalList.length - 1 ? '1px solid #e2e8f0' : 'none' 
                   }}>
                     <p><strong>{approver.approverName}</strong></p>
-                    <p>상태: {
-                      approver.status === 'APPROVED' ? '승인' :
-                      approver.status === 'REJECTED' ? '거절' :
-                      approver.status === 'PENDING' ? '대기중' :
-                      approver.status
-                    }</p>
+                    <p>상태: {getApprovalStatusText(approver.status)}</p>
                     {approver.comment && <p>코멘트: {approver.comment}</p>}
                   </div>
                 ))}
@@ -1217,20 +1284,24 @@ const StageContainer = styled.div`
 `;
 
 const StageTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 500;
-  color: #475569;
   margin: 0;
   padding: 5px;
   display: flex;
   align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  
+  &::before {
+    content: '${props => props.title || ''}';
+  }
   
   &::after {
     content: ': 승인요청 목록보기';
     font-size: 14px;
+    font-weight: 400;
     color: #64748b;
     margin-left: 5px;
-    font-weight: 400;
   }
 `;
 
@@ -1611,34 +1682,8 @@ const ApprovalStatus = styled.span`
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background-color: ${props => {
-    switch (props.status) {
-      case 'APPROVED':
-        return '#dcfce7';
-      case 'REJECTED':
-        return '#fee2e2';
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '#f1f5f9';
-      case 'REQUEST_PROPOSAL':
-        return '#dbeafe';
-      default:
-        return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'APPROVED':
-        return '#16a34a';
-      case 'REJECTED':
-        return '#dc2626';
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '#64748b';
-      case 'REQUEST_PROPOSAL':
-        return '#2563eb';
-      default:
-        return '#64748b';
-    }
-  }};
+  background-color: ${props => getApprovalStatusBackgroundColor(props.status)};
+  color: ${props => getApprovalStatusTextColor(props.status)};
 `;
 
 const StageProgressHeader = styled.div`
