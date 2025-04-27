@@ -6,7 +6,9 @@ import { API_ENDPOINTS } from '../config/api';
 import ApprovalDecision from '../components/ApprovalDecision';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import ProjectStageProgress from '../components/ProjectStage';
+import { FaEdit, FaTrashAlt, FaSave, FaTimes } from 'react-icons/fa';
 import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
+import ApprovalProposal from '../components/ApprovalProposal';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -357,6 +359,83 @@ const ActionsButton = styled.button`
   }
 `;
 
+const StatusContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const ActionsMenuContainer = styled.div`
+  position: relative;
+  z-index: 10;
+`;
+
+const ActionsDropdown = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 150px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+`;
+
+const DropdownItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  border: none;
+  background: none;
+  color: ${props => props.$danger ? '#dc2626' : '#475569'};
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: ${props => props.$danger ? '#fee2e2' : '#f1f5f9'};
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+  overflow: auto;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-family: inherit;
+  box-sizing: border-box;
+`;
+
+const EditLabel = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 6px;
+`;
+
 const ApprovalDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -372,7 +451,13 @@ const ApprovalDetail = () => {
   const [sendingApproval, setSendingApproval] = useState(false);
   const [lastSentAt, setLastSentAt] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [saving, setSaving] = useState(false);
   const approvalDecisionRef = useRef(null);
+  const actionsMenuRef = useRef(null);
 
   useEffect(() => {
     fetchProposalDetail();
@@ -698,8 +783,94 @@ const ApprovalDetail = () => {
 
   // 수정 및 삭제 핸들러 추가
   const handleEditProposal = () => {
-    if (proposal && proposal.id) {
-      navigate(`/approval/${proposal.id}/edit`);
+    // 수정 모드로 전환
+    setEditTitle(proposal.title);
+    setEditContent(proposal.content);
+    setIsEditing(true);
+    setShowActionsMenu(false);
+  };
+
+  // 수정 취소
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  // 수정 내용 저장
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim() || !editContent.trim()) {
+      alert('제목과 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      // 토큰 새로 가져오기
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      
+      console.log('수정 요청 시작:', proposal.id);
+      
+      // 요청 데이터 로깅
+      const requestData = {
+        title: editTitle,
+        content: editContent
+      };
+      console.log('수정 요청 데이터:', requestData);
+      console.log('API 엔드포인트:', API_ENDPOINTS.APPROVAL.MODIFY(proposal.id));
+      
+      const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), {
+        method: 'PATCH', // PUT 대신 PATCH 메서드 사용
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      console.log('수정 응답 상태:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('수정 응답 에러 내용:', errorText);
+        
+        // 권한 오류(403)인 경우 특별 처리
+        if (response.status === 403) {
+          alert('이 승인요청을 수정할 권한이 없습니다. 작성자 또는 관리자만 수정할 수 있습니다.');
+          return;
+        }
+        
+        throw new Error(`승인요청 수정 실패 (${response.status}): ${errorText}`);
+      }
+
+      // 응답 데이터 확인 시도
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('수정 응답 데이터:', responseData);
+      } catch (jsonError) {
+        console.log('수정 응답 데이터 없음 (json 파싱 오류)');
+      }
+
+      // 수정된 정보로 proposal 업데이트 (서버 응답이 없는 경우에도 UI 업데이트)
+      setProposal({
+        ...proposal,
+        title: editTitle,
+        content: editContent,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('수정 완료, UI 업데이트');
+      setIsEditing(false);
+      setHasChanges(true);
+      alert('승인요청이 성공적으로 수정되었습니다.');
+    } catch (error) {
+      console.error('승인요청 수정 중 오류:', error);
+      alert(`승인요청 수정에 실패했습니다: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -783,92 +954,130 @@ const ApprovalDetail = () => {
                     )}
                     
                     {/* 요청 상태를 제목 위에 표시 */}
-                    <div style={{ marginBottom: '16px' }}>
+                    <StatusContainer>
                       <ResponseStatus status={proposal.displayStatus || proposal.proposalStatus || proposal.approvalProposalStatus}>
                         {getApprovalStatusText(proposal.displayStatus || proposal.proposalStatus || proposal.approvalProposalStatus)}
                       </ResponseStatus>
-                    </div>
-                    
-                    <ProposalTitle>{proposal.title}</ProposalTitle>
-                    <ProposalInfo>
-                      <InfoItem>
-                        <InfoLabel>작성자</InfoLabel>
-                        <InfoValue>{proposal.creator?.name} ({proposal.creator?.companyName})</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>작성일</InfoLabel>
-                        <InfoValue>{formatDate(proposal.createdAt)}</InfoValue>
-                      </InfoItem>
-                    </ProposalInfo>
-
-                    <ProposalContent> 
-                      <div style={{ 
-                        fontSize: '16px',
-                        color: '#475569',
-                        lineHeight: '1.6',
-                        whiteSpace: 'pre-wrap'
-                      }}>
-                        {proposal.content}
-                      </div>
-                    </ProposalContent>
-                    
-                    {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
-                    <ApprovalButtonContainer>
-                      {(proposal.displayStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL || 
-                        proposal.displayStatus === ApprovalProposalStatus.REJECTED_BY_ANY_DECISION || 
-                        proposal.displayStatus === ApprovalProposalStatus.REJECTED) && (
-                        <>
-                          <ApprovalActionButton 
-                            secondary
-                            onClick={handleEditProposal}
+                      <div style={{ flex: 1 }}></div>
+                      
+                      {!isEditing && (
+                        <ActionsMenuContainer ref={actionsMenuRef}>
+                          <ActionsButton 
+                            onClick={() => setShowActionsMenu(!showActionsMenu)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                            </svg>
-                            수정
-                          </ApprovalActionButton>
-                          <ApprovalActionButton 
-                            secondary
-                            onClick={handleDeleteProposal}
-                            style={{ color: '#dc2626', borderColor: '#fee2e2' }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                            삭제
-                          </ApprovalActionButton>
-                        </>
+                            ⋮
+                          </ActionsButton>
+                          {showActionsMenu && (
+                            <ActionsDropdown>
+                              <DropdownItem 
+                                onClick={handleEditProposal}
+                              >
+                                <FaEdit /> 수정
+                              </DropdownItem>
+                              <DropdownItem 
+                                $danger
+                                onClick={handleDeleteProposal}
+                              >
+                                <FaTrashAlt /> 삭제
+                              </DropdownItem>
+                            </ActionsDropdown>
+                          )}
+                        </ActionsMenuContainer>
                       )}
-                      <ApprovalActionButton 
-                        secondary
-                        onClick={handleOpenEditApprovers}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="9" cy="7" r="4"></circle>
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        승인권자 수정
-                      </ApprovalActionButton>
-                      <ApprovalActionButton 
-                        onClick={handleSendApproval} 
-                        disabled={
-                          sendingApproval || 
-                          (proposal.displayStatus !== ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL && !hasChanges)
-                        }
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 2L11 13"></path>
-                          <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
-                        </svg>
-                        {sendingApproval ? '전송 중...' : (
-                          proposal.displayStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL ? 
-                          '승인요청 전송' : '승인요청 재전송'
-                        )}
-                      </ApprovalActionButton>
-                    </ApprovalButtonContainer>
+                    </StatusContainer>
+                    
+                    {isEditing ? (
+                      <>
+                        <div style={{ marginBottom: '16px' }}>
+                          <EditLabel>제목</EditLabel>
+                          <Input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                          />
+                        </div>
+                        
+                        <div style={{ marginBottom: '16px' }}>
+                          <EditLabel>내용</EditLabel>
+                          <TextArea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                          />
+                        </div>
+                        
+                        <ApprovalButtonContainer>
+                          <ApprovalActionButton 
+                            secondary
+                            onClick={handleCancelEdit}
+                          >
+                            <FaTimes /> 취소
+                          </ApprovalActionButton>
+                          <ApprovalActionButton 
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                          >
+                            <FaSave /> {saving ? '저장 중...' : '저장'}
+                          </ApprovalActionButton>
+                        </ApprovalButtonContainer>
+                      </>
+                    ) : (
+                      <>
+                        <ProposalTitle>{proposal.title}</ProposalTitle>
+                        <ProposalInfo>
+                          <InfoItem>
+                            <InfoLabel>작성자</InfoLabel>
+                            <InfoValue>{proposal.creator?.name} ({proposal.creator?.companyName})</InfoValue>
+                          </InfoItem>
+                          <InfoItem>
+                            <InfoLabel>작성일</InfoLabel>
+                            <InfoValue>{formatDate(proposal.createdAt)}</InfoValue>
+                          </InfoItem>
+                        </ProposalInfo>
+
+                        <ProposalContent> 
+                          <div style={{ 
+                            fontSize: '16px',
+                            color: '#475569',
+                            lineHeight: '1.6',
+                            whiteSpace: 'pre-wrap'
+                          }}>
+                            {proposal.content}
+                          </div>
+                        </ProposalContent>
+                        
+                        {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
+                        <ApprovalButtonContainer>
+                          <ApprovalActionButton 
+                            secondary
+                            onClick={handleOpenEditApprovers}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="9" cy="7" r="4"></circle>
+                              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            승인권자 수정
+                          </ApprovalActionButton>
+                          <ApprovalActionButton 
+                            onClick={handleSendApproval} 
+                            disabled={
+                              sendingApproval || 
+                              (proposal.displayStatus !== ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL && !hasChanges)
+                            }
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M22 2L11 13"></path>
+                              <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
+                            </svg>
+                            {sendingApproval ? '전송 중...' : (
+                              proposal.displayStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL ? 
+                              '승인요청 전송' : '승인요청 재전송'
+                            )}
+                          </ApprovalActionButton>
+                        </ApprovalButtonContainer>
+                      </>
+                    )}
                   </ProposalInfoSection>
                   
                   {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}

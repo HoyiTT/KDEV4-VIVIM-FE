@@ -654,11 +654,7 @@ const ProjectDetail = () => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dbeafe', borderRadius: '8px', minWidth: '80px' }}>
                     <div style={{ fontSize: '24px', fontWeight: '600', color: '#2563eb' }}>{statusSummary.waitingApproverCount}</div>
-                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>요청후 응답대기</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f1f5f9', borderRadius: '8px', minWidth: '80px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#64748b' }}>{statusSummary.beforeRequestCount}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>요청전</div>
+                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>대기</div>
                   </div>
                   {statusSummary.totalApproverCount > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', minWidth: '80px' }}>
