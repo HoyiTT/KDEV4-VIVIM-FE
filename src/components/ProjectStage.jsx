@@ -8,13 +8,21 @@ const StageProgressColumn = styled.div`
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  padding: 20px 30px 20px 20px;
   max-height: none;
   overflow-y: visible;
+  overflow-x: visible;
+  position: relative;
   
   /* 화면 너비가 좁을 때 너비 조정 */
   @media (max-width: 1024px) {
-    width: 95%;
+    width: 100%;
+    padding: 15px 35px 15px 15px;
+  }
+  
+  /* 모바일 환경에서 패딩 증가 */
+  @media (max-width: 768px) {
+    padding: 15px 40px 15px 15px;
   }
 `;
 
@@ -25,6 +33,7 @@ const StageProgressHeader = styled.div`
 const StageProgressTimeline = styled.div`
   position: relative;
   padding: 0 10px;
+  margin-top: 50px;
 `;
 
 const TimelineBar = styled.div`
@@ -42,6 +51,23 @@ const StageProgressList = styled.div`
   z-index: 2;
   display: flex;
   justify-content: space-between;
+  overflow-x: visible;
+  padding: 0 20px;
+  /* 모바일 환경에서 스크롤 가능하도록 설정 */
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 30px;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+  }
 `;
 
 const StageProgressItem = styled.div`
@@ -50,6 +76,8 @@ const StageProgressItem = styled.div`
   align-items: center;
   width: 120px;
   cursor: pointer;
+  flex-shrink: 0;
+  padding: 0 5px;
   
   ${props => props.active && `
     font-weight: bold;
@@ -75,6 +103,8 @@ const StageProgressMarker = styled.div`
 
 const StageProgressDetails = styled.div`
   text-align: center;
+  width: 100%;
+  max-width: 120px;
 `;
 
 const StageProgressName = styled.div`
@@ -82,7 +112,9 @@ const StageProgressName = styled.div`
   font-size: 14px;
   color: #334155;
   margin-bottom: 4px;
-
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  max-width: 120px;
 `;
 
 const StageProgressStatus = styled.div`
@@ -297,21 +329,46 @@ const ProjectStageProgress = ({
   );
 };
 
-// 새로 추가된 스타일 컴포넌트
-const HeaderContent = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
+// 스타일 컴포넌트 순서 변경 - StageActions를 먼저 정의
 const StageActions = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+  
+  @media (max-width: 768px) {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    
+    h3 {
+      margin-bottom: 5px;
+    }
+    
+    ${StageActions} {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
 `;
 
 const ManageButtonContainer = styled.div`
   position: relative;
+  
+  @media (max-width: 768px) {
+    margin-top: 8px;
+  }
 `;
 
 const ManageButton = styled.button`
@@ -326,22 +383,28 @@ const ManageButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s;
+  white-space: nowrap;
 
   &:hover {
     background-color: #1d4ed8;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 6px 10px;
+    font-size: 13px;
   }
 `;
 
 const ManageDropdown = styled.div`
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   width: 180px;
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin-top: 5px;
-  z-index: 10;
+  z-index: 1000;
 `;
 
 const DropdownItem = styled.button`
@@ -365,6 +428,7 @@ const DropdownItem = styled.button`
   svg {
     color: #64748b;
     font-size: 14px;
+    flex-shrink: 0;
   }
 
   &:first-child {
@@ -375,6 +439,11 @@ const DropdownItem = styled.button`
   &:last-child {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+    font-size: 13px;
   }
 `;
 
@@ -414,4 +483,5 @@ const ApprovalRequestContainer = styled.div`
   padding-top: 20px;
 `;
 
+// 모듈의 마지막에 export 구문 배치
 export default ProjectStageProgress; 

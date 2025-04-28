@@ -7,8 +7,10 @@ import ApprovalDecision from '../components/ApprovalDecision';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import ProjectStageProgress from '../components/ProjectStage';
 import { FaEdit, FaTrashAlt, FaSave, FaTimes } from 'react-icons/fa';
-import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
+import approvalUtils from '../utils/approvalStatus';
 import ApprovalProposal from '../components/ApprovalProposal';
+
+const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
 // Styled Components
 const PageContainer = styled.div`
@@ -496,8 +498,8 @@ const ApprovalDetail = () => {
       // 승인권자가 없는 경우 "요청전" 상태로 표시
       if (data.totalApproverCount === 0 || 
           (Array.isArray(data.approvers) && data.approvers.length === 0) ||
-          proposalStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL) {
-        proposalStatus = ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL;
+          proposalStatus === ApprovalProposalStatus.DRAFT) {
+        proposalStatus = ApprovalProposalStatus.DRAFT;
         console.log("승인권자가 없거나 요청 전 상태로 '요청전'으로 표시합니다.");
       }
       
@@ -655,7 +657,7 @@ const ApprovalDetail = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   // 승인요청 전송 함수
@@ -722,7 +724,7 @@ const ApprovalDetail = () => {
 
       setSendingApproval(true);
 
-      const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(proposal.id), {
+      const response = await fetch(API_ENDPOINTS.APPROVAL.SEND(proposal.id), {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -822,7 +824,7 @@ const ApprovalDetail = () => {
       console.log('API 엔드포인트:', API_ENDPOINTS.APPROVAL.MODIFY(proposal.id));
       
       const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), {
-        method: 'PATCH', // PUT 대신 PATCH 메서드 사용
+        method: 'PATCH', 
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
@@ -1063,7 +1065,7 @@ const ApprovalDetail = () => {
                             onClick={handleSendApproval} 
                             disabled={
                               sendingApproval || 
-                              (proposal.displayStatus !== ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL && !hasChanges)
+                              (proposal.displayStatus !== ApprovalProposalStatus.DRAFT && !hasChanges)
                             }
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1071,8 +1073,7 @@ const ApprovalDetail = () => {
                               <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
                             </svg>
                             {sendingApproval ? '전송 중...' : (
-                              proposal.displayStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL ? 
-                              '승인요청 전송' : '승인요청 재전송'
+                              !proposal.lastSentAt ? '승인요청 전송' : '승인요청 재전송'
                             )}
                           </ApprovalActionButton>
                         </ApprovalButtonContainer>

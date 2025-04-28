@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { API_ENDPOINTS } from '../config/api';
-import { ApprovalDecisionStatus } from '../constants/enums';
+import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
+import approvalUtils from '../utils/approvalStatus';
+
+const { getApproverStatusText } = approvalUtils;
 
 // Styled Components
 const ResponseSection = styled.div`
@@ -187,7 +190,28 @@ const DecisionStatus = styled.div`
 `;
 
 const DecisionDate = styled.div`
-  color: #6b7280;
+  color: #666;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+`;
+
+const DeleteIcon = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 14px;
+  margin-left: 8px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s, transform 0.2s;
+
+  &:hover {
+    color: #ff6b6b;
+    transform: scale(1.1);
+  }
 `;
 
 const DecisionContent = styled.div`
@@ -204,32 +228,11 @@ const DecisionContent = styled.div`
   }
 `;
 
-const DecisionActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-`;
-
-const DeleteAction = styled.button`
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #be123c;
-  background-color: transparent;
-  border: 1px solid #fda4af;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background-color: #fecdd3;
-  }
-`;
-
 const AddResponseButton = styled.button`
   width: 100%;
   padding: 12px 16px;
   margin-top: 16px;
-  background: #2684FF;
+  background: #2E7D32;
   border: none;
   border-radius: 6px;
   color: white;
@@ -243,8 +246,8 @@ const AddResponseButton = styled.button`
   gap: 8px;
 
   &:hover {
-    background: #0063cc;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    background: #1B5E20;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
   }
   
   svg {
@@ -935,6 +938,38 @@ const StatusCount = styled.span`
   font-weight: 600;
 `;
 
+const ButtonGroup = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  gap: 8px;
+`;
+
+// 이름을 DecisionActions에서 변경하지 않고 유지하기 위해 재정의
+const ActionButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  gap: 8px;
+`;
+
+const DecisionActions = ({ decision, isEditable, handleEditDecision, handleDeleteDecision, approver }) => {
+  if (!isEditable) return null;
+
+  return (
+    <ActionButtonContainer>
+      <IconButton
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+        }}
+      >
+        🗑️
+      </IconButton>
+    </ActionButtonContainer>
+  );
+};
+
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [approversData, setApproversData] = useState([]);
   const [isInputOpen, setIsInputOpen] = useState(false);
@@ -942,6 +977,14 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [newDecision, setNewDecision] = useState({ content: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [expandedApprovers, setExpandedApprovers] = useState(new Set());
+  
+  // 응답 수정을 위한 상태 추가
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingDecision, setEditingDecision] = useState(null);
+  
+  // 승인요청 전송 여부 확인
+  const isRequestSent = statusSummary && 
+    (statusSummary.proposalStatus !== ApprovalProposalStatus.DRAFT || statusSummary.lastSentAt);
   
   // 승인권자 수정 관련 상태
   const [isEditApproversModalOpen, setIsEditApproversModalOpen] = useState(false);
@@ -1173,19 +1216,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   };
 
   const getStatusText = (status) => {
-    switch (status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return '승인';
-      case ApprovalDecisionStatus.REJECTED:
-        return '반려';
-      default:
-        return '검토중';
-    }
+    return getApproverStatusText(status);
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   const hasApprovedDecision = (approver) => {
@@ -1737,6 +1774,56 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     }
   }, [selectedApprovers]);
 
+  // 응답 수정 함수
+  const handleEditDecision = async () => {
+    if (!editingDecision) return;
+    if (!editingDecision.content.trim()) {
+      alert('응답 내용을 입력해주세요.');
+      return;
+    }
+    if (!editingDecision.status) {
+      alert('승인 상태를 선택해주세요.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const authToken = token?.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      
+      console.log('승인 응답 수정 시작:', editingDecision);
+
+      const response = await fetch(API_ENDPOINTS.DECISION.MODIFY(editingDecision.id), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': authToken,
+          'Content-Type': 'application/json',
+          'Accept': '*/*'
+        },
+        body: JSON.stringify({
+          content: editingDecision.content,
+          status: editingDecision.status
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('응답 수정 실패:', errorText);
+        throw new Error(`응답 수정 실패: ${response.status}`);
+      }
+
+      alert('응답이 성공적으로 수정되었습니다.');
+      setIsEditMode(false);
+      setEditingDecision(null);
+      await fetchDecisions();
+    } catch (error) {
+      console.error('응답 수정 중 오류:', error);
+      alert(`응답 수정에 실패했습니다: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <ResponseSection>
@@ -1821,18 +1908,24 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                 <DecisionStatus $status={decision.status}>
                                   {getStatusText(decision.status)}
                                 </DecisionStatus>
-                                <DecisionDate>{formatDate(decision.decidedAt)}</DecisionDate>
+                                <DecisionDate>
+                                  {formatDate(decision.decidedAt)}
+                                  <DeleteIcon 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+                                    }}
+                                    title="삭제"
+                                  >
+                                    🗑️
+                                  </DeleteIcon>
+                                </DecisionDate>
                               </DecisionHeader>
                               <DecisionContent>
                                 {decision.title && <strong>{decision.title}</strong>}
                                 {decision.content && <div>{decision.content}</div>}
                                 {!decision.title && !decision.content && '내용 없음'}
                               </DecisionContent>
-                              <DecisionActions>
-                                <DeleteAction onClick={() => handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName)}>
-                                  삭제
-                                </DeleteAction>
-                              </DecisionActions>
                             </ResponseDecision>
                           ))}
                         </ApproverContent>
@@ -1848,22 +1941,61 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                 <DecisionStatus $status={decision.status}>
                                   {getStatusText(decision.status)}
                                 </DecisionStatus>
-                                <DecisionDate>{formatDate(decision.decidedAt)}</DecisionDate>
+                                <DecisionDate>
+                                  {formatDate(decision.decidedAt)}
+                                  <DeleteIcon 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+                                    }}
+                                    title="삭제"
+                                  >
+                                    🗑️
+                                  </DeleteIcon>
+                                </DecisionDate>
                               </DecisionHeader>
                               <DecisionContent>
                                 {decision.title && <strong>{decision.title}</strong>}
                                 {decision.content && <div>{decision.content}</div>}
                                 {!decision.title && !decision.content && '내용 없음'}
                               </DecisionContent>
-                              <DecisionActions>
-                                <DeleteAction onClick={() => handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName)}>
-                                  삭제
-                                </DeleteAction>
-                              </DecisionActions>
                             </ResponseDecision>
                           ))}
                           
-                          {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
+                          {isEditMode && editingDecision && editingDecision.approverId === approver.approverId ? (
+                            <div style={{ marginTop: '16px', width: '100%' }}>
+                              <InputGroup>
+                                <Label>응답 내용</Label>
+                                <TextArea
+                                  value={editingDecision.content}
+                                  onChange={(e) => setEditingDecision(prev => ({
+                                    ...prev,
+                                    content: e.target.value
+                                  }))}
+                                  placeholder="응답 내용을 입력하세요"
+                                />
+                              </InputGroup>
+                              <InputGroup>
+                                <Label>승인 상태</Label>
+                                <StatusSelect
+                                  value={editingDecision.status}
+                                  onChange={(e) => setEditingDecision(prev => ({
+                                    ...prev,
+                                    status: e.target.value
+                                  }))}
+                                >
+                                  <option value="">승인 상태를 선택하세요</option>
+                                  <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
+                                  <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
+                                </StatusSelect>
+                              </InputGroup>
+                              <DecisionActions>
+                                <DeleteButton onClick={() => handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName)}>
+                                  삭제
+                                </DeleteButton>
+                              </DecisionActions>
+                            </div>
+                          ) : isInputOpen && selectedApprover?.approverId === approver.approverId ? (
                             <div style={{ marginTop: '16px', width: '100%' }}>
                               <InputGroup>
                                 <Label>응답 내용</Label>
@@ -1900,11 +2032,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                               </DecisionActions>
                             </div>
                           ) : (
-                            <AddResponseButton onClick={() => {
-                              setIsInputOpen(true);
-                              setSelectedApprover(approver);
-                              setNewDecision({ content: '', status: '' });
-                            }}>
+                            <AddResponseButton 
+                              onClick={() => {
+                                setIsInputOpen(true);
+                                setSelectedApprover(approver);
+                                setNewDecision({ content: '', status: '' });
+                              }}
+                            >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1970,11 +2104,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                               </DecisionActions>
                             </div>
                           ) : (
-                            <AddResponseButton onClick={() => {
-                              setIsInputOpen(true);
-                              setSelectedApprover(approver);
-                              setNewDecision({ content: '', status: '' });
-                            }}>
+                            <AddResponseButton 
+                              onClick={() => {
+                                setIsInputOpen(true);
+                                setSelectedApprover(approver);
+                                setNewDecision({ content: '', status: '' });
+                              }}
+                            >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
