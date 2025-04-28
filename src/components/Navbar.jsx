@@ -64,7 +64,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     { name: '감사 로그', path: '/audit-log', showFor: 'admin' },
     { 
       name: '관리자 문의',
-      path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry',
+      path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry-list',
       showFor: 'all'
     }
   ];

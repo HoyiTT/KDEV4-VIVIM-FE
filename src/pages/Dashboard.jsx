@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_BASE_URL } from '../config/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/projects?userId=${userId}`, {
         headers: {
           'Authorization': token
         }
@@ -76,7 +77,7 @@ const Dashboard = () => {
     const fetchRecentPosts = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://dev.vivim.co.kr/api/posts/user/recent`, {
+        const response = await fetch(`${API_BASE_URL}/posts/user/recent`, {
           headers: {
             'Authorization': token
           }
@@ -232,7 +233,9 @@ const PageContainer = styled.div`
 
 const MainContent = styled.main`
   padding: 24px;
-  margin-top: 60px;
+  margin: 60px auto 0;
+  max-width: 1300px;
+  width: calc(100% - 100px);
 `;
 
 const TopSection = styled.div`
