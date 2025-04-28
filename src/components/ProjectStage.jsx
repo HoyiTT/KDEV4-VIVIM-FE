@@ -77,28 +77,58 @@ const StageProgressItem = styled.div`
   width: 120px;
   cursor: pointer;
   flex-shrink: 0;
-  padding: 0 5px;
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+  position: relative;
   
   ${props => props.active && `
-    font-weight: bold;
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 2px;
+      background-color: #3b82f6;
+      border-radius: 2px;
+    }
   `}
+
+  &:hover {
+    background-color: rgba(59, 130, 246, 0.02);
+  }
 `;
 
 const StageProgressMarker = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: ${props => props.completed ? '#22c55e' : props.current ? '#3b82f6' : '#e2e8f0'};
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: ${props => {
+    if (props.completed) return '#22c55e';
+    if (props.current) return '#3b82f6';
+    return '#e2e8f0';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: ${props => 
+    props.viewing 
+      ? '0 0 0 2px #fff, 0 0 0 4px #3b82f6' 
+      : '0 2px 4px rgba(0, 0, 0, 0.1)'
+  };
+  transition: all 0.2s ease-in-out;
   
   svg {
     color: white;
-    font-size: 20px;
+    font-size: 18px;
   }
+
+  ${props => props.viewing && `
+    transform: scale(1.05);
+  `}
 `;
 
 const StageProgressDetails = styled.div`
@@ -109,22 +139,37 @@ const StageProgressDetails = styled.div`
 
 const StageProgressName = styled.div`
   font-weight: 600;
-  font-size: 14px;
-  color: #334155;
+  font-size: 13px;
+  color: #1e293b;
   margin-bottom: 4px;
   word-break: keep-all;
   overflow-wrap: break-word;
   max-width: 120px;
+  text-align: center;
+  line-height: 1.4;
+  letter-spacing: -0.3px;
 `;
 
 const StageProgressStatus = styled.div`
   font-size: 12px;
-  color: #64748b;
+  color: ${props => {
+    if (props.isCompleted) return '#16a34a';
+    if (props.isCurrent) return '#3b82f6';
+    return '#64748b';
+  }};
+  font-weight: ${props => (props.isCompleted || props.isCurrent) ? '600' : 'normal'};
+  background-color: ${props => {
+    if (props.isCompleted) return '#dcfce7';
+    if (props.isCurrent) return '#dbeafe';
+    return 'transparent';
+  }};
+  padding: 2px 8px;
+  border-radius: 4px;
 `;
 
 const StageProgressInfo = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-top: 32px;
   background-color: #f8fafc;
@@ -148,6 +193,15 @@ const ProgressInfoValue = styled.span`
   font-size: 16px;
   font-weight: 500;
   color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  small {
+    font-size: 12px;
+    text-align: center;
+  }
 `;
 
 const ProgressBar = styled.div`
@@ -172,9 +226,9 @@ const ProgressFill = styled.div`
  * @param {Function} setCurrentStageIndex - 단계 선택 시 호출되는 함수
  * @param {String} title - 타임라인 제목 (기본값: "프로젝트 진행 단계")
  * @param {Boolean} isAdmin - 관리자 여부
- * @param {Function} handleAddStage - 단계 추가 함수
  * @param {Function} openStageModal - 단계 추가 모달을 여는 함수
- * @param {Node} children - 컴포넌트 내부에 표시할 자식 요소
+ * @param {Object} projectProgress - 프로젝트 전체 진행률 정보
+ * @param {Object} progressStatus - 프로젝트 단계별 진척도 정보
  */
 const ProjectStageProgress = ({ 
   progressList, 
@@ -183,6 +237,15 @@ const ProjectStageProgress = ({
   title = "프로젝트 진행 단계",
   isAdmin = false,
   openStageModal,
+  projectProgress = {
+    totalStageCount: 0,
+    completedStageCount: 0,
+    currentStageProgressRate: 0,
+    overallProgressRate: 0
+  },
+  progressStatus = {
+    progressList: []
+  },
   children
 }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -280,48 +343,148 @@ const ProjectStageProgress = ({
       <StageProgressTimeline>
         <TimelineBar />
         <StageProgressList>
-          {progressList.map((stage, index) => (
-            <StageProgressItem 
-              key={stage.id}
-              onClick={() => setCurrentStageIndex(index)}
-              active={index === currentStageIndex}
-            >
-              <StageProgressMarker 
-                completed={index < currentStageIndex} 
-                current={index === currentStageIndex}
+          {progressList.map((stage, index) => {
+            const stageStatus = progressStatus.progressList.find(
+              status => status.progressId === stage.id
+            ) || {
+              totalApprovalCount: 0,
+              approvedApprovalCount: 0,
+              progressRate: 0,
+              isCompleted: false
+            };
+            
+            const isCompleted = stageStatus.isCompleted;
+            const isCurrent = !isCompleted && index === projectProgress.completedStageCount;
+            const isViewing = index === currentStageIndex;
+            
+            return (
+              <StageProgressItem 
+                key={stage.id}
+                onClick={() => setCurrentStageIndex(index)}
+                active={isViewing}
               >
-                {index < currentStageIndex ? <FaCheck /> : index === currentStageIndex ? <FaClock /> : index}
-              </StageProgressMarker>
-              <StageProgressDetails>
-                <StageProgressName>{stage.name}</StageProgressName>
-                <StageProgressStatus>
-                  {index < currentStageIndex 
-                    ? '완료' 
-                    : index === currentStageIndex 
-                      ? '진행 중' 
-                      : '예정됨'}
-                </StageProgressStatus>
-              </StageProgressDetails>
-            </StageProgressItem>
-          ))}
+                <StageProgressMarker 
+                  completed={isCompleted}
+                  current={isCurrent}
+                  viewing={isViewing}
+                >
+                  {isCompleted ? 
+                    <FaCheck /> : 
+                    isCurrent ? <FaClock /> : index + 1
+                  }
+                </StageProgressMarker>
+                <StageProgressDetails>
+                  <StageProgressName>{stage.name}</StageProgressName>
+                  <StageProgressStatus 
+                    isCompleted={isCompleted}
+                    isCurrent={isCurrent}
+                  >
+                    {isCompleted ? '완료' : 
+                     isCurrent ? '진행 중' : 
+                     '예정됨'}
+                  </StageProgressStatus>
+                </StageProgressDetails>
+              </StageProgressItem>
+            );
+          })}
         </StageProgressList>
       </StageProgressTimeline>
       
       <StageProgressInfo>
         <ProgressInfoItem>
           <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
-          <ProgressInfoValue>{progressList[currentStageIndex]?.name || '정보 없음'}</ProgressInfoValue>
+          <ProgressInfoValue>
+            {progressList[currentStageIndex]?.name || '정보 없음'}
+            {(() => {
+              const currentStage = progressList[currentStageIndex];
+              const stageStatus = currentStage 
+                ? progressStatus.progressList.find(status => status.progressId === currentStage.id)
+                : null;
+              
+              if (stageStatus?.isCompleted) {
+                return <small style={{ color: '#16a34a' }}>(완료)</small>;
+              } else if (currentStageIndex === projectProgress.completedStageCount) {
+                return <small style={{ color: '#3b82f6' }}>(진행 중)</small>;
+              }
+              return null;
+            })()}
+          </ProgressInfoValue>
+        </ProgressInfoItem>
+        <ProgressInfoItem>
+          <ProgressInfoLabel>현재 단계 승인 비율</ProgressInfoLabel>
+          {(() => {
+            const currentStage = progressList[currentStageIndex];
+            const stageStatus = currentStage 
+              ? progressStatus.progressList.find(status => status.progressId === currentStage.id)
+              : null;
+              
+            if (!stageStatus || stageStatus.totalApprovalCount === 0) {
+              return <ProgressInfoValue>승인요청 없음</ProgressInfoValue>;
+            }
+
+            const progressPercent = Math.round((stageStatus.approvedApprovalCount / stageStatus.totalApprovalCount) * 100);
+            const isStageCompleted = progressPercent === 100;
+            
+            return (
+              <>
+                <ProgressBar>
+                  <ProgressFill 
+                    width={`${progressPercent}%`}
+                    style={{
+                      backgroundColor: isStageCompleted ? '#22c55e' : '#3b82f6'
+                    }}
+                  />
+                </ProgressBar>
+                <ProgressInfoValue>
+                  <div style={{ 
+                    color: isStageCompleted ? '#16a34a' : '#1e293b',
+                    fontWeight: isStageCompleted ? '600' : '500'
+                  }}>
+                    {progressPercent}%
+                  </div>
+                  <small style={{ 
+                    color: isStageCompleted ? '#16a34a' : '#64748b',
+                    fontWeight: isStageCompleted ? '600' : 'normal'
+                  }}>
+                    {stageStatus.approvedApprovalCount}/{stageStatus.totalApprovalCount} 승인완료
+                    {isStageCompleted && ' (단계 완료)'}
+                  </small>
+                </ProgressInfoValue>
+              </>
+            );
+          })()}
         </ProgressInfoItem>
         <ProgressInfoItem>
           <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
-          <ProgressBar>
-            <ProgressFill width={`${progressList.length > 0 ? (currentStageIndex / progressList.length) * 100 : 0}%`} />
-          </ProgressBar>
-          <ProgressInfoValue>{progressList.length > 0 ? Math.round((currentStageIndex / progressList.length) * 100) : 0}%</ProgressInfoValue>
+          {(() => {
+            // 현재까지의 완료된 단계 수 계산
+            const completedStages = progressStatus.progressList.reduce((count, status, index) => {
+              const isCompleted = status.totalApprovalCount > 0 && 
+                                status.approvedApprovalCount === status.totalApprovalCount;
+              return isCompleted ? count + 1 : count;
+            }, 0);
+
+            // 전체 진행률 계산 (단계 단위로)
+            const totalStages = progressStatus.progressList.length;
+            const overallProgress = totalStages > 0 ? (completedStages / totalStages) * 100 : 0;
+
+            return (
+              <>
+                <ProgressBar>
+                  <ProgressFill width={`${overallProgress}%`} />
+                </ProgressBar>
+                <ProgressInfoValue>
+                  {Math.round(overallProgress)}% 
+                  <small>
+                    ({completedStages}/{totalStages} 단계 완료)
+                  </small>
+                </ProgressInfoValue>
+              </>
+            );
+          })()}
         </ProgressInfoItem>
       </StageProgressInfo>
       
-      {/* 추가된 부분: 승인요청 목록 등 자식 요소 표시 */}
       <ApprovalRequestContainer>
         {children}
       </ApprovalRequestContainer>
