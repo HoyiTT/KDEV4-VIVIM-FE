@@ -14,7 +14,7 @@ const getApprovalStatusText = (status) => {
     case ApprovalProposalStatus.UNDER_REVIEW:
       return '응답 대기중';
     case ApprovalProposalStatus.FINAL_APPROVED:
-      return '최종 승인완료';
+      return '승인완료';
     case ApprovalProposalStatus.FINAL_REJECTED:
       return '수정요청';
     case 'APPROVED':
