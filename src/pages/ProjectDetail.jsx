@@ -7,7 +7,9 @@ import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
 import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt } from 'react-icons/fa';
 import ProjectStageProgress from '../components/ProjectStage';
-import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
+import approvalUtils from '../utils/approvalStatus';
+
+const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -1308,207 +1310,12 @@ const SectionHeader = styled.div`
   margin-bottom: 20px;
 `;
 
-const StageNavigation = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const NavButton = styled.button`
-  padding: 8px 16px;
-  background: ${props => props.disabled ? '#f1f5f9' : '#f8fafc'};
-  color: ${props => props.disabled ? '#cbd5e1' : '#2E7D32'};
-  border: 1px solid ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-  
-  &:hover {
-    background: ${props => props.disabled ? '#f1f5f9' : '#f1f9f1'};
-  }
-`;
-
-const ArrowIcon = styled.span`
-  font-size: 16px;
-  font-weight: bold;
-  color: inherit;
-`;
-
-const StageIndicator = styled.span`
-  font-size: 14px;
-  color: #64748b;
-`;
-
 const StageSplitLayout = styled.div`
   display: flex;
   gap: 24px;
   margin-top: 10px;
   margin-bottom: 10px;
   flex-direction: column;
-`;
-
-const StageGridColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-  
-  /* 화면 너비가 좁을 때 너비 100%로 변경 */
-  @media (max-width: 400px) {
-    width: 100%;
-    margin-top: 20px;
-  }
-`;
-
-const MilestoneColumn = styled.div`
-  flex: 1;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-`;
-
-const MilestoneHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-`;
-
-const MilestoneTitle = styled.h3`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const AddMilestoneButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background-color: #f1f5f9;
-  }
-`;
-
-const MilestoneTimeline = styled.div`
-  position: relative;
-  margin: 30px 0;
-  padding: 0 10px;
-`;
-
-const TimelineBar = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background-color: #e2e8f0;
-  z-index: 1;
-`;
-
-const MilestoneEndpoints = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const EndpointDate = styled.div`
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
-`;
-
-const MilestoneItems = styled.div`
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-`;
-
-const MilestoneItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 120px;
-`;
-
-const MilestoneMarker = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: ${props => props.completed ? '#22c55e' : props.current ? '#3b82f6' : '#e2e8f0'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
-  svg {
-    color: white;
-    font-size: 20px;
-  }
-`;
-
-const MilestoneContent = styled.div`
-  text-align: center;
-`;
-
-const MilestoneName = styled.div`
-  font-weight: 600;
-  font-size: 14px;
-  color: #334155;
-  margin-bottom: 4px;
-`;
-
-const MilestoneDate = styled.div`
-  font-size: 12px;
-  color: #64748b;
-`;
-
-const MilestoneDescription = styled.p`
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 4px;
-  max-width: 120px;
-  text-align: center;
-`;
-
-const MilestoneStats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 32px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const StatLabel = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 4px;
-`;
-
-const StatValue = styled.span`
-  font-size: 16px;
-  font-weight: 500;
-  color: #1e293b;
 `;
 
 // 모달 관련 스타일 컴포넌트 추가
@@ -1546,6 +1353,7 @@ const ModalHeader = styled.div`
     font-size: 20px;
     font-weight: 600;
     margin: 0;
+    color: #1e293b;
   }
 `;
 
@@ -1613,7 +1421,7 @@ const ProposalSubtitle = styled.h2`
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
 const ApprovalDetailModal = styled.div`
@@ -1933,6 +1741,18 @@ const AddStageButton = styled.button`
   &:hover {
     background-color: #1d4ed8;
   }
+`;
+
+const ManageDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 180px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 5px;
+  z-index: 100;
 `;
 
 

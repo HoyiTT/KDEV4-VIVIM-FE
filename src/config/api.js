@@ -25,7 +25,6 @@ export const API_ENDPOINTS = {
   PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/link`,
   PROJECT_POST_FILE: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/file/stream`,
   
-  // Add this to your existing API_ENDPOINTS object
   RESET_PASSWORD: `${API_BASE_URL}/users/resetpassword`,
   AUDIT_LOGS: `${API_BASE_URL}/auditLog`,
   AUDIT_LOGS_SEARCH: `${API_BASE_URL}/auditLog/search`,
@@ -47,7 +46,7 @@ export const API_ENDPOINTS = {
     DELETE_DECISION: (proposalId, decisionId) => `${API_BASE_URL}/approval/${proposalId}/decisions/${decisionId}`,
     RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/resend`,
     SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
-    STATUS_SUMMARY: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/status-summary`,
+    STATUS_SUMMARY: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/status`,
   },
   DECISION: {
     CREATE_WITH_APPROVER: (approverId) => `${API_BASE_URL}/approver/${approverId}/decision`,

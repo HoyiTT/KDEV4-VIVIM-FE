@@ -5,7 +5,9 @@ import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enu
 import ApprovalDecision from './ApprovalDecision';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
-import { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } from '../utils/approval';
+import approvalUtils from '../utils/approvalStatus';
+
+const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
 // Styled Components
 const LoadingMessage = styled.div`
@@ -487,6 +489,8 @@ const ResponseStatus = styled.span`
   white-space: nowrap;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   gap: 5px;
+  background-color: ${props => getApprovalStatusBackgroundColor(props.status)};
+  color: ${props => getApprovalStatusTextColor(props.status)};
   
   &::before {
     content: "";
@@ -494,63 +498,8 @@ const ResponseStatus = styled.span`
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    background-color: ${props => getApprovalStatusTextColor(props.status)};
   }
-  
-  ${props => {
-    const status = props.status;
-    switch (status) {
-      case 'APPROVED':
-        return `
-          background-color: #ecfdf5;
-          color: #047857;
-          border: 1px solid #a7f3d0;
-          
-          &::before {
-            background-color: #10b981;
-          }
-        `;
-      case 'REJECTED':
-        return `
-          background-color: #fef2f2;
-          color: #b91c1c;
-          border: 1px solid #fecaca;
-          
-          &::before {
-            background-color: #ef4444;
-          }
-        `;
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return `
-          background-color: #f8fafc;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-          
-          &::before {
-            background-color: #94a3b8;
-          }
-        `;
-      case 'REQUEST_PROPOSAL':
-        return `
-          background-color: #eff6ff;
-          color: #1d4ed8;
-          border: 1px solid #bfdbfe;
-          
-          &::before {
-            background-color: #3b82f6;
-          }
-        `;
-      default:
-        return `
-          background-color: #f8fafc;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-          
-          &::before {
-            background-color: #94a3b8;
-          }
-        `;
-    }
-  }}
 `;
 
 const EmptyResponseMessage = styled.div`
@@ -644,47 +593,10 @@ const StatusSelect = styled.select`
 `;
 
 const getStatusColor = (status) => {
-  switch (status) {
-    case 'BEFORE_REQUEST_PROPOSAL':
-      return {
-        background: '#f1f5f9',
-        text: '#64748b',
-        border: '1px solid #e2e8f0'
-      };
-    case 'WAITING_FOR_DECISIONS':
-    case 'REQUEST_PROPOSAL':
-      return {
-        background: '#dbeafe',
-        text: '#2563eb',
-        border: '1px solid #bfdbfe'
-      };
-    case 'IN_PROGRESS_DECISIONS':
-      return {
-        background: '#fef9c3',
-        text: '#ca8a04',
-        border: '1px solid #fde047'
-      };
-    case 'APPROVED_BY_ALL_DECISIONS':
-    case 'APPROVED':
-      return {
-        background: '#dcfce7',
-        text: '#16a34a',
-        border: '1px solid #bbf7d0'
-      };
-    case 'REJECTED_BY_ANY_DECISION':
-    case 'REJECTED':
-      return {
-        background: '#fee2e2',
-        text: '#dc2626',
-        border: '1px solid #fecaca'
-      };
-    default:
-      return {
-        background: '#f1f5f9',
-        text: '#64748b',
-        border: '1px solid #e2e8f0'
-      };
-  }
+  return {
+    background: getApprovalStatusBackgroundColor(status),
+    text: getApprovalStatusTextColor(status)
+  };
 };
 
 const StatusBadge = styled.span`
@@ -697,6 +609,8 @@ const StatusBadge = styled.span`
   gap: 5px;
   white-space: nowrap;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background-color: ${props => props.background};
+  color: ${props => props.text};
   
   &::before {
     content: "";
@@ -704,52 +618,8 @@ const StatusBadge = styled.span`
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    background-color: ${props => props.text};
   }
-  
-  ${props => {
-    switch (props.background) {
-      case '#dcfce7':
-        return `
-          background-color: #ecfdf5;
-          color: #047857;
-          border: 1px solid #a7f3d0;
-          
-          &::before {
-            background-color: #10b981;
-          }
-        `;
-      case '#fee2e2':
-        return `
-          background-color: #fef2f2;
-          color: #b91c1c;
-          border: 1px solid #fecaca;
-          
-          &::before {
-            background-color: #ef4444;
-          }
-        `;
-      case '#dbeafe':
-        return `
-          background-color: #eff6ff;
-          color: #1d4ed8;
-          border: 1px solid #bfdbfe;
-          
-          &::before {
-            background-color: #3b82f6;
-          }
-        `;
-      default:
-        return `
-          background-color: #f8fafc;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-          
-          &::before {
-            background-color: #94a3b8;
-          }
-        `;
-    }
-  }}
 `;
 
 const ListProposalTitle = styled.h3`
@@ -1307,7 +1177,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
       
       // 승인권자가 있으면 전송 진행
       console.log('승인요청 전송 API 호출 시작');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.RESEND(approvalId), {
+      const response = await fetch(API_ENDPOINTS.APPROVAL.SEND(approvalId), {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -1348,7 +1218,7 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   const handleShowMore = () => {
@@ -1377,7 +1247,6 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                           <StatusBadge
                             background={colors.background}
                             text={colors.text}
-                            border={colors.border}
                           >
                             {getApprovalStatusText(proposal.approvalProposalStatus)}
                           </StatusBadge>
