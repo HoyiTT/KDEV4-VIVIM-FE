@@ -201,15 +201,24 @@ const AuditLog = () => {
               >
                 이전
               </PageButton>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <PageButton
-                  key={i}
-                  onClick={() => handlePageChange(i)}
-                  active={page === i}
-                >
-                  {i + 1}
-                </PageButton>
-              ))}
+              {(() => {
+                const buttons = [];
+                const startPage = Math.max(0, page - 5);
+                const endPage = Math.min(totalPages - 1, page + 5);
+
+                for (let i = startPage; i <= endPage; i++) {
+                  buttons.push(
+                    <PageButton
+                      key={i}
+                      onClick={() => handlePageChange(i)}
+                      active={page === i}
+                    >
+                      {i + 1}
+                    </PageButton>
+                  );
+                }
+                return buttons;
+              })()}
               <PageButton 
                 onClick={() => handlePageChange(page + 1)} 
                 disabled={page === totalPages - 1}
@@ -238,8 +247,14 @@ const AuditLog = () => {
                   <DetailItem key={index}>
                     <DetailField>{detail.fieldName}</DetailField>
                     <DetailValue>
-                      <div>이전 값: {detail.oldValue}</div>
-                      <div>새로운 값: {detail.newValue}</div>
+                      <ValueRow>
+                        <ValueLabel>이전 값:</ValueLabel>
+                        <ValueContent>{detail.oldValue || '-'}</ValueContent>
+                      </ValueRow>
+                      <ValueRow>
+                        <ValueLabel>새로운 값:</ValueLabel>
+                        <ValueContent>{detail.newValue || '-'}</ValueContent>
+                      </ValueRow>
                     </DetailValue>
                   </DetailItem>
                 ))}
@@ -431,6 +446,7 @@ const ModalContent = styled.div`
   max-width: 80%;
   max-height: 80%;
   overflow: auto;
+  min-width: 600px;
 `;
 
 const ModalHeader = styled.div`
@@ -467,20 +483,45 @@ const ModalBody = styled.div`
 `;
 
 const DetailItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  align-items: start;
 `;
 
 const DetailField = styled.span`
   font-size: 14px;
   font-weight: 600;
   color: #1e293b;
+  word-break: keep-all;
 `;
 
-const DetailValue = styled.span`
+const DetailValue = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-size: 14px;
   color: #64748b;
+`;
+
+const ValueRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+`;
+
+const ValueLabel = styled.span`
+  font-weight: 500;
+  color: #475569;
+  min-width: 80px;
+`;
+
+const ValueContent = styled.span`
+  flex: 1;
+  word-break: break-all;
 `;
 
 export default AuditLog;
