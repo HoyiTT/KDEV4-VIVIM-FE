@@ -17,7 +17,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setIsAdmin(payload.role === 'ADMIN');
-        
+
         // 사용자 정보 가져오기
         const fetchUserInfo = async () => {
           try {
@@ -27,7 +27,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
             console.error('사용자 정보 조회 실패:', error);
           }
         };
-        
+
         fetchUserInfo();
       } catch (error) {
         console.error('Token decode error:', error);
@@ -61,8 +61,12 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     },
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
     { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
-    { name: '관리자 문의', path: '/admin-inquiry', showFor: 'admin' },
-    { name: '감사 로그', path: '/audit-log', showFor: 'admin' }
+    { name: '감사 로그', path: '/audit-log', showFor: 'admin' },
+    { 
+      name: '관리자 문의',
+      path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry',
+      showFor: 'all'
+    }
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
@@ -74,11 +78,11 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       await axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT, { refreshToken });
-      
+
       // localStorage에서 토큰 제거
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      
+
       // 로그인 페이지로 이동
       navigate('/');
     } catch (error) {

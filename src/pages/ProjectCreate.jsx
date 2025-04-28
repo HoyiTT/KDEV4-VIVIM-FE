@@ -276,6 +276,19 @@ const ProjectCreate = () => {
     setActiveMenuItem(menuItem);
   };
 
+  // state 이름 변경
+  const [projectFee, setProjectFee] = useState('');
+
+  // 핸들러 이름 변경
+  const handleProjectFeeChange = (e) => {
+    const value = e.target.value;
+    // 숫자와 쉼표만 허용
+    const onlyNumbers = value.replace(/[^0-9]/g, '');
+    // 쉼표 추가
+    const formattedValue = onlyNumbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    setProjectFee(formattedValue);
+  };
+
   // 제출 핸들러 수정
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -330,7 +343,8 @@ const ProjectCreate = () => {
       clientManagers: clientManagers,
       clientUsers: clientUsers,
       devManagers: allDevManagers,
-      devUsers: allDevUsers
+      devUsers: allDevUsers,
+      projectFee: parseInt(projectFee.replace(/,/g, '')) // contractAmount를 projectFee로 변경
     };
     
     console.log('Project data to be sent to server:', projectData);
@@ -359,7 +373,7 @@ const ProjectCreate = () => {
     .then(data => {
       console.log('Success:', data);
       // Navigate back to dashboard on success
-      navigate('/dashboard');
+      navigate('/dashboard-admin');
     })
     .catch(error => {
       console.error('Error:', error);
@@ -496,6 +510,17 @@ const ProjectCreate = () => {
                 />
               </FormGroup>
             </FormRow>
+
+            <FormGroup>
+              <Label>계약금 (원)</Label>
+              <Input 
+                type="text" 
+                value={projectFee}
+                onChange={handleProjectFeeChange}
+                placeholder="계약금을 입력하세요"
+                required
+              />
+            </FormGroup>
 
             <SectionDivider>고객사 정보</SectionDivider>
 

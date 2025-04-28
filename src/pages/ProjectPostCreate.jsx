@@ -3,8 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 
-const API_BASE_URL = 'https://dev.vivim.co.kr/api';
-// const API_BASE_URL = 'https://localhost/api';
 
 
 
@@ -35,20 +33,27 @@ const ProjectPostCreate = () => {
     'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/gzip',
     'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
   ];
+
+  // 파일 크기 제한 상수 추가 (10MB in bytes)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
   const handleFileDelete = (indexToDelete) => {
     setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
   };
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    const invalidFiles = selectedFiles.filter(file => !allowedMimeTypes.includes(file.type));
     
-    if (invalidFiles.length > 0) {
-      setFileError('지원하지 않는 파일 형식이 포함되어 있습니다.');
-      e.target.value = ''; // Reset file input
-    } else {
-      setFileError('');
-      setFiles(prevFiles => [...prevFiles, ...selectedFiles]); // 기존 파일 목록에 새 파일들 추가
+    // 파일 크기 검증
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    
+    if (oversizedFiles.length > 0) {
+      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n' + 
+        oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
+      e.target.value = ''; // 파일 선택 초기화
+      return;
     }
+
+    setFiles(selectedFiles);
   };
   // 링크 추가 함수
 const handleAddLink = () => {
@@ -65,93 +70,87 @@ const handleLinkDelete = (indexToDelete) => {
 };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
+    setLoading(true); // 로딩 상태 시작
 
-    // 제목과 내용의 공백 검증
-    if (!title.trim()) {
-      alert('제목을 입력해주세요.');
-      return;
-    }
-
-    if (!content.trim()) {
-      alert('내용을 입력해주세요.');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
-      const postData = {
-        title: title.trim(),  // 앞뒤 공백 제거
-        content: content.trim(),  // 앞뒤 공백 제거
-        projectPostStatus: postStatus,
-        parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null
-      };
-      
-      const postResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/posts`, {
+      // 1. 게시글 생성
+      const postResponse = await fetch(`https://dev.vivim.co.kr/api/projects/${projectId}/posts`, {
         method: 'POST',
         headers: {
-          'Authorization': `${token}`,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(postData)
-      });
-  
-      if (!postResponse.ok) {
-        throw new Error(`게시글 생성 실패: ${postResponse.status}`);
-      }
-  
-      const postId = await postResponse.json();
-  
-      // 2. 링크가 입력된 경우에만 링크 생성
-      if (links.length > 0) {
-        for (const link of links) {
-          const linkData = {
+        body: JSON.stringify({
+          title,
+          content,
+          projectPostStatus: postStatus,
+          parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null,
+          links: links.map(link => ({
             title: link.title,
             url: link.url
-          };
-      
-          const linkResponse = await fetch(`${API_BASE_URL}/posts/${postId}/link`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(linkData)
-          });
-      
-          if (!linkResponse.ok) {
-            throw new Error(`링크 생성 실패: ${linkResponse.status}`);
-          }
-        }
+          }))
+        })
+      });
+
+      if (!postResponse.ok) {
+        throw new Error('게시글 생성 실패');
       }
-  
-      // 3. 파일 업로드
+
+      const postData = await postResponse.json();
+      const createdPostId = postData;
+
+      // 2. 파일 업로드 처리 (동기적으로)
       if (files.length > 0) {
         for (const file of files) {
-          const formData = new FormData();
-          formData.append('file', file);
-  
-          const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
+          if (file.size > MAX_FILE_SIZE) {
+            throw new Error(`파일 크기 제한 초과: ${file.name}`);
+          }
+
+          // presigned URL 요청
+          const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/posts/${createdPostId}/file/presigned`, {
             method: 'POST',
             headers: {
-              'Authorization': `${token}`
+              'Authorization': token,
+              'Content-Type': 'application/json'
             },
-            body: formData
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              contentType: file.type
+            })
           });
-  
-          if (!fileResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${fileResponse.status}`);
+
+          if (!presignedResponse.ok) {
+            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
           }
+
+          const { preSignedUrl, fileId } = await presignedResponse.json();
+
+          // S3에 파일 업로드
+          const uploadResponse = await fetch(preSignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type
+            }
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`파일 업로드 실패: ${file.name}`);
+          }
+
+         
         }
       }
-  
-      navigate(`/project/${projectId}`);
+
+      setLoading(false); // 로딩 상태 종료
+      navigate(`/project/${projectId}`); // 성공 시 이동
+      
     } catch (error) {
-      console.error('오류:', error);
+      setLoading(false); // 에러 발생 시에도 로딩 상태 종료
+      console.error('Error:', error);
       alert('게시글 작성 중 오류가 발생했습니다: ' + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -283,36 +282,40 @@ const handleLinkDelete = (indexToDelete) => {
               <InputGroup>
                 <Label>파일 첨부 (선택사항)</Label>
                 <FileInputContainer>
-                  <HiddenFileInput
-                    type="file"
-                    onChange={handleFileChange}
-                    multiple
-                    accept={allowedMimeTypes.join(',')}
-                    id="fileInput"
-                  />
-                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
-                    파일 선택
-                  </FileButton>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <HiddenFileInput
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      accept="*/*"
+                      id="fileInput"
+                    />
+                    <FileButton 
+                      type="button" 
+                      onClick={() => document.getElementById('fileInput').click()}
+                    >
+                      파일 선택
+                    </FileButton>
+                  </div>
+                  {files.length > 0 && (
+                    <FileList>
+                      {Array.from(files).map((file, index) => (
+                        <FileItem key={index}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            📎 {file.name}
+                          </div>
+                          <DeleteButton
+                            type="button"
+                            onClick={() => handleFileDelete(index)}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+                    </FileList>
+                  )}
+                  {fileError && <ErrorMessage>{fileError}</ErrorMessage>}
                 </FileInputContainer>
-
-                {files.length > 0 && (
-                  <FileList>
-                    {Array.from(files).map((file, index) => (
-                      <FileItem key={index}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          📎 {file.name}
-                        </div>
-                        <DeleteButton
-                          type="button"
-                          onClick={() => handleFileDelete(index)}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
-                {fileError && <ErrorMessage>{fileError}</ErrorMessage>}
               </InputGroup>
 
             <ButtonContainer>
@@ -478,16 +481,20 @@ const InputGroup = styled.div`
 
 // Add these new styled components
 const FileInputContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  margin-bottom: 16px;
+
+  &::after {
+    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
 `;
 
 const HiddenFileInput = styled.input`
   display: none;
 `;
-
-
 
 const Label = styled.label`
   font-size: 16px;
