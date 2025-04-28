@@ -34,6 +34,17 @@ const ProjectDetail = () => {
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
   const [statusSummary, setStatusSummary] = useState(null); // 추가: 상태 요약 정보를 저장할 state
+  const [approvalRequests, setApprovalRequests] = useState([]);
+  const [projectProgress, setProjectProgress] = useState({
+    totalStageCount: 0,
+    completedStageCount: 0,
+    currentStageProgressRate: 0,
+    overallProgressRate: 0
+  });
+
+  const [progressStatus, setProgressStatus] = useState({
+    progressList: []
+  });
 
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -66,7 +77,27 @@ const ProjectDetail = () => {
     fetchProjectDetail();
     fetchProjectPosts();
     fetchProjectProgress();
+    fetchApprovalRequests();
+    fetchProjectOverallProgress();
+    fetchProgressStatus();
+
+    // 1분마다 데이터 업데이트
+    const updateInterval = setInterval(() => {
+      fetchProjectOverallProgress();
+      fetchProgressStatus();
+    }, 60000);
+
+    return () => {
+      clearInterval(updateInterval);
+    };
   }, [id]);
+
+  // 현재 단계가 변경될 때마다 진행률 다시 계산
+  useEffect(() => {
+    if (progressList.length > 0 && approvalRequests.length > 0) {
+      fetchProjectOverallProgress();
+    }
+  }, [currentStageIndex, approvalRequests]);
 
   const translateRole = (role) => {
     switch (role) {
@@ -420,6 +451,125 @@ const ProjectDetail = () => {
     setShowStageModal(true);
   };
   
+  // 승인요청 목록 조회
+  const fetchApprovalRequests = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('승인요청 목록 조회에 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      console.log('승인요청 목록:', data);
+      setApprovalRequests(data);
+      
+      // 승인요청 상태가 변경되면 진행률 다시 조회
+      fetchProjectOverallProgress();
+    } catch (error) {
+      console.error('승인요청 목록 조회 중 오류 발생:', error);
+    }
+  };
+  
+  // 프로젝트 진행률 조회
+  const fetchProjectOverallProgress = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('프로젝트 진행률 조회에 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      console.log('프로젝트 진행률 데이터:', data);
+      
+      // 현재 단계의 승인요청들을 필터링
+      const currentStageApprovals = approvalRequests.filter(
+        req => req.stageId === progressList[currentStageIndex]?.id
+      );
+      
+      // 현재 단계의 승인요청 중 최종 승인된 것의 비율 계산
+      let currentStageProgress = 0;
+      if (currentStageApprovals.length > 0) {
+        const approvedCount = currentStageApprovals.filter(
+          req => req.approvalProposalStatus === 'APPROVED'
+        ).length;
+        currentStageProgress = approvedCount / currentStageApprovals.length;
+      }
+      
+      // 진행률 데이터 업데이트
+      setProjectProgress({
+        ...data,
+        currentStageProgressRate: currentStageProgress
+      });
+      
+    } catch (error) {
+      console.error('프로젝트 진행률 조회 중 오류 발생:', error);
+    }
+  };
+
+  // 프로젝트 단계별 승인요청 진척도 조회
+  const fetchProgressStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`, {
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('단계별 진척도 조회에 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      console.log('단계별 진척도:', data);
+
+      // 각 단계의 완료 여부 계산
+      const updatedProgressList = data.progressList.map(progress => ({
+        ...progress,
+        isCompleted: progress.totalApprovalCount > 0 && 
+                    progress.approvedApprovalCount === progress.totalApprovalCount
+      }));
+
+      setProgressStatus({
+        ...data,
+        progressList: updatedProgressList
+      });
+
+      // 완료된 단계 수 계산
+      const completedStages = updatedProgressList.reduce((count, status) => {
+        return status.isCompleted ? count + 1 : count;
+      }, 0);
+
+      // 전체 진행률 업데이트 (단계 단위로)
+      const totalStages = updatedProgressList.length;
+      const overallProgress = totalStages > 0 ? (completedStages / totalStages) * 100 : 0;
+
+      setProjectProgress(prev => ({
+        ...prev,
+        completedStageCount: completedStages,
+        totalStageCount: totalStages,
+        overallProgressRate: overallProgress
+      }));
+
+    } catch (error) {
+      console.error('단계별 진척도 조회 중 오류 발생:', error);
+    }
+  };
+  
   return (
     <PageContainer>
       <Navbar 
@@ -477,7 +627,6 @@ const ProjectDetail = () => {
 
             <StageSection>
               <StageSplitLayout>
-                {/* ProjectStageProgress 컴포넌트를 사용하여 타임라인 표시 */}
                 <ProjectStageProgress 
                   progressList={progressList}
                   currentStageIndex={currentStageIndex}
@@ -485,28 +634,29 @@ const ProjectDetail = () => {
                   title="프로젝트 진행 단계"
                   isAdmin={isAdmin}
                   openStageModal={openStageModal}
+                  projectProgress={projectProgress}
+                  progressStatus={progressStatus}
                 >
-                  {/* 승인요청 목록을 타임라인 컴포넌트 내부에 포함 */}
                   {progressList.length > 0 ? (
                     progressList
                   .sort((a, b) => a.position - b.position)
-                      .map((stage, index) => (
-                        <StageContainer 
-                          key={stage.id} 
-                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+                    .map((stage, index) => (
+                      <StageContainer 
+                        key={stage.id} 
+                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+                      >
+                        <StageItem 
+                          ref={el => stageRefs.current[index] = el} 
                         >
-                          <StageItem 
-                            ref={el => stageRefs.current[index] = el} 
-                          >
-                            <StageHeader>
-                              <StageTitle title={stage.name} />
-                            </StageHeader>
-                            <ApprovalProposal 
-                              progressId={stage.id} 
-                            />
+                          <StageHeader>
+                            <StageTitle title={stage.name} />
+                          </StageHeader>
+                          <ApprovalProposal 
+                            progressId={stage.id} 
+                          />
                     </StageItem>
-                        </StageContainer>
-                      ))
+                      </StageContainer>
+                    ))
                   ) : (
                     <EmptyStageMessage>
                       등록된 진행 단계가 없습니다.
@@ -1421,7 +1571,7 @@ const ProposalSubtitle = styled.h2`
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const ApprovalDetailModal = styled.div`
