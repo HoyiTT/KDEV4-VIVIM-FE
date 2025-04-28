@@ -21,7 +21,7 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchInquiryDetail = async () => {
       try {
-        const response = await fetch(`https://localhost/api/admininquiry/${id}`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
           headers: {
             'Authorization': token
           }
@@ -42,7 +42,7 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(`https://localhost/api/admininquiry/${id}/comment`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment`, {
           headers: {
             'Authorization': token
           }
@@ -50,7 +50,10 @@ const AdminInquiryDetail = () => {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Fetched comments:', data);
           setComments(data);
+        } else {
+          console.error('Failed to fetch comments:', response.status);
         }
       } catch (error) {
         console.error('Error fetching comments:', error);
@@ -65,7 +68,7 @@ const AdminInquiryDetail = () => {
   const handleCompleteAnswer = async () => {
     try {
       setIsSubmitting(true);
-      const response = await fetch(`https://localhost/api/admininquiry/${id}/complete`, {
+      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/complete`, {
         method: 'PATCH',
         headers: {
           'Authorization': token,
@@ -94,7 +97,7 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(`https://localhost/api/admininquiry/${id}/comment`, {
+      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment`, {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -135,7 +138,7 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(`https://localhost/api/admininquiry/${id}/comment/${commentId}`, {
+      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': token,
@@ -165,6 +168,34 @@ const AdminInquiryDetail = () => {
     console.log('Delete comment:', comment);
   };
 
+  const handleEditInquiry = () => {
+    navigate(`/admin-inquiry-list/${id}/edit`);
+  };
+
+  const handleDeleteInquiry = async () => {
+    if (window.confirm('정말로 이 문의를 삭제하시겠습니까?')) {
+      try {
+        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/delete`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          alert('문의가 삭제되었습니다.');
+          navigate('/admin-inquiry-list');
+        } else {
+          throw new Error('문의 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting inquiry:', error);
+        alert('문의 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   if (!inquiry) return null;
 
   return (
@@ -191,23 +222,16 @@ const AdminInquiryDetail = () => {
                    inquiry.inquiryStatus === 'IN_PROGRESS' ? '처리중' : '완료'}
                 </StatusBadge>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <CreatedAt>
-                  {new Date(inquiry.createdAt).toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                  }).replace(/\. /g, '.').slice(0, -1)}
-                </CreatedAt>
-                {isAdmin && (
-                  <CompleteButton 
-                    onClick={handleCompleteAnswer}
-                    disabled={inquiry.inquiryStatus === 'COMPLETED' || isSubmitting}
-                  >
-                    {inquiry.inquiryStatus === 'COMPLETED' ? '답변완료' : '답변완료하기'}
-                  </CompleteButton>
-                )}
-              </div>
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <EditButton onClick={handleEditInquiry}>
+                    수정
+                  </EditButton>
+                  <DeleteButton onClick={handleDeleteInquiry}>
+                    삭제
+                  </DeleteButton>
+                </div>
+              )}
             </TitleHeader>
             <Title>{inquiry.title}</Title>
             <InfoSection>
@@ -221,16 +245,36 @@ const AdminInquiryDetail = () => {
                   <InfoValue>{inquiry.projectName}</InfoValue>
                 </InfoItem>
               )}
+              <InfoItem>
+                <InfoLabel>작성일</InfoLabel>
+                <InfoValue>
+                  {new Date(inquiry.createdAt).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  }).replace(/\. /g, '.').slice(0, -1)}
+                </InfoValue>
+              </InfoItem>
+              {isAdmin && (
+                <InfoItem style={{ marginLeft: 'auto' }}>
+                  <CompleteButton 
+                    onClick={handleCompleteAnswer}
+                    disabled={inquiry.inquiryStatus === 'COMPLETED' || isSubmitting}
+                  >
+                    {inquiry.inquiryStatus === 'COMPLETED' ? '답변완료' : '답변완료하기'}
+                  </CompleteButton>
+                </InfoItem>
+              )}
             </InfoSection>
           </TitleSection>
           <ContentSection>
             <Content>{inquiry.content}</Content>
           </ContentSection>
 
-          {comments.length > 0 && (
-            <CommentSection>
-              <CommentTitle>답변 내역</CommentTitle>
-              {comments.map((comment) => (
+          <CommentSection>
+            <CommentTitle>답변 내역</CommentTitle>
+            {comments && comments.length > 0 ? (
+              comments.map((comment) => (
                 <CommentItem key={comment.id}>
                   <CommentHeader>
                     <CommentInfo>
@@ -243,16 +287,14 @@ const AdminInquiryDetail = () => {
                         }).replace(/\. /g, '.').slice(0, -1)}
                       </CommentDate>
                     </CommentInfo>
-                    {isAdmin && editingCommentId !== comment.id && (
-                      <CommentButtons>
-                        <CommentButton onClick={() => handleEditComment(comment)}>
-                          수정
-                        </CommentButton>
-                        <CommentButton className="delete" onClick={() => handleDeleteComment(comment)}>
-                          삭제
-                        </CommentButton>
-                      </CommentButtons>
-                    )}
+                    <CommentButtons>
+                      <CommentButton onClick={() => handleEditComment(comment)}>
+                        수정
+                      </CommentButton>
+                      <CommentButton className="delete" onClick={() => handleDeleteComment(comment)}>
+                        삭제
+                      </CommentButton>
+                    </CommentButtons>
                   </CommentHeader>
                   {editingCommentId === comment.id ? (
                     <EditContainer>
@@ -274,9 +316,13 @@ const AdminInquiryDetail = () => {
                     <CommentContent>{comment.content}</CommentContent>
                   )}
                 </CommentItem>
-              ))}
-            </CommentSection>
-          )}
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                아직 답변이 없습니다.
+              </div>
+            )}
+          </CommentSection>
 
           {isAdmin && (
             <AnswerSection>

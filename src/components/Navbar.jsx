@@ -45,7 +45,6 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
 
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
   const userId = decodedToken?.userId;
 
   const userName = decodedToken?.username || '사용자';
@@ -62,9 +61,9 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     },
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
     { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
-    { name: '관리자 문의', path: '/admin-inquiry', showFor: 'admin' },
     { name: '감사 로그', path: '/audit-log', showFor: 'admin' },
-    { name: '관리자 문의',
+    { 
+      name: '관리자 문의',
       path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry',
       showFor: 'all'
     }

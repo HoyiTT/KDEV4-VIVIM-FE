@@ -16,6 +16,7 @@ const ProjectModify = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedClientCompany, setSelectedClientCompany] = useState('');
   const [selectedDevCompany, setSelectedDevCompany] = useState('');
+  const [projectFee, setProjectFee] = useState('');
   
   // Selected users
   const [clientManagers, setClientManagers] = useState([]);
@@ -71,6 +72,52 @@ const ProjectModify = () => {
   useEffect(() => {
     if (projectId) {
       const token = localStorage.getItem('token');
+      //fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
+      fetch(`https://localhost/api/projects/${projectId}`, {
+        headers: {
+          'Authorization': token
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Received project data:', data); // 데이터 확인용 로그
+          // Populate form with project data
+          setProjectName(data.name);
+          setDescription(data.description);
+          setStartDate(data.startDate);
+          setEndDate(data.endDate);
+          setProjectFee(data.projectFee);
+          setSelectedClientCompany(data.clientCompanyId.toString());
+          setSelectedDevCompany(data.devCompanyId.toString());
+          
+          // projectFee 값이 있는 경우에만 천 단위 쉼표 포맷팅 적용
+          if (data.projectFee) {
+            const formattedFee = data.projectFee.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            console.log('Formatted project fee:', formattedFee); // 포맷팅된 값 확인용 로그
+            setProjectFee(formattedFee);
+          }
+          
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Error fetching project:', error);
+          setLoading(false);
+        });
+    }
+  }, [projectId]);
+
+  // Fetch project users
+  useEffect(() => {
+    if (projectId) {
+      const token = localStorage.getItem('token');
+      fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
+        headers: {
+          'Authorization': token
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          setProjectUsers(data);
       console.log('프로젝트 상세 정보 요청:', API_ENDPOINTS.PROJECT_DETAIL(projectId));
       
       // 프로젝트 상세 정보와 회사 정보를 병렬로 요청
@@ -273,6 +320,15 @@ const ProjectModify = () => {
     }
   };
 
+  const handleProjectFeeChange = (e) => {
+    const value = e.target.value;
+    // 숫자와 쉼표만 허용
+    const onlyNumbers = value.replace(/[^0-9]/g, '');
+    // 쉼표 추가
+    const formattedValue = onlyNumbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    setProjectFee(formattedValue);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -290,6 +346,7 @@ const ProjectModify = () => {
         selectedClientCompany.id,
         ...devCompanySelections.map(selection => selection.companyId)
       ],
+      projectFee: parseInt(projectFee.replace(/,/g, '')), // 쉼표 제거하고 숫자로 변환
       clientManagers: clientManagers.map(manager => ({
         userId: parseInt(manager.userId)
       })),
@@ -666,6 +723,17 @@ const ProjectModify = () => {
                   />
                 </FormGroup>
               </FormRow>
+
+              <FormGroup>
+                <Label>계약금 (원)</Label>
+                <Input 
+                  type="text" 
+                  value={projectFee}
+                  onChange={handleProjectFeeChange}
+                  placeholder="계약금을 입력하세요"
+                  required
+                />
+              </FormGroup>
 
               <SectionDivider>고객사 정보</SectionDivider>
 

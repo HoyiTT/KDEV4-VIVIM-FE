@@ -28,8 +28,8 @@ const AdminInquiryList = () => {
       try {
         const token = localStorage.getItem('token');
         const endpoint = isAdmin 
-          ? 'https://localhost/api/admininquiry'
-          : 'https://localhost/api/user/admininquiry';
+          ? 'https://dev.vivim.co.kr/api/admininquiry'
+          : 'https://dev.vivim.co.kr/api/user/admininquiry';
 
         const response = await fetch(endpoint, {
           headers: {

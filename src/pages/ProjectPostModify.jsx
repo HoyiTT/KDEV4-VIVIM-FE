@@ -6,6 +6,8 @@ import Navbar from '../components/Navbar';
 // const API_BASE_URL = 'https://dev.vivim.co.kr/api';
 const API_BASE_URL = 'https://localhost/api';
 
+// 파일 크기 제한 상수 추가 (상단에 추가)
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const ProjectPostModify = () => {
   const { projectId, postId } = useParams();  // postId 추가
@@ -71,15 +73,42 @@ const ProjectPostModify = () => {
  
   const handleAddFile = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    const invalidFiles = selectedFiles.filter(file => !allowedMimeTypes.includes(file.type));
     
-    if (invalidFiles.length > 0) {
+    // 파일 형식 검증
+    const invalidTypeFiles = selectedFiles.filter(file => !allowedMimeTypes.includes(file.type));
+    
+    // 파일 크기 검증
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    
+    if (invalidTypeFiles.length > 0) {
       setFileError('지원하지 않는 파일 형식이 포함되어 있습니다.');
       e.target.value = '';
-    } else {
-      setFileError('');
-      setNewFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+      return;
     }
+    
+    if (oversizedFiles.length > 0) {
+      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n');
+      setFileError('10MB 이상의 파일은 업로드할 수 없습니다.');
+      e.target.value = '';
+      return;
+    }
+    
+    setFileError('');
+    // 기존 파일 목록에 새로운 파일들을 추가
+    setNewFiles(prevFiles => {
+      const updatedFiles = [...prevFiles];
+      selectedFiles.forEach(file => {
+        // 중복 파일 체크 (파일 이름으로 비교)
+        const isDuplicate = updatedFiles.some(existingFile => existingFile.name === file.name);
+        if (!isDuplicate) {
+          updatedFiles.push(file);
+        }
+      });
+      return updatedFiles;
+    });
+    
+    // 파일 입력 초기화
+    e.target.value = '';
   };
   
   const handleFileDelete = (index, isExisting) => {
@@ -127,9 +156,11 @@ const ProjectPostModify = () => {
       console.error('Error fetching links:', error);
     }
   };
-  
+
   // Update handleAddLink
   const handleAddLink = () => {
+
+    
     if (linkTitle && linkUrl) {
       setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
       setLinkTitle('');
@@ -238,19 +269,43 @@ const ProjectPostModify = () => {
       // Inside handleSubmit function, after handling links
       // Add new files
       for (const file of newFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-  
-        const fileResponse = await fetch(`${API_BASE_URL}/posts/${postId}/file/stream`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `${token}`
-          },
-          body: formData
-        });
-  
-        if (!fileResponse.ok) {
-          throw new Error(`파일 업로드 실패: ${fileResponse.status}`);
+        try {
+          // 1. presigned URL 요청
+          const presignedUrlResponse = await fetch(`https://localhost/api/posts/${postId}/file/presigned`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              contentType: file.type
+            })
+          });
+
+          if (!presignedUrlResponse.ok) {
+            throw new Error(`presignedURL 생성 실패: ${presignedUrlResponse.status}`);
+          }
+
+          const { preSignedUrl } = await presignedUrlResponse.json();
+
+          // 2. presigned URL을 사용하여 S3에 파일 업로드
+          const uploadResponse = await fetch(preSignedUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type
+            },
+            body: file
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`파일 업로드 실패: ${uploadResponse.status}`);
+          }
+
+        } catch (error) {
+          console.error('파일 업로드 중 오류 발생:', error);
+          throw error;
         }
       }
   
@@ -475,6 +530,14 @@ const FileInputContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  
+  &::after {
+    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
 `;
 
 const Button = styled.button`

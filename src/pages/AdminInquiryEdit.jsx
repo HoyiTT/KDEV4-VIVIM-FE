@@ -34,7 +34,7 @@ const AdminInquiryEdit = () => {
   useEffect(() => {
     const fetchInquiryDetail = async () => {
       try {
-        const response = await fetch(`https://localhost/api/admininquiry/${id}`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
           headers: {
             'Authorization': token
           }
@@ -107,7 +107,7 @@ const AdminInquiryEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`https://localhost/api/admininquiry/${id}`, {
+      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

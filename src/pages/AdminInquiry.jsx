@@ -71,7 +71,7 @@ const AdminInquiry = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://localhost/api/admininquiry', {
+      const response = await fetch('https://dev.vivim.co.kr/api/admininquiry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
