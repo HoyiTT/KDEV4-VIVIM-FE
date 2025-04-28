@@ -1,0 +1,17 @@
+export const ApprovalDecisionStatus = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+}; 
+
+export const ApprovalProposalStatus = {
+  DRAFT: 'DRAFT',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  FINAL_APPROVED: 'FINAL_APPROVED',
+  FINAL_REJECTED: 'FINAL_REJECTED'
+}; 
+
+export const ApprovalApproverStatus = {
+  NOT_RESPONDED: 'NOT_RESPONDED',
+  APPROVER_APPROVED: 'APPROVER_APPROVED',
+  APPROVER_REJECTED: 'APPROVER_REJECTED'
+}; 

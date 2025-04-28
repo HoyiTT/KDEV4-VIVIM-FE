@@ -54,23 +54,23 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
 
   const menuItems = [
     { name: '대시보드', path: '/dashboard-admin' },
-    { 
-      name: '프로젝트 관리', 
+    {
+      name: '프로젝트 관리',
       path: isAdmin ? '/admin-projects' : '/project-list',
-      showFor: 'all' 
+      showFor: 'all'
     },
     { name: '회사 관리', path: '/company-management', showFor: 'admin' },
     { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
     { name: '감사 로그', path: '/audit-log', showFor: 'admin' },
-    { 
+    {
       name: '관리자 문의',
       path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry-list',
       showFor: 'all'
     }
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.showFor === 'all' || 
+  const filteredMenuItems = menuItems.filter(item =>
+    item.showFor === 'all' ||
     (isAdmin && item.showFor === 'admin')
   );
 
