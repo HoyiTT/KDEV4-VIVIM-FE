@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
-const AdminInquiry = () => {
+const AdminInquiryEdit = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('관리자 문의');
-  const [projects, setProjects] = useState([]);
+  const { id } = useParams();
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    inquiryType: 'NORMAL',
-    projectId: null,
     title: '',
-    content: ''
+    content: '',
+    inquiryType: '',
+    projectId: null
   });
+  const [projects, setProjects] = useState([]);
 
   const decodeToken = (token) => {
     try {
@@ -23,97 +24,143 @@ const AdminInquiry = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const decodedToken = decodeToken(token);
-        
-        if (!decodedToken?.userId) {
-          console.error('User ID not found in token');
-          return;
-        }
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+  const isAdmin = decodedToken?.role === 'ADMIN';
 
-        const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+  const [activeMenuItem, setActiveMenuItem] = useState('내 문의 내역');
+
+  // 기존 문의 데이터 불러오기
+  useEffect(() => {
+    const fetchInquiryDetail = async () => {
+      try {
+        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
           headers: {
             'Authorization': token
           }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
-          const activeProjects = data.filter(project => !project.deleted);
-          setProjects(activeProjects);
+          setFormData({
+            title: data.title,
+            content: data.content,
+            inquiryType: data.inquiryType || 'NORMAL',
+            projectId: data.projectId || ''
+          });
+
+          if (data.inquiryType === 'PROJECT') {
+            const projectResponse = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+              headers: {
+                'Authorization': token
+              }
+            });
+            
+            if (projectResponse.ok) {
+              const projectData = await projectResponse.json();
+              setProjects(projectData.filter(project => !project.deleted));
+            }
+          }
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error('Error fetching inquiry:', error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchInquiryDetail();
+  }, [id]);
+
+  // 문의 유형이 변경될 때마다 프로젝트 목록 업데이트
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (formData.inquiryType === 'PROJECT') {
+        try {
+          const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+            headers: {
+              'Authorization': token
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setProjects(data.filter(project => !project.deleted));
+          }
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+        }
       }
     };
 
     fetchProjects();
-  }, []);
-
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
+  }, [formData.inquiryType]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: value,
-      ...(name === 'inquiryType' && value !== 'PROJECT' ? { projectId: null } : {}),
-      ...(name === 'projectId' ? { projectId: value ? parseInt(value) : null } : {})
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://dev.vivim.co.kr/api/admininquiry', {
-        method: 'POST',
+      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token
         },
-        body: JSON.stringify({
-          inquiryType: formData.inquiryType,
-          projectId: formData.projectId,
-          title: formData.title,
-          content: formData.content
-        })
+        body: JSON.stringify(formData)
       });
 
       if (response.ok) {
-        alert('문의가 성공적으로 등록되었습니다.');
-        navigate('/admin-inquiry-list');
+        alert('문의가 성공적으로 수정되었습니다.');
+        navigate(`/admin-inquiry-list/${id}`);
       } else {
-        const errorData = await response.json();
-        alert(`문의 등록에 실패했습니다: ${errorData.message || '알 수 없는 오류가 발생했습니다.'}`);
+        alert('문의 수정에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Error creating inquiry:', error);
-      alert('문의 등록 중 오류가 발생했습니다.');
+      console.error('Error updating inquiry:', error);
+      alert('문의 수정 중 오류가 발생했습니다.');
     }
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <Navbar 
+          activeMenuItem={activeMenuItem}
+          handleMenuClick={setActiveMenuItem}
+        />
+        <MainContent>
+          <LoadingContainer>
+            데이터를 불러오는 중입니다...
+          </LoadingContainer>
+        </MainContent>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
       <Navbar 
         activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
+        handleMenuClick={setActiveMenuItem}
       />
       <MainContent>
         <Header>
-          <PageTitle>관리자 문의 작성</PageTitle>
+          <BackButton onClick={() => navigate(-1)}>← 돌아가기</BackButton>
+          <PageTitle>문의 수정</PageTitle>
         </Header>
         <FormContainer onSubmit={handleSubmit}>
           <FormGroup>
             <Label>문의 유형</Label>
             <Select 
               name="inquiryType"
-              value={formData.inquiryType}
+              defaultValue={formData.inquiryType}
               onChange={handleChange}
             >
               <option value="NORMAL">일반 문의</option>
@@ -123,12 +170,11 @@ const AdminInquiry = () => {
 
           {formData.inquiryType === 'PROJECT' && (
             <FormGroup>
-              <Label>프로젝트 선택</Label>
-              <StyledSelect
+              <Label>프로젝트</Label>
+              <Select
                 name="projectId"
-                value={formData.projectId || ''}
+                defaultValue="1"
                 onChange={handleChange}
-                required
               >
                 <option value="">프로젝트를 선택해주세요</option>
                 {projects.map(project => (
@@ -136,7 +182,7 @@ const AdminInquiry = () => {
                     {project.name}
                   </option>
                 ))}
-              </StyledSelect>
+              </Select>
             </FormGroup>
           )}
 
@@ -147,27 +193,27 @@ const AdminInquiry = () => {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="제목을 입력해주세요"
               required
             />
           </FormGroup>
+
           <FormGroup>
             <Label>내용</Label>
             <TextArea
               name="content"
               value={formData.content}
               onChange={handleChange}
-              placeholder="문의 내용을 입력해주세요"
               required
               rows={10}
             />
           </FormGroup>
+
           <ButtonContainer>
-            <CancelButton type="button" onClick={() => navigate('/admin-inquiry-list')}>
+            <CancelButton type="button" onClick={() => navigate(-1)}>
               취소
             </CancelButton>
             <SubmitButton type="submit">
-              등록
+              수정하기
             </SubmitButton>
           </ButtonContainer>
         </FormContainer>
@@ -176,6 +222,7 @@ const AdminInquiry = () => {
   );
 };
 
+// 스타일 컴포넌트 추가
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -185,16 +232,32 @@ const PageContainer = styled.div`
 `;
 
 const MainContent = styled.main`
-  padding: 24px;
+  padding: 32px;
   margin-top: 60px;
-  max-width: 800px;
+  max-width: 1000px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
 `;
 
 const Header = styled.div`
+  display: flex;
+  align-items: center;
   margin-bottom: 24px;
+  gap: 16px;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px 0;
+  
+  &:hover {
+    color: #2E7D32;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -213,12 +276,6 @@ const FormContainer = styled.form`
 
 const FormGroup = styled.div`
   margin-bottom: 24px;
-  position: relative;
-
-  /* 드롭다운이 열렸을 때의 스타일 */
-  select:focus + .dropdown {
-    display: block;
-  }
 `;
 
 const Label = styled.label`
@@ -249,39 +306,12 @@ const Select = styled.select`
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${props => props.disabled ? 0.7 : 1};
   
   &:focus {
     outline: none;
     border-color: #2E7D32;
-  }
-`;
-
-const StyledSelect = styled.select`
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: white;
-  cursor: pointer;
-  
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1em;
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 1px #2E7D32;
-  }
-  
-  option {
-    padding: 8px;
-    &:first-child {
-      color: #64748b;
-    }
   }
 `;
 
@@ -297,7 +327,6 @@ const TextArea = styled.textarea`
   &:focus {
     outline: none;
     border-color: #2E7D32;
-    box-shadow: 0 0 0 1px #2E7D32;
   }
 `;
 
@@ -309,7 +338,7 @@ const ButtonContainer = styled.div`
 `;
 
 const Button = styled.button`
-  padding: 12px 24px;
+  padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
@@ -324,6 +353,8 @@ const SubmitButton = styled(Button)`
   
   &:hover {
     background-color: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -337,4 +368,13 @@ const CancelButton = styled(Button)`
   }
 `;
 
-export default AdminInquiry;
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 16px;
+  color: #64748b;
+`;
+
+export default AdminInquiryEdit; 

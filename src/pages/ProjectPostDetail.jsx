@@ -19,6 +19,7 @@ const ProjectPostDetail = () => {
   const [postOptionsDropdown, setPostOptionsDropdown] = useState(false);  // Add this line
   const [activeCommentOptions, setActiveCommentOptions] = useState(null);
   const [commentContent, setCommentContent] = useState('');
+  const [responseStatus, setResponseStatus] = useState(null);
 
   useEffect(() => {
     fetchPostDetail();
@@ -43,23 +44,26 @@ const ProjectPostDetail = () => {
   const handleFileDownload = async (fileId, fileName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}/download`, {
+      // 1. presigned URL 받아오기
+      //const presignedResponse = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
+      const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}/download`, {
         headers: {
           'Authorization': token
         }
       });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      if (!presignedResponse.ok) {
+        throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
+      }
+
+      const { preSignedUrl, fileName: responseFileName } = await presignedResponse.json();
+      
+      // 2. presigned URL로 직접 파일 다운로드
+      window.location.href = preSignedUrl;
+
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('파일 다운로드 중 오류 발생:', error);
+      alert('파일 다운로드에 실패했습니다.');
     }
   };
   const handleUpdateComment = async (commentId) => {
@@ -296,6 +300,34 @@ const ProjectPostDetail = () => {
       console.error('Error submitting comment:', error);
     }
   };
+
+  // 응답 처리 함수 수정
+  const handleQuestionResponse = async (isYes) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}/answer`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: isYes ? "yes" : "no" 
+      });
+
+      if (!response.ok) {
+        throw new Error('응답 처리 실패');
+      }
+
+      // 응답 상태 업데이트
+      setResponseStatus(isYes ? "yes" : "no");
+      // 게시글 정보 새로고침
+      fetchPostDetail();
+    } catch (error) {
+      console.error('응답 처리 중 오류 발생:', error);
+      alert('응답 처리 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -346,6 +378,32 @@ const ProjectPostDetail = () => {
                 </HeaderContent>
               </PostHeader>
               <PostContent>{post.content}</PostContent>
+              
+              {/* Yes/No 버튼 추가 */}
+              {post.projectPostStatus === 'QUESTION' && !post.responseToQuestion && (
+                <QuestionResponseContainer>
+                  <ResponseButtonContainer>
+                    <YesButton 
+                      onClick={() => handleQuestionResponse(true)}
+                      disabled={responseStatus !== null}
+                    >
+                      Yes
+                    </YesButton>
+                    <NoButton 
+                      onClick={() => handleQuestionResponse(false)}
+                      disabled={responseStatus !== null}
+                    >
+                      No
+                    </NoButton>
+                  </ResponseButtonContainer>
+                </QuestionResponseContainer>
+              )}
+              {/* 응답 결과 표시 */}
+              {post.responseToQuestion && (
+                <ResponseResult>
+                  답변: {post.responseToQuestion === "yes" ? 'Yes' : 'No'}
+                </ResponseResult>
+              )}
             </PostContainer>
             
             <AttachmentsSection>
@@ -1066,7 +1124,70 @@ const OptionButton = styled.button`
   }
 `;
 
+// 스타일 컴포넌트 추가
+const QuestionResponseContainer = styled.div`
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+`;
 
+const ResponseTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 16px;
+`;
+
+const ResponseButtonContainer = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const ResponseButton = styled.button`
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const YesButton = styled(ResponseButton)`
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  color: #16a34a;
+
+  &:hover:not(:disabled) {
+    background-color: #bbf7d0;
+    color: #15803d;
+  }
+`;
+
+const NoButton = styled(ResponseButton)`
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+
+  &:hover:not(:disabled) {
+    background-color: #fecaca;
+    color: #b91c1c;
+  }
+`;
+
+const ResponseResult = styled.div`
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+`;
 
 export default ProjectPostDetail;
 

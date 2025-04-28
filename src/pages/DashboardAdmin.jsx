@@ -1,27 +1,71 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { PieChart } from 'react-minimal-pie-chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardAdmin = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [summaryData, setSummaryData] = useState([
+    { title: '계약', value: 0 },
+    { title: '검수', value: 0 },
+  ]);
+  const [revenueData, setRevenueData] = useState([
+    { name: '1주차', amount: 0 },
+    { name: '2주차', amount: 0 },
+    { name: '3주차', amount: 0 },
+    { name: '4주차', amount: 0 },
+    { name: '5주차', amount: 0 },
+  ]);
+  const [projectStatusData, setProjectStatusData] = useState([
+    { title: '요구사항정의', count: 0, color: '#FFD572' },
+    { title: '화면설계', count: 0, color: '#B785DB' },
+    { title: '디자인', count: 0, color: '#647ACB' },
+    { title: '개발', count: 0, color: '#7BC86C' },
+    { title: '배포', count: 0, color: '#8E6DA6' },
+    { title: '검수', count: 0, color: '#FF8A65' }
+  ]);
+  const [adminInquiries, setAdminInquiries] = useState([]);
+
+  const navigate = useNavigate();
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
 
-  // 도넛 차트 데이터 (건수 기반)
-  const projectStatusData = [
-    { title: '화면 설계', count: 385, color: '#B785DB' },
-    { title: '디자인', count: 269, color: '#647ACB' },
-    { title: '프로젝트 기획', count: 1, color: '#FFD572' },
-    { title: '개발', count: 154, color: '#7BC86C' },
-    { title: '검수', count: 115, color: '#8E6DA6' },
-    { title: '배포', count: 115, color: '#8E6DA6' }
-  ];
+  // 프로젝트 진행 현황 데이터 API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchProjectStatusData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/progress_count', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch project status data');
+        const data = await response.json();
+        
+        setProjectStatusData([
+          { title: '요구사항정의', count: data.requirementCount, color: '#FFD572' },
+          { title: '화면설계', count: data.wireframeCount, color: '#B785DB' },
+          { title: '디자인', count: data.designCount, color: '#647ACB' },
+          { title: '개발', count: data.developCount, color: '#7BC86C' },
+          { title: '배포', count: data.publishCount, color: '#8E6DA6' },
+          { title: '검수', count: data.inspectionCount, color: '#FF8A65' }
+        ]);
+      } catch (error) {
+        console.error('Error fetching project status data:', error);
+      }
+    };
 
-  // 비율 계산
+    fetchProjectStatusData();
+  }, []);
+
+  // chartData useMemo는 그대로 유지 (projectStatusData가 변경될 때마다 재계산)
   const chartData = useMemo(() => {
     const total = projectStatusData.reduce((sum, item) => sum + item.count, 0);
     return projectStatusData.map(item => ({
@@ -30,86 +74,117 @@ const DashboardAdmin = () => {
     }));
   }, [projectStatusData]);
 
-  // 프로젝트 현황 요약 데이터
-  const summaryData = [
-    { title: '계약', value: 212 },
-    { title: '검수', value: 72 },
+  
 
-  ];
+  useEffect(() => {
+    const fetchRecentPosts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`https://dev.vivim.co.kr/api/posts/admin/recent`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch recent posts');
+        const data = await response.json();
+        console.log('최근 게시글 데이터:', data);
+        setRecentPosts(data);
+      } catch (error) {
+        console.error('Error fetching recent posts:', error);
+        setRecentPosts([]);
+      }
+    };
 
-  // 승인요청 더미데이터 대신 관리자 문의 더미데이터 추가
-  const adminInquiries = [
-    {
-      title: "프로젝트 권한 설정 문의",
-      author: "김철수",
-      company: "테크솔루션",
-      date: "2024.03.21",
-      status: "미답변"
-    },
-    {
-      title: "결제 정보 변경 요청",
-      author: "이영희",
-      company: "디자인허브",
-      date: "2024.03.21",
-      status: "답변완료"
-    },
-    {
-      title: "계정 접속 오류",
-      author: "박지민",
-      company: "웹스타트",
-      date: "2024.03.20",
-      status: "미답변"
-    },
-    {
-      title: "데이터 복구 문의",
-      author: "한소희",
-      company: "디지털플러스",
-      date: "2024.03.19",
-      status: "답변완료"
-    }
-  ];
+    fetchRecentPosts();
+  }, []);
 
-  // 최근 게시글 더미데이터 추가 (컴포넌트 상단에 추가)
-  const recentPosts = [
-    {
-      title: "2024년 1분기 프로젝트 진행현황 보고",
-      author: "김관리",
-      date: "2024.03.21",
-      category: "공지"
-    },
-    {
-      title: "신규 프로젝트 관리 시스템 도입 안내",
-      author: "이매니저",
-      date: "2024.03.20",
-      category: "일반"
-    },
-    {
-      title: "3월 프로젝트 마감 일정 안내",
-      author: "박팀장",
-      date: "2024.03.19",
-      category: "일반"
-    },
-    {
-      title: "외부 협력사 미팅 결과 공유",
-      author: "최대리",
-      date: "2024.03.18",
-      category: "공지"
-    },
-    {
-      title: "프로젝트 진행 가이드라인 업데이트",
-      author: "정과장",
-      date: "2024.03.17",
-      category: "질문"
-    }
-  ];
+  // API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchSummaryData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/inspection_count', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch summary data');
+        const data = await response.json();
+        
+        setSummaryData([
+          { title: '계약', value: data.progressCount },
+          { title: '검수', value: data.inspectionCount },
+        ]);
+      } catch (error) {
+        console.error('Error fetching summary data:', error);
+      }
+    };
 
-  // 매출 데이터 추가 (컴포넌트 내부)
-  const revenueData = [
-    { name: '1주차', amount: 2800 },
-    { name: '2주차', amount: 3200 },
-    { name: '3주차', amount: 2600 },
-    { name: '4주차', amount: 3500 },
-  ];
+    fetchSummaryData();
+  }, []);
+
+  // 매출 데이터 API 호출을 위한 useEffect 추가
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/project_fee', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch revenue data');
+        const data = await response.json();
+        
+        setRevenueData([
+          { name: '1주차', amount: data.week1 },
+          { name: '2주차', amount: data.week2 },
+          { name: '3주차', amount: data.week3 },
+          { name: '4주차', amount: data.week4 },
+          { name: '5주차', amount: data.week5 },
+        ]);
+      } catch (error) {
+        console.error('Error fetching revenue data:', error);
+      }
+    };
+
+    fetchRevenueData();
+  }, []);
+
+  useEffect(() => {
+    const fetchInquiries = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('https://dev.vivim.co.kr/api/admininquiry', {
+          headers: {
+            'Authorization': token
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // 최신순으로 정렬하고 상위 4개만 표시
+          const sortedData = data
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 4);
+          setAdminInquiries(sortedData);
+        } else {
+          console.error('Failed to fetch inquiries');
+        }
+      } catch (error) {
+        console.error('Error fetching inquiries:', error);
+      }
+    };
+
+    fetchInquiries();
+  }, []);
+
+  const handlePostClick = (postId, projectId) => {
+    navigate(`/project/${projectId}/post/${postId}`);
+  };
 
   return (
     <PageContainer>
@@ -169,21 +244,37 @@ const DashboardAdmin = () => {
 
           <div style={{ display: 'flex', gap: '24px', width: '100%' }}>
             <InquirySection>
-              <SectionTitle>관리자 문의</SectionTitle>
+              <SectionTitle 
+                onClick={() => navigate('/admin-inquiry-list')} 
+                style={{ cursor: 'pointer' }}
+              >
+                관리자 문의
+              </SectionTitle>
               <InquiryList>
-                {adminInquiries.map((inquiry, index) => (
-                  <InquiryItem key={index}>
+                {adminInquiries.map((inquiry) => (
+                  <InquiryItem 
+                    key={inquiry.id}
+                    onClick={() => navigate(`/admin-inquiry-list/${inquiry.id}`)}
+                  >
                     <InquiryHeader>
                       <InquiryTitle>{inquiry.title}</InquiryTitle>
-                      <InquiryStatus status={inquiry.status}>
-                        {inquiry.status}
+                      <InquiryStatus status={inquiry.inquiryStatus}>
+                        {inquiry.inquiryStatus === 'PENDING' ? '미답변' : 
+                         inquiry.inquiryStatus === 'COMPLETED' ? '답변완료' : 
+                         inquiry.inquiryStatus === 'IN_PROGRESS' ? '검토중' : inquiry.inquiryStatus}
                       </InquiryStatus>
                     </InquiryHeader>
                     <InquiryInfo>
                       <CompanyInfo>
-                        {inquiry.company} · {inquiry.author}
+                        {inquiry.creatorName}
                       </CompanyInfo>
-                      <InquiryDate>{inquiry.date}</InquiryDate>
+                      <InquiryDate>
+                        {new Date(inquiry.createdAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        }).replace(/\. /g, '.').slice(0, -1)}
+                      </InquiryDate>
                     </InquiryInfo>
                   </InquiryItem>
                 ))}
@@ -218,13 +309,26 @@ const DashboardAdmin = () => {
         <RecentPostSection>
           <SectionTitle>최근 게시글</SectionTitle>
           <PostList>
-            {recentPosts.map((post, index) => (
-              <PostItem key={index}>
-                <PostCategory>{post.category}</PostCategory>
+            {recentPosts.map((post) => (
+              <PostItem 
+                key={post.postId} 
+                onClick={() => handlePostClick(post.postId, post.projectId)}
+              >
+                <PostCategory>
+                  {post.projectPostStatus === 'NORMAL' ? '일반' :
+                   post.projectPostStatus === 'QUESTION' ? '질문' :
+                   post.projectPostStatus === 'NOTIFICATION' ? '공지' : post.projectPostStatus}
+                </PostCategory>
                 <PostTitle>{post.title}</PostTitle>
                 <PostInfo>
-                  <PostAuthor>{post.author}</PostAuthor>
-                  <PostDate>{post.date}</PostDate>
+                  <PostAuthor>{post.creatorName}</PostAuthor>
+                  <PostDate>
+                    {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    }).replace(/\. /g, '.').slice(0, -1)}
+                  </PostDate>
                 </PostInfo>
               </PostItem>
             ))}
@@ -401,59 +505,101 @@ const InquirySection = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   width: 49%;
   height: 420px;
+  
+  ${SectionTitle} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    &::after {
+      content: '더보기 >';
+      font-size: 14px;
+      color: #94a3b8;
+      font-weight: normal;
+      cursor: pointer;
+      
+      &:hover {
+        color: #64748b;
+      }
+    }
+  }
 `;
 
 const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  margin-top: 16px;
 `;
 
 const InquiryItem = styled.div`
   background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 20px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    background: white;
+    border-color: #e2e8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const InquiryHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 `;
 
 const InquiryTitle = styled.span`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #1e293b;
+  flex: 1;
+  margin-right: 16px;
+  
+  // 길어질 경우 말줄임표 처리
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const InquiryStatus = styled.span`
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  
   ${props => {
     switch (props.status) {
-      case '미답변':
+      case 'PENDING':
         return `
           background-color: #FEF2F2;
           color: #EF4444;
+          border: 1px solid #FCA5A5;
         `;
-      case '답변완료':
+      case 'COMPLETED':
         return `
           background-color: #F0FDF4;
           color: #22C55E;
+          border: 1px solid #86EFAC;
         `;
-      case '검토중':
+      case 'IN_PROGRESS':
         return `
           background-color: #F0F9FF;
           color: #0EA5E9;
+          border: 1px solid #7DD3FC;
         `;
       default:
         return `
           background-color: #F8FAFC;
           color: #64748B;
+          border: 1px solid #CBD5E1;
         `;
     }
   }}
@@ -463,15 +609,23 @@ const InquiryInfo = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 13px;
 `;
 
 const CompanyInfo = styled.span`
   font-size: 13px;
+  font-weight: 500;
   color: #64748b;
+  
+  // 회사명과 작성자 사이의 구분점 스타일
+  & > span {
+    color: #94a3b8;
+    margin: 0 6px;
+  }
 `;
 
 const InquiryDate = styled.span`
-  font-size: 12px;
+  font-size: 13px;
   color: #94a3b8;
 `;
 
@@ -519,14 +673,42 @@ const PostItem = styled.div`
   background: #f8fafc;
   border-radius: 8px;
   gap: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
 `;
 
 const PostCategory = styled.span`
-  background: #e2e8f0;
+  background: ${props => {
+    switch (props.children) {
+      case '질문':
+        return '#E3F2FD';
+      case '일반':
+        return '#E8F5E9';
+      case '공지':
+        return '#F3E5F5';
+      default:
+        return '#e2e8f0';
+    }
+  }};
+  color: ${props => {
+    switch (props.children) {
+      case '질문':
+        return '#1976D2';
+      case '일반':
+        return '#2E7D32';
+      case '공지':
+        return '#9C27B0';
+      default:
+        return '#475569';
+    }
+  }};
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  color: #475569;
   white-space: nowrap;
 `;
 

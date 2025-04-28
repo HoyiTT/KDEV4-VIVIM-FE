@@ -7,6 +7,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [deadlineProjects, setDeadlineProjects] = useState([]);
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
+  const [recentPosts, setRecentPosts] = useState([]);
 
   const decodeToken = (token) => {
     try {
@@ -72,6 +73,28 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const fetchRecentPosts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`https://dev.vivim.co.kr/api/posts/user/recent`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch recent posts');
+        const data = await response.json();
+        setRecentPosts(data);
+      } catch (error) {
+        console.error('Error fetching recent posts:', error);
+        setRecentPosts([]);
+      }
+    };
+
+    fetchRecentPosts();
+  }, []);
+
+  useEffect(() => {
     fetchProjects();
   }, []);
 
@@ -87,33 +110,6 @@ const Dashboard = () => {
       requestType: 'User API 개발',
       requestDate: '2025/04/14',
       status: '다처리',
-    },
-  ];
-
-  const recentPosts = [
-    {
-      type: '공지',
-      title: '3월 정기 업데이트 안내',
-      projectName: '스마트 팩토리 구축 프로젝트',
-      status: '최상위급',
-      author: '관리자',
-      date: '2024.02.29',
-    },
-    {
-      type: '질문',
-      title: 'API 연동 관련 문의',
-      projectName: '스마트 팩토리 구축 프로젝트',
-      status: '다처리',
-      author: '이지은',
-      date: '2024.02.28',
-    },
-    {
-      type: '질문',
-      title: 'API 연동 관련 문의',
-      projectName: '스마트 팩토리 구축 프로젝트',
-      status: '다처리',
-      author: '이지은',
-      date: '2024.02.28',
     },
   ];
 
@@ -193,27 +189,29 @@ const Dashboard = () => {
               <tr>
                 <Th>분류</Th>
                 <Th>제목</Th>
-                <Th>프로젝트 명</Th>
-                <Th>진행 단계</Th>
                 <Th>글쓴이</Th>
                 <Th>작성일</Th>
               </tr>
             </thead>
             <tbody>
-              {recentPosts.map((post, index) => (
-                <tr key={index}>
+              {recentPosts.map((post) => (
+                <tr key={post.postId}>
                   <Td>
-                    <PostType type={post.type}>{post.type}</PostType>
+                    <PostType type={post.projectPostStatus}>
+                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : '일반'}
+                    </PostType>
                   </Td>
-                  <Td>{post.title}</Td>
-                  <Td>{post.projectName}</Td>
+                  <Td onClick={() => navigate(`/project/${post.projectId}/post/${post.postId}`)} style={{ cursor: 'pointer' }}>
+                    {post.title}
+                  </Td>
+                  <Td>{post.creatorName}</Td>
                   <Td>
-                    <StatusBadge status={post.status}>
-                      {post.status}
-                    </StatusBadge>
+                    {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    }).replace(/\. /g, '.').slice(0, -1)}
                   </Td>
-                  <Td>{post.author}</Td>
-                  <Td>{post.date}</Td>
                 </tr>
               ))}
             </tbody>
@@ -303,6 +301,11 @@ const StatusBadge = styled.span`
   
   ${props => {
     switch (props.status) {
+      case 'notice':
+        return `
+          background: rgba(46, 125, 50, 0.1);
+          color: #2E7D32;
+        `;
       case 'delayed':
         return `
           background: rgba(239, 68, 68, 0.1);
@@ -310,8 +313,8 @@ const StatusBadge = styled.span`
         `;
       default:
         return `
-          background: rgba(46, 125, 50, 0.1);
-          color: #2E7D32;
+          background: rgba(59, 130, 246, 0.1);
+          color: #3B82F6;
         `;
     }
   }}
@@ -342,20 +345,15 @@ const PostType = styled.span`
   
   ${props => {
     switch (props.type) {
-      case '공지':
+      case 'NOTIFICATION':
         return `
           background: rgba(46, 125, 50, 0.1);
           color: #2E7D32;
-        `;
-      case '질문':
-        return `
-          background: rgba(239, 68, 68, 0.1);
-          color: #EF4444;
         `;
       default:
         return `
-          background: rgba(46, 125, 50, 0.1);
-          color: #2E7D32;
+          background: rgba(59, 130, 246, 0.1);
+          color: #3B82F6;
         `;
     }
   }}

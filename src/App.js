@@ -21,6 +21,9 @@ import ProjectPostCreate from './pages/ProjectPostCreate';
 import ProjectPostDetail from './pages/ProjectPostDetail';
 import ProjectPostModify from './pages/ProjectPostModify';
 import AdminInquiry from './pages/AdminInquiry';
+import AdminInquiryList from './pages/AdminInquiryList';
+import AdminInquiryDetail from './pages/AdminInquiryDetail';
+import AdminInquiryEdit from './pages/AdminInquiryEdit';
 import { setNavigate } from './utils/axiosInstance';
 
 const AppContent = () => {
@@ -40,6 +43,9 @@ const AppContent = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard-admin" element={<DashboardAdmin />} />
             <Route path="/admin-inquiry" element={<AdminInquiry />} />
+            <Route path="/admin-inquiry-list" element={<AdminInquiryList />} />
+            <Route path="/admin-inquiry-list/:id" element={<AdminInquiryDetail />} />
+            <Route path="/admin-inquiry-list/:id/edit" element={<AdminInquiryEdit />} />
             <Route path="/projectCreate" element={<ProjectCreate />} />
             <Route path="/projectModify/:projectId" element={<ProjectModify />} />
             <Route path="/company-management" element={<CompanyManagement />} />

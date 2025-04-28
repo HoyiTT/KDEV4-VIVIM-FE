@@ -16,6 +16,7 @@ const ProjectModify = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedClientCompany, setSelectedClientCompany] = useState('');
   const [selectedDevCompany, setSelectedDevCompany] = useState('');
+  const [projectFee, setProjectFee] = useState('');
   
   // Selected users
   const [clientManagers, setClientManagers] = useState([]);
@@ -23,13 +24,9 @@ const ProjectModify = () => {
   const [devManagers, setDevManagers] = useState([]);
   const [devUsers, setDevUsers] = useState([]);
 
-  // Project users from API
-  const [projectUsers, setProjectUsers] = useState([]);
-
   // Company users
   const [clientCompanyUsers, setClientCompanyUsers] = useState([]);
-  const [devCompanyUsers, setDevCompanyUsers] = useState([]);
-
+  
   // Loading state
   const [loading, setLoading] = useState(true);
   
@@ -101,6 +98,13 @@ const ProjectModify = () => {
           setDescription(projectData.description);
           setStartDate(projectData.startDate);
           setEndDate(projectData.endDate);
+          
+          // projectFee 값이 있는 경우에만 천 단위 쉼표 포맷팅 적용
+          if (projectData.projectFee) {
+            const formattedFee = projectData.projectFee.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            console.log('Formatted project fee:', formattedFee);
+            setProjectFee(formattedFee);
+          }
           
           // 사용자 정보 설정
           if (usersData && Array.isArray(usersData)) {
@@ -273,6 +277,15 @@ const ProjectModify = () => {
     }
   };
 
+  const handleProjectFeeChange = (e) => {
+    const value = e.target.value;
+    // 숫자와 쉼표만 허용
+    const onlyNumbers = value.replace(/[^0-9]/g, '');
+    // 쉼표 추가
+    const formattedValue = onlyNumbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    setProjectFee(formattedValue);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -290,6 +303,7 @@ const ProjectModify = () => {
         selectedClientCompany.id,
         ...devCompanySelections.map(selection => selection.companyId)
       ],
+      projectFee: parseInt(projectFee.replace(/,/g, '')), // 쉼표 제거하고 숫자로 변환
       clientManagers: clientManagers.map(manager => ({
         userId: parseInt(manager.userId)
       })),
@@ -667,6 +681,17 @@ const ProjectModify = () => {
                 </FormGroup>
               </FormRow>
 
+              <FormGroup>
+                <Label>계약금 (원)</Label>
+                <Input 
+                  type="text" 
+                  value={projectFee}
+                  onChange={handleProjectFeeChange}
+                  placeholder="계약금을 입력하세요"
+                  required
+                />
+              </FormGroup>
+
               <SectionDivider>고객사 정보</SectionDivider>
 
               <FormGroup>
@@ -1020,20 +1045,6 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
-const ProfileContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const ProfileImage = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e2e8f0;
-`;
-
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
@@ -1084,21 +1095,6 @@ const Input = styled.input`
   
   &::placeholder {
     color: #cbd5e1;
-  }
-`;
-
-const Select = styled.select`
-  padding: 12px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: white;
-  transition: all 0.2s;
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
   }
 `;
 
