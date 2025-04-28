@@ -155,49 +155,75 @@ const AdminProjectList = () => {
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
-          <ProjectTable>
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>프로젝트명</TableHeaderCell>
-                <TableHeaderCell>시작일</TableHeaderCell>
-                <TableHeaderCell>종료일</TableHeaderCell>
-                <TableHeaderCell>상태</TableHeaderCell>
-                <TableHeaderCell>관리</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project.projectId}>
-                  <TableCell 
-                    onClick={() => navigate(`/project/${project.projectId}`)}
-                    style={{ cursor: 'pointer', color: '#1e293b' }}
-                  >
-                    {project.name}
-                  </TableCell>
-                  <TableCell>{project.startDate}</TableCell>
-                  <TableCell>{project.endDate}</TableCell>
-                  <TableCell>
-                    <StatusBadge deleted={project.deleted}>
-                      {project.deleted ? '삭제됨' : '진행중'}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
-                        수정
-                      </ActionButton>
-                      <DeleteButton 
-                        onClick={() => handleDeleteProject(project.projectId)}
-                        disabled={project.deleted}
-                      >
-                        삭제
-                      </DeleteButton>
-                    </ActionButtonContainer>
-                  </TableCell>
+          <>
+            <ProjectTable>
+              <TableHeader>
+                <TableRow>
+                  <TableHeaderCell>프로젝트명</TableHeaderCell>
+                  <TableHeaderCell>시작일</TableHeaderCell>
+                  <TableHeaderCell>종료일</TableHeaderCell>
+                  <TableHeaderCell>상태</TableHeaderCell>
+                  <TableHeaderCell>관리</TableHeaderCell>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projects.map((project) => (
+                  <TableRow key={project.projectId}>
+                    <TableCell 
+                      onClick={() => navigate(`/project/${project.projectId}`)}
+                      style={{ cursor: 'pointer', color: '#1e293b' }}
+                    >
+                      {project.name}
+                    </TableCell>
+                    <TableCell>{project.startDate}</TableCell>
+                    <TableCell>{project.endDate}</TableCell>
+                    <TableCell>
+                      <StatusBadge deleted={project.deleted}>
+                        {project.deleted ? '삭제됨' : '진행중'}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>
+                      <ActionButtonContainer>
+                        <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                          수정
+                        </ActionButton>
+                        <DeleteButton 
+                          onClick={() => handleDeleteProject(project.projectId)}
+                          disabled={project.deleted}
+                        >
+                          삭제
+                        </DeleteButton>
+                      </ActionButtonContainer>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </ProjectTable>
+
+            <PaginationContainer>
+              <PaginationButton 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+                disabled={currentPage === 0}
+              >
+                이전
+              </PaginationButton>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <PaginationButton
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  active={currentPage === i}
+                >
+                  {i + 1}
+                </PaginationButton>
               ))}
-            </TableBody>
-          </ProjectTable>
+              <PaginationButton
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+                disabled={currentPage === totalPages - 1}
+              >
+                다음
+              </PaginationButton>
+            </PaginationContainer>
+          </>
         )}
       </MainContent>
     </PageContainer>
@@ -427,6 +453,37 @@ const SearchButton = styled.button`
   
   &:hover {
     background: #2563eb;
+  }
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+`;
+
+const PaginationButton = styled.button`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: ${props => props.active ? '#3b82f6' : 'white'};
+  color: ${props => props.active ? 'white' : '#64748b'};
+  font-size: 14px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  min-width: 36px;
+  
+  &:hover {
+    background-color: ${props => props.active ? '#3b82f6' : '#f8fafc'};
+    border-color: ${props => props.active ? '#3b82f6' : '#cbd5e1'};
+  }
+  
+  &:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
   }
 `;
 
