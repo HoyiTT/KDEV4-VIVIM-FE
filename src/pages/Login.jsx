@@ -475,7 +475,7 @@ const Login = () => {
             </FeatureItem>
             <FeatureItem index={1}>
               <FeatureIcon>✓</FeatureIcon>
-              <span>실시간 협업</span>
+              <span>회사간 협업</span>
             </FeatureItem>
             <FeatureItem index={2}>
               <FeatureIcon>✓</FeatureIcon>
