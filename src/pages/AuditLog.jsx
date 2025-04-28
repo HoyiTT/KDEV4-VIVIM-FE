@@ -16,12 +16,14 @@ const AuditLog = () => {
     endDate: '',
     userId: '',
   });
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 10;
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [page]);
 
   const fetchLogs = async () => {
     try {
@@ -29,15 +31,15 @@ const AuditLog = () => {
       
       // 쿼리 파라미터 구성
       const queryParams = new URLSearchParams();
+      queryParams.append('page', page);
+      queryParams.append('size', pageSize);
 
       // 필터가 있는 경우에만 쿼리 파라미터에 추가
       if (filters.actionType) queryParams.append('actionType', filters.actionType);
       if (filters.entityType) queryParams.append('entityType', filters.entityType);
       if (filters.startDate) queryParams.append('startDate', filters.startDate);
       if (filters.endDate) queryParams.append('endDate', filters.endDate);
-      if (filters.userId) queryParams.append('actorId', filters.userId);
-
-      console.log('검색 파라미터:', queryParams.toString()); // 디버깅용
+      if (filters.userId) queryParams.append('userId', filters.userId);
 
       const response = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
 
@@ -47,22 +49,15 @@ const AuditLog = () => {
       }
 
       const data = response.data;
-      console.log('응답 데이터:', data); // 디버깅용
-      
-      // data.logs가 배열인지 확인
-      if (Array.isArray(data.logs)) {
-        setLogs(data.logs);
-        setTotalPages(Math.ceil(data.logs.length / 10));
-      } else {
-        console.error('응답 데이터의 logs가 배열이 아닙니다:', data);
-        setLogs([]);
-        setTotalPages(1);
-      }
+      setLogs(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
     } catch (error) {
       console.error('Error fetching logs:', error);
       alert('로그를 불러오는데 실패했습니다.');
       setLogs([]);
-      setTotalPages(1);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -74,6 +69,10 @@ const AuditLog = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
   };
 
   const formatDate = (dateString) => {
@@ -99,9 +98,9 @@ const AuditLog = () => {
     setShowModal(true);
   };
 
-  // 검색 버튼 클릭 시 페이지를 1로 초기화하고 검색
+  // 검색 버튼 클릭 시 페이지를 0으로 초기화하고 검색
   const handleSearch = () => {
-    console.log('현재 필터:', filters); // 디버깅용
+    setPage(0);
     fetchLogs();
   };
 
@@ -152,42 +151,79 @@ const AuditLog = () => {
         ) : logs.length === 0 ? (
           <Loading>데이터가 없습니다.</Loading>
         ) : (
-          <LogTable>
-            <thead>
-              <tr>
-                <th>시간</th>
-                <th>사용자 ID</th>
-                <th>액션</th>
-                <th>대상 타입</th>
-                <th>대상 ID</th>
-                <th>상세 정보</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <LogRow key={log.id}>
-                  <td>{formatDate(log.loggedAt)}</td>
-                  <td>{log.actorId}</td>
-                  <td>
-                    <ActionBadge color={getActionTypeColor(log.actionType)}>
-                      {log.actionType}
-                    </ActionBadge>
-                  </td>
-                  <td>{log.targetType}</td>
-                  <td>{log.targetId}</td>
-                  <td>
-                    {log.details && log.details.length > 0 ? (
-                      <DetailsButton onClick={() => handleLogClick(log)}>
-                        상세보기
-                      </DetailsButton>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                </LogRow>
+          <>
+            <LogTable>
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>사용자 ID</th>
+                  <th>액션</th>
+                  <th>대상 타입</th>
+                  <th>대상 ID</th>
+                  <th>상세 정보</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => (
+                  <LogRow key={log.id}>
+                    <td>{formatDate(log.loggedAt)}</td>
+                    <td>{log.actorId}</td>
+                    <td>
+                      <ActionBadge color={getActionTypeColor(log.actionType)}>
+                        {log.actionType}
+                      </ActionBadge>
+                    </td>
+                    <td>{log.targetType}</td>
+                    <td>{log.targetId}</td>
+                    <td>
+                      {log.details && log.details.length > 0 ? (
+                        <DetailsButton onClick={() => handleLogClick(log)}>
+                          상세보기
+                        </DetailsButton>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                  </LogRow>
+                ))}
+              </tbody>
+            </LogTable>
+            <Pagination>
+              <PageButton 
+                onClick={() => handlePageChange(0)} 
+                disabled={page === 0}
+              >
+                처음
+              </PageButton>
+              <PageButton 
+                onClick={() => handlePageChange(page - 1)} 
+                disabled={page === 0}
+              >
+                이전
+              </PageButton>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <PageButton
+                  key={i}
+                  onClick={() => handlePageChange(i)}
+                  active={page === i}
+                >
+                  {i + 1}
+                </PageButton>
               ))}
-            </tbody>
-          </LogTable>
+              <PageButton 
+                onClick={() => handlePageChange(page + 1)} 
+                disabled={page === totalPages - 1}
+              >
+                다음
+              </PageButton>
+              <PageButton 
+                onClick={() => handlePageChange(totalPages - 1)} 
+                disabled={page === totalPages - 1}
+              >
+                마지막
+              </PageButton>
+            </Pagination>
+          </>
         )}
 
         {showModal && selectedLog && (
