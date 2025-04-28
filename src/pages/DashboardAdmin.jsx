@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import { PieChart } from 'react-minimal-pie-chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 
 const DashboardAdmin = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
@@ -40,7 +41,7 @@ const DashboardAdmin = () => {
     const fetchProjectStatusData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/progress_count', {
+        const response = await fetch(`${API_BASE_URL}/projects/dashboard/progress_count`, {
           headers: {
             'Authorization': token
           }
@@ -80,7 +81,7 @@ const DashboardAdmin = () => {
     const fetchRecentPosts = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://dev.vivim.co.kr/api/posts/admin/recent`, {
+        const response = await fetch(`${API_BASE_URL}/posts/admin/recent`, {
           headers: {
             'Authorization': token
           }
@@ -104,7 +105,7 @@ const DashboardAdmin = () => {
     const fetchSummaryData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/inspection_count', {
+        const response = await fetch(`${API_BASE_URL}/projects/dashboard/inspection_count`, {
           headers: {
             'Authorization': token
           }
@@ -130,7 +131,7 @@ const DashboardAdmin = () => {
     const fetchRevenueData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/project_fee', {
+        const response = await fetch(`${API_BASE_URL}/projects/dashboard/project_fee`, {
           headers: {
             'Authorization': token
           }
@@ -158,7 +159,7 @@ const DashboardAdmin = () => {
     const fetchInquiries = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://dev.vivim.co.kr/api/admininquiry', {
+        const response = await fetch(`${API_BASE_URL}/admininquiry`, {
           headers: {
             'Authorization': token
           }
