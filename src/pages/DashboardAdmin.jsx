@@ -5,14 +5,9 @@ import { PieChart } from 'react-minimal-pie-chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
-
-const API_BASE_URL = 'https://localhost';
-
 const DashboardAdmin = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState([
     { title: '계약', value: 0 },
     { title: '검수', value: 0 },
@@ -45,7 +40,7 @@ const DashboardAdmin = () => {
     const fetchProjectStatusData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://localhost/api/projects/dashboard/progress_count', {
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/progress_count', {
           headers: {
             'Authorization': token
           }
@@ -85,7 +80,7 @@ const DashboardAdmin = () => {
     const fetchRecentPosts = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/posts/admin/recent`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/posts/admin/recent`, {
           headers: {
             'Authorization': token
           }
@@ -109,7 +104,7 @@ const DashboardAdmin = () => {
     const fetchSummaryData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://localhost/api/projects/dashboard/inspection_count', {
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/inspection_count', {
           headers: {
             'Authorization': token
           }
@@ -135,7 +130,7 @@ const DashboardAdmin = () => {
     const fetchRevenueData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://localhost/api/projects/dashboard/project_fee', {
+        const response = await fetch('https://dev.vivim.co.kr/api/projects/dashboard/project_fee', {
           headers: {
             'Authorization': token
           }
@@ -263,15 +258,15 @@ const DashboardAdmin = () => {
                   >
                     <InquiryHeader>
                       <InquiryTitle>{inquiry.title}</InquiryTitle>
-                      <InquiryStatus status={inquiry.status}>
-                        {inquiry.status === 'PENDING' ? '미답변' : 
-                         inquiry.status === 'COMPLETED' ? '답변완료' : 
-                         inquiry.status === 'IN_PROGRESS' ? '검토중' : inquiry.status}
+                      <InquiryStatus status={inquiry.inquiryStatus}>
+                        {inquiry.inquiryStatus === 'PENDING' ? '미답변' : 
+                         inquiry.inquiryStatus === 'COMPLETED' ? '답변완료' : 
+                         inquiry.inquiryStatus === 'IN_PROGRESS' ? '검토중' : inquiry.inquiryStatus}
                       </InquiryStatus>
                     </InquiryHeader>
                     <InquiryInfo>
                       <CompanyInfo>
-                        {inquiry.companyName}<span>·</span>{inquiry.creatorName}
+                        {inquiry.creatorName}
                       </CompanyInfo>
                       <InquiryDate>
                         {new Date(inquiry.createdAt).toLocaleDateString('ko-KR', {
@@ -319,7 +314,11 @@ const DashboardAdmin = () => {
                 key={post.postId} 
                 onClick={() => handlePostClick(post.postId, post.projectId)}
               >
-                <PostCategory>{post.creatorRole}</PostCategory>
+                <PostCategory>
+                  {post.projectPostStatus === 'NORMAL' ? '일반' :
+                   post.projectPostStatus === 'QUESTION' ? '질문' :
+                   post.projectPostStatus === 'NOTIFICATION' ? '공지' : post.projectPostStatus}
+                </PostCategory>
                 <PostTitle>{post.title}</PostTitle>
                 <PostInfo>
                   <PostAuthor>{post.creatorName}</PostAuthor>
@@ -685,24 +684,24 @@ const PostItem = styled.div`
 const PostCategory = styled.span`
   background: ${props => {
     switch (props.children) {
-      case 'DEVELOPER':
+      case '질문':
         return '#E3F2FD';
-      case 'DESIGNER':
-        return '#F3E5F5';
-      case 'MANAGER':
+      case '일반':
         return '#E8F5E9';
+      case '공지':
+        return '#F3E5F5';
       default:
         return '#e2e8f0';
     }
   }};
   color: ${props => {
     switch (props.children) {
-      case 'DEVELOPER':
+      case '질문':
         return '#1976D2';
-      case 'DESIGNER':
-        return '#9C27B0';
-      case 'MANAGER':
+      case '일반':
         return '#2E7D32';
+      case '공지':
+        return '#9C27B0';
       default:
         return '#475569';
     }

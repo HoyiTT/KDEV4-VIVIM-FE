@@ -24,13 +24,9 @@ const ProjectModify = () => {
   const [devManagers, setDevManagers] = useState([]);
   const [devUsers, setDevUsers] = useState([]);
 
-  // Project users from API
-  const [projectUsers, setProjectUsers] = useState([]);
-
   // Company users
   const [clientCompanyUsers, setClientCompanyUsers] = useState([]);
-  const [devCompanyUsers, setDevCompanyUsers] = useState([]);
-
+  
   // Loading state
   const [loading, setLoading] = useState(true);
   
@@ -72,52 +68,6 @@ const ProjectModify = () => {
   useEffect(() => {
     if (projectId) {
       const token = localStorage.getItem('token');
-      //fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
-      fetch(`https://localhost/api/projects/${projectId}`, {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Received project data:', data); // 데이터 확인용 로그
-          // Populate form with project data
-          setProjectName(data.name);
-          setDescription(data.description);
-          setStartDate(data.startDate);
-          setEndDate(data.endDate);
-          setProjectFee(data.projectFee);
-          setSelectedClientCompany(data.clientCompanyId.toString());
-          setSelectedDevCompany(data.devCompanyId.toString());
-          
-          // projectFee 값이 있는 경우에만 천 단위 쉼표 포맷팅 적용
-          if (data.projectFee) {
-            const formattedFee = data.projectFee.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            console.log('Formatted project fee:', formattedFee); // 포맷팅된 값 확인용 로그
-            setProjectFee(formattedFee);
-          }
-          
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error('Error fetching project:', error);
-          setLoading(false);
-        });
-    }
-  }, [projectId]);
-
-  // Fetch project users
-  useEffect(() => {
-    if (projectId) {
-      const token = localStorage.getItem('token');
-      fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          setProjectUsers(data);
       console.log('프로젝트 상세 정보 요청:', API_ENDPOINTS.PROJECT_DETAIL(projectId));
       
       // 프로젝트 상세 정보와 회사 정보를 병렬로 요청
@@ -148,6 +98,13 @@ const ProjectModify = () => {
           setDescription(projectData.description);
           setStartDate(projectData.startDate);
           setEndDate(projectData.endDate);
+          
+          // projectFee 값이 있는 경우에만 천 단위 쉼표 포맷팅 적용
+          if (projectData.projectFee) {
+            const formattedFee = projectData.projectFee.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            console.log('Formatted project fee:', formattedFee);
+            setProjectFee(formattedFee);
+          }
           
           // 사용자 정보 설정
           if (usersData && Array.isArray(usersData)) {
@@ -1088,20 +1045,6 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
-const ProfileContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const ProfileImage = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e2e8f0;
-`;
-
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
@@ -1152,21 +1095,6 @@ const Input = styled.input`
   
   &::placeholder {
     color: #cbd5e1;
-  }
-`;
-
-const Select = styled.select`
-  padding: 12px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: white;
-  transition: all 0.2s;
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
   }
 `;
 

@@ -46,7 +46,7 @@ const ProjectPostDetail = () => {
       const token = localStorage.getItem('token');
       // 1. presigned URL 받아오기
       //const presignedResponse = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
-      const presignedResponse = await fetch(`https://localhost/api/files/${fileId}/download`, {
+      const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}/download`, {
         headers: {
           'Authorization': token
         }

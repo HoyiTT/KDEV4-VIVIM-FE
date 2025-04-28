@@ -108,7 +108,7 @@ const handleLinkDelete = (indexToDelete) => {
           }
 
           // presigned URL 요청
-          const presignedResponse = await fetch(`https://localhost/api/posts/${createdPostId}/file/presigned`, {
+          const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/posts/${createdPostId}/file/presigned`, {
             method: 'POST',
             headers: {
               'Authorization': token,

@@ -11,21 +11,6 @@ const AdminProjects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/projects/all');
-      const data = await response.json();
-      setProjects(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      setLoading(false);
-    }
-  };
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);

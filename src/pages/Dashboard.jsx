@@ -76,7 +76,7 @@ const Dashboard = () => {
     const fetchRecentPosts = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://localhost/api/posts/user/recent`, {
+        const response = await fetch(`https://dev.vivim.co.kr/api/posts/user/recent`, {
           headers: {
             'Authorization': token
           }
