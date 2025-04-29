@@ -17,42 +17,21 @@ const LoadingMessage = styled.div`
 `;
 
 const ProposalContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
 `;
 
 const ProposalList = styled.div`
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1;
-  padding-bottom: 16px;
-  overflow-y: auto;
-  max-height: calc(100% - 100px);
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
+  padding: 0;
+  box-sizing: border-box;
 `;
 
 const EmptyState = styled.div`
@@ -65,20 +44,27 @@ const EmptyState = styled.div`
 `;
 
 const ProposalItem = styled.div`
+  width: 100%;
   background: white;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  padding: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: all 0.2s;
+  box-sizing: border-box;
 
   &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 `;
 
 const ProposalContent = styled.div`
-  margin-bottom: 8px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
 `;
 
 const ProposalDescription = styled.div`
@@ -622,33 +608,32 @@ const StatusBadge = styled.span`
   }
 `;
 
-const ListProposalTitle = styled.h3`
-  font-size: 16px;
+const ListProposalTitle = styled.div`
+  font-size: 15px;
   font-weight: 500;
   color: #1e293b;
-  margin: 6px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.4;
-  max-height: 44px; /* 대략 두 줄에 해당하는 높이 */
+  white-space: nowrap;
 `;
 
 const ProposalHeader = styled.div`
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  gap: 12px;
+  box-sizing: border-box;
 `;
 
 const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
-  min-width: 0; /* 텍스트 말줄임을 위해 필요 */
+  min-width: 0;
 `;
 
 const HeaderRight = styled.div`

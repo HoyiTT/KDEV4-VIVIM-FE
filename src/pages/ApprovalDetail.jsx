@@ -291,14 +291,6 @@ const ApprovalActionButton = styled.button`
   }
 `;
 
-const StatusSummarySection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  margin-bottom: 24px;
-`;
-
 const StatusSummaryTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
@@ -314,37 +306,6 @@ const ContentGrid = styled.div`
   @media (max-width: 1100px) {
     grid-template-columns: 1fr;
   }
-`;
-
-const ApprovalSidePanel = styled.div`
-  position: sticky;
-  top: 84px;
-  height: fit-content;
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const SidePanelTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
-`;
-
-const ApprovalStatusBox = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  margin-bottom: 24px;
-`;
-
-const StatusSummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
 `;
 
 const ActionsButton = styled.button`

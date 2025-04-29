@@ -8,12 +8,13 @@ const { getApproverStatusText } = approvalUtils;
 
 // Styled Components
 const ResponseSection = styled.div`
-  margin-top: 16px;
-  padding: 28px;
-  border-radius: 16px;
-  background-color: #ffffff;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
-  border: none;
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  overflow-x: hidden;
 `;
 
 const ApproversSectionHeader = styled.div`
@@ -35,7 +36,10 @@ const ApproversSectionTitle = styled.h3`
 const ResponseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  margin-top: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
 `;
 
 const ApproverCard = styled.div`
@@ -260,17 +264,17 @@ const AddResponseButton = styled.button`
 `;
 
 const ResponseItem = styled.div`
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 20px;
-  position: relative;
-  display: flex;
-  transition: all 0.2s ease-in-out;
-  
+  background: ${props => props.$hasApproved ? '#f0fdf4' : props.$hasRejected ? '#fef2f2' : '#f8fafc'};
+  border: 1px solid ${props => props.$hasApproved ? '#dcfce7' : props.$hasRejected ? '#fee2e2' : '#e2e8f0'};
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s;
+  max-width: 100%;
+  overflow-x: hidden;
+
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   & > div {
@@ -282,9 +286,9 @@ const ResponseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 `;
 
 const ResponseStatusContainer = styled.div`
@@ -304,12 +308,13 @@ const ResponseActionsContainer = styled.div`
 `;
 
 const ResponseName = styled.div`
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: #1e293b;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 `;
 
 const ResponseDate = styled.div`
