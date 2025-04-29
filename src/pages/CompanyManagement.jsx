@@ -225,6 +225,30 @@ const CompanyManagement = () => {
             </tbody>
           </CompanyTable>
         )}
+        
+        <PaginationContainer>
+          <PaginationButton 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+            disabled={currentPage === 0}
+          >
+            이전
+          </PaginationButton>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <PaginationButton
+              key={i}
+              onClick={() => setCurrentPage(i)}
+              active={currentPage === i}
+            >
+              {i + 1}
+            </PaginationButton>
+          ))}
+          <PaginationButton
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+            disabled={currentPage === totalPages - 1}
+          >
+            다음
+          </PaginationButton>
+        </PaginationContainer>
       </MainContent>
     </PageContainer>
   );
@@ -495,5 +519,36 @@ const SearchButton = styled.button`
   
   &:hover {
     background: #2563eb;
+  }
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+`;
+
+const PaginationButton = styled.button`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: ${props => props.active ? '#3b82f6' : 'white'};
+  color: ${props => props.active ? 'white' : '#64748b'};
+  font-size: 14px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+  min-width: 36px;
+  
+  &:hover {
+    background-color: ${props => props.active ? '#3b82f6' : '#f8fafc'};
+    border-color: ${props => props.active ? '#3b82f6' : '#cbd5e1'};
+  }
+  
+  &:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
   }
 `;
