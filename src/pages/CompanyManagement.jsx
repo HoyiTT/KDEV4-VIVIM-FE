@@ -18,6 +18,10 @@ const CompanyManagement = () => {
     email: '',
     isDeleted: false
   });
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'ascending'
+  });
 
   useEffect(() => {
     fetchCompanies();
@@ -159,6 +163,61 @@ const CompanyManagement = () => {
 
   const COLORS = ['#4F6AFF', '#FF6B6B', '#4CAF50'];
 
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedCompanies = React.useMemo(() => {
+    if (!sortConfig.key) return companies;
+
+    return [...companies].sort((a, b) => {
+      if (sortConfig.key === 'name') {
+        return sortConfig.direction === 'ascending' 
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+      if (sortConfig.key === 'businessNumber') {
+        return sortConfig.direction === 'ascending'
+          ? a.businessNumber.localeCompare(b.businessNumber)
+          : b.businessNumber.localeCompare(a.businessNumber);
+      }
+      if (sortConfig.key === 'coOwner') {
+        return sortConfig.direction === 'ascending'
+          ? a.coOwner.localeCompare(b.coOwner)
+          : b.coOwner.localeCompare(a.coOwner);
+      }
+      if (sortConfig.key === 'phone') {
+        return sortConfig.direction === 'ascending'
+          ? a.phone.localeCompare(b.phone)
+          : b.phone.localeCompare(a.phone);
+      }
+      if (sortConfig.key === 'companyRole') {
+        const roleOrder = { 'ADMIN': 0, 'DEVELOPER': 1, 'CUSTOMER': 2 };
+        return sortConfig.direction === 'ascending'
+          ? roleOrder[a.companyRole] - roleOrder[b.companyRole]
+          : roleOrder[b.companyRole] - roleOrder[a.companyRole];
+      }
+      return 0;
+    });
+  }, [companies, sortConfig]);
+
+  const getRoleName = (role) => {
+    switch (role) {
+      case 'ADMIN':
+        return '관리자';
+      case 'DEVELOPER':
+        return '개발사';
+      case 'CUSTOMER':
+        return '고객사';
+      default:
+        return role;
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -271,15 +330,41 @@ const CompanyManagement = () => {
           <CompanyTable>
             <thead>
               <tr>
-                <TableHeaderCell>회사명</TableHeaderCell>
-                <TableHeaderCell>사업자등록번호</TableHeaderCell>
-                <TableHeaderCell>대표자</TableHeaderCell>
-                <TableHeaderCell>연락처</TableHeaderCell>
+                <TableHeaderCell 
+                  onClick={() => handleSort('name')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  회사명 {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                </TableHeaderCell>
+                <TableHeaderCell 
+                  onClick={() => handleSort('businessNumber')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  사업자등록번호 {sortConfig.key === 'businessNumber' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                </TableHeaderCell>
+                <TableHeaderCell 
+                  onClick={() => handleSort('coOwner')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  대표자 {sortConfig.key === 'coOwner' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                </TableHeaderCell>
+                <TableHeaderCell 
+                  onClick={() => handleSort('phone')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  연락처 {sortConfig.key === 'phone' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                </TableHeaderCell>
+                <TableHeaderCell 
+                  onClick={() => handleSort('companyRole')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  역할 {sortConfig.key === 'companyRole' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                </TableHeaderCell>
                 <TableHeaderCell>관리</TableHeaderCell>
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => (
+              {sortedCompanies.map((company) => (
                 <TableRow key={company.id}>
                   <TableCell 
                     onClick={() => navigate(`/company-edit/${company.id}`)}
@@ -290,6 +375,11 @@ const CompanyManagement = () => {
                   <TableCell>{company.businessNumber}</TableCell>
                   <TableCell>{company.coOwner}</TableCell>
                   <TableCell>{company.phone}</TableCell>
+                  <TableCell>
+                    <RoleBadge role={company.companyRole}>
+                      {getRoleName(company.companyRole)}
+                    </RoleBadge>
+                  </TableCell>
                   <TableCell>
                     <ActionButtonContainer>
                       <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
@@ -450,6 +540,38 @@ const TableCell = styled.td`
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
   font-family: 'SUIT', sans-serif;
+`;
+
+const RoleBadge = styled.span`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return 'rgba(79, 106, 255, 0.1)';
+      case 'DEVELOPER':
+        return 'rgba(255, 107, 107, 0.1)';
+      case 'CUSTOMER':
+        return 'rgba(76, 175, 80, 0.1)';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return '#4F6AFF';
+      case 'DEVELOPER':
+        return '#FF6B6B';
+      case 'CUSTOMER':
+        return '#4CAF50';
+      default:
+        return '#64748b';
+    }
+  }};
 `;
 
 const ActionButton = styled.button`

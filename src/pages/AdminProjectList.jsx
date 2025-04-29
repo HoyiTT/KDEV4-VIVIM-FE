@@ -15,6 +15,10 @@ const AdminProjectList = () => {
     name: '',
     isDeleted: false
   });
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'ascending'
+  });
 
   useEffect(() => {
     fetchProjects();
@@ -116,6 +120,42 @@ const AdminProjectList = () => {
     }
   };
 
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedProjects = React.useMemo(() => {
+    if (!sortConfig.key) return projects;
+
+    return [...projects].sort((a, b) => {
+      if (sortConfig.key === 'name') {
+        return sortConfig.direction === 'ascending' 
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+      if (sortConfig.key === 'startDate') {
+        return sortConfig.direction === 'ascending'
+          ? new Date(a.startDate) - new Date(b.startDate)
+          : new Date(b.startDate) - new Date(a.startDate);
+      }
+      if (sortConfig.key === 'endDate') {
+        return sortConfig.direction === 'ascending'
+          ? new Date(a.endDate) - new Date(b.endDate)
+          : new Date(b.endDate) - new Date(a.endDate);
+      }
+      if (sortConfig.key === 'status') {
+        return sortConfig.direction === 'ascending'
+          ? (a.deleted ? 1 : -1)
+          : (a.deleted ? -1 : 1);
+      }
+      return 0;
+    });
+  }, [projects, sortConfig]);
+
   return (
     <PageContainer>
       <Navbar 
@@ -145,7 +185,7 @@ const AdminProjectList = () => {
               checked={filters.isDeleted}
               onChange={handleFilterChange}
             />
-            <span>삭제된 프로젝트 포함</span>
+            <span>삭제된 프로젝트만 검색</span>
           </SearchCheckbox>
           <SearchButton onClick={handleSearch}>
             검색
@@ -159,15 +199,35 @@ const AdminProjectList = () => {
             <ProjectTable>
               <TableHeader>
                 <TableRow>
-                  <TableHeaderCell>프로젝트명</TableHeaderCell>
-                  <TableHeaderCell>시작일</TableHeaderCell>
-                  <TableHeaderCell>종료일</TableHeaderCell>
-                  <TableHeaderCell>상태</TableHeaderCell>
+                  <TableHeaderCell 
+                    onClick={() => handleSort('name')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    프로젝트명 {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </TableHeaderCell>
+                  <TableHeaderCell 
+                    onClick={() => handleSort('startDate')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    시작일 {sortConfig.key === 'startDate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </TableHeaderCell>
+                  <TableHeaderCell 
+                    onClick={() => handleSort('endDate')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    종료일 {sortConfig.key === 'endDate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </TableHeaderCell>
+                  <TableHeaderCell 
+                    onClick={() => handleSort('status')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    상태 {sortConfig.key === 'status' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                  </TableHeaderCell>
                   <TableHeaderCell>관리</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map((project) => (
+                {sortedProjects.map((project) => (
                   <TableRow key={project.projectId}>
                     <TableCell 
                       onClick={() => navigate(`/project/${project.projectId}`)}
@@ -183,17 +243,19 @@ const AdminProjectList = () => {
                       </StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <ActionButtonContainer>
-                        <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
-                          수정
-                        </ActionButton>
-                        <DeleteButton 
-                          onClick={() => handleDeleteProject(project.projectId)}
-                          disabled={project.deleted}
-                        >
-                          삭제
-                        </DeleteButton>
-                      </ActionButtonContainer>
+                      {!project.deleted && (
+                        <ActionButtonContainer>
+                          <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                            수정
+                          </ActionButton>
+                          <DeleteButton 
+                            onClick={() => handleDeleteProject(project.projectId)}
+                            disabled={project.deleted}
+                          >
+                            삭제
+                          </DeleteButton>
+                        </ActionButtonContainer>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
