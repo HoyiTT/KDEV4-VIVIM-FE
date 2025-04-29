@@ -1230,8 +1230,9 @@ const ApprovalProposal = ({
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   const handleShowMore = () => {
@@ -1282,20 +1283,22 @@ const ApprovalProposal = ({
                               전송
                             </SendButtonSmall>
                           )}
-                          <ActionIcons>
-                            <ActionIcon onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditClick(proposal);
-                            }} title="수정">
-                              <FaEdit />
-                            </ActionIcon>
-                            <ActionIcon className="delete" onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProposal(proposal.id);
-                            }} title="삭제">
-                              <FaTrashAlt />
-                            </ActionIcon>
-                          </ActionIcons>
+                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
+                            <ActionIcons>
+                              <ActionIcon onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(proposal);
+                              }} title="수정">
+                                <FaEdit />
+                              </ActionIcon>
+                              <ActionIcon className="delete" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProposal(proposal.id);
+                              }} title="삭제">
+                                <FaTrashAlt />
+                              </ActionIcon>
+                            </ActionIcons>
+                          )}
                         </HeaderRight>
                       </ProposalHeader>
                     </ProposalContent>
