@@ -15,6 +15,7 @@ import AdminProjectList from './pages/AdminProjectList';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
 import AuditLog from './pages/AuditLog';
+import ApprovalDetail from './pages/ApprovalDetail';
 
 import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
@@ -28,7 +29,7 @@ import { setNavigate } from './utils/axiosInstance';
 
 const AppContent = () => {
   const navigate = useNavigate();
-  
+
   // axiosInstance에 navigate 함수 설정
   React.useEffect(() => {
     setNavigate(navigate);
@@ -59,6 +60,7 @@ const AppContent = () => {
             <Route path="/project/:projectId/post/:postId" element={<ProjectPostDetail />} />
             <Route path="/project/:projectId/post/create" element={<ProjectPostCreate />} />
             <Route path="/project/:projectId/post/:postId/modify" element={<ProjectPostModify />} />
+            <Route path="/approval/:id" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/user-edit/:userId" element={<UserEdit />} />
           </Routes>
