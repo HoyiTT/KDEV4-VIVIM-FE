@@ -231,9 +231,9 @@ const CompanyManagement = () => {
             새 회사 등록
           </AddButton>
         </Header>
-
+{/* 
         <ChartsContainer>
-          {/* 회사 역할 분포 파이 차트 */}
+          
           <ChartSection>
             <StatisticsTitle>회사 역할 분포</StatisticsTitle>
             <ChartContainer>
@@ -260,7 +260,7 @@ const CompanyManagement = () => {
             </ChartContainer>
           </ChartSection>
 
-          {/* 회사 등록 추이 라인 차트 */}
+          {/* 회사 등록 추이 라인 차트 
           <ChartSection>
             <StatisticsTitle>회사 등록 추이</StatisticsTitle>
             <ChartContainer>
@@ -286,7 +286,7 @@ const CompanyManagement = () => {
             </ChartContainer>
           </ChartSection>
         </ChartsContainer>
-
+*/}
         <SearchSection>
           <SearchInput
             type="text"
