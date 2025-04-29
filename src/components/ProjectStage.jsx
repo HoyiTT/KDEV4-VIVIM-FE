@@ -365,23 +365,23 @@ const ProjectStageProgress = ({
             const isViewing = index === currentStageIndex;
             
             return (
-              <StageProgressItem 
-                key={stage.id}
-                onClick={() => setCurrentStageIndex(index)}
+            <StageProgressItem 
+              key={stage.id}
+              onClick={() => setCurrentStageIndex(index)}
                 active={isViewing}
-              >
-                <StageProgressMarker 
+            >
+              <StageProgressMarker 
                   completed={isCompleted}
                   current={isCurrent}
                   viewing={isViewing}
-                >
+              >
                   {isCompleted ? 
                     <FaCheck /> : 
                     isCurrent ? <FaClock /> : index + 1
                   }
-                </StageProgressMarker>
-                <StageProgressDetails>
-                  <StageProgressName>{stage.name}</StageProgressName>
+              </StageProgressMarker>
+              <StageProgressDetails>
+                <StageProgressName>{stage.name}</StageProgressName>
                   <StageProgressStatus 
                     isCompleted={isCompleted}
                     isCurrent={isCurrent}
@@ -389,18 +389,18 @@ const ProjectStageProgress = ({
                     {isCompleted ? '완료' : 
                      isCurrent ? '진행중' : 
                      '대기'}
-                  </StageProgressStatus>
-                </StageProgressDetails>
-              </StageProgressItem>
+                </StageProgressStatus>
+              </StageProgressDetails>
+            </StageProgressItem>
             );
           })}
         </StageProgressList>
       </StageProgressTimeline>
       
       <ApprovalRequestContainer>
-        <StageProgressInfo>
-          <ProgressInfoItem>
-            <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
+      <StageProgressInfo>
+        <ProgressInfoItem>
+          <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
             <ProgressInfoValue>
               {progressList[currentStageIndex]?.name}
               {(() => {
@@ -449,23 +449,23 @@ const ProjectStageProgress = ({
                 </>
               );
             })()}
-          </ProgressInfoItem>
-          <ProgressInfoItem>
-            <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
-            <ProgressBar>
+        </ProgressInfoItem>
+        <ProgressInfoItem>
+          <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
+          <ProgressBar>
               <ProgressFill 
                 width={`${projectProgress.overallProgressRate}%`}
                 color="#22c55e"
               />
-            </ProgressBar>
+          </ProgressBar>
             <ProgressInfoValue>
               {Math.round(projectProgress.overallProgressRate)}%
               <small>
                 {projectProgress.completedStageCount}/{projectProgress.totalStageCount} 단계
               </small>
             </ProgressInfoValue>
-          </ProgressInfoItem>
-        </StageProgressInfo>
+        </ProgressInfoItem>
+      </StageProgressInfo>
         {children}
       </ApprovalRequestContainer>
     </StageProgressColumn>
