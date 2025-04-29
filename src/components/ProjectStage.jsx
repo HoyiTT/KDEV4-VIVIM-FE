@@ -235,7 +235,6 @@ const ProgressFill = styled.div`
  * @param {Number} currentStageIndex - 현재 선택된 단계 인덱스
  * @param {Function} setCurrentStageIndex - 단계 선택 시 호출되는 함수
  * @param {String} title - 타임라인 제목 (기본값: "프로젝트 진행 단계")
- * @param {Boolean} isAdmin - 관리자 여부
  * @param {Boolean} isDeveloperManager - 개발사 담당자 여부
  * @param {Function} openStageModal - 단계 추가 모달을 여는 함수
  * @param {Object} projectProgress - 프로젝트 전체 진행률 정보
@@ -313,7 +312,7 @@ const ProjectStageProgress = ({
                 <FaArrowRight />
               </NavButton>
             </StageNavigation>
-            {(isAdmin || isDeveloperManager) && (
+            {(isAdmin && isDeveloperManager) && (
               <ManageButtonContainer ref={menuRef}>
                 <ManageButton onClick={() => setShowMenu(!showMenu)}>
                   <FaEllipsisV /> 단계 관리

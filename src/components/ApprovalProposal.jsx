@@ -132,9 +132,9 @@ const DeleteButton = styled(ActionButton)`
 `;
 
 const SendButton = styled(ActionButton)`
-  background: white;
-  border: 1px solid #2E7D32;
-  color: #2E7D32;
+  background: #2E7D32;
+  border: none;
+  color: white;
   width: 100%;
   text-align: center;
   padding: 8px 16px;
@@ -145,15 +145,14 @@ const SendButton = styled(ActionButton)`
   overflow: hidden;
 
   &:hover {
-    color: #3b82f6;
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    background: #1B5E20;
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
   }
 
   &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.1);
   }
 `;
 
@@ -1276,12 +1275,9 @@ const ApprovalProposal = ({
                             proposal.approvalProposalStatus === 'REJECTED_BY_ANY_DECISION' || 
                             proposal.approvalProposalStatus === 'REJECTED') && 
                             !window.location.pathname.includes('/project/') && (
-                            <SendButtonSmall onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendProposal(proposal.id);
-                            }}>
-                              전송
-                            </SendButtonSmall>
+                            <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                              승인요청
+                            </SendButton>
                           )}
                           {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
                             <ActionIcons>

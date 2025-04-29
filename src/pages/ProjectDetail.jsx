@@ -64,6 +64,7 @@ const ProjectDetail = () => {
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(null);
   const [isDeveloperManager, setIsDeveloperManager] = useState(false);
+  const [isDeveloper, setIsDeveloper] = useState(false);
   
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -71,20 +72,54 @@ const ProjectDetail = () => {
       if (token) {
         try {
           const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          console.log('Decoded Token Role:', decodedToken.role);
           const isAdminUser = decodedToken.role === 'ADMIN';
           const isDeveloperManagerUser = decodedToken.role === 'DEVELOPER_MANAGER';
+          const isDeveloperUser = decodedToken.role === 'DEVELOPER';
+          console.log('Is Admin:', isAdminUser);
+          console.log('Is Developer Manager:', isDeveloperManagerUser);
+          console.log('Is Developer:', isDeveloperUser);
           setIsAdmin(isAdminUser);
           setIsDeveloperManager(isDeveloperManagerUser);
+          setIsDeveloper(isDeveloperUser);
         } catch (error) {
           console.error('Error decoding token:', error);
           setIsAdmin(false);
           setIsDeveloperManager(false);
+          setIsDeveloper(false);
         }
       }
       setAdminCheckLoading(false);
     };
     
     checkAdminStatus();
+  }, []);
+
+  // 개발사 확인 함수
+  const checkDeveloperStatus = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsDeveloper(false);
+      return;
+    }
+
+    try {
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      console.log('Decoded Token:', decodedToken);
+      
+      // 개발사 확인 로직
+      const isDeveloperUser = decodedToken.role === 'DEVELOPER';
+      console.log('Is Developer:', isDeveloperUser);
+      
+      setIsDeveloper(isDeveloperUser);
+    } catch (error) {
+      console.error('Error checking developer status:', error);
+      setIsDeveloper(false);
+    }
+  };
+
+  useEffect(() => {
+    checkDeveloperStatus();
   }, []);
 
   const handleDeleteProject = async () => {
@@ -623,6 +658,38 @@ const ProjectDetail = () => {
     }
   };
   
+  // 승인응답 추가 버튼 컴포넌트
+  const ApprovalResponseButton = () => {
+    // 개발사일 경우 버튼을 표시하지 않음
+    if (isDeveloper) {
+      console.log('Developer detected, hiding approval response button');
+      return null;
+    }
+
+    // 관리자나 개발자 매니저가 아닌 경우에도 버튼을 표시하지 않음
+    if (!isAdmin && !isDeveloperManager) {
+      console.log('Not admin or developer manager, hiding approval response button');
+      return null;
+    }
+
+    return (
+      <button
+        onClick={() => setShowModal(true)}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: '#4CAF50',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          marginBottom: '20px'
+        }}
+      >
+        <FaPlus /> 승인응답 추가
+      </button>
+    );
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -633,6 +700,7 @@ const ProjectDetail = () => {
         <MainContent>
           <Header>
             <PageTitle>프로젝트 상세보기</PageTitle>
+            <ApprovalResponseButton />
           </Header>
 
         {loading ? (
@@ -883,10 +951,54 @@ const ProjectDetail = () => {
             <ApprovalDecision approvalId={selectedProposal.id} />
           </ModalBody>
           <ModalFooter>
-            <ModalButton onClick={() => {
-              setIsProposalModalOpen(false);
-              setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
-            }}>닫기</ModalButton>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  // 수정 로직
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                수정하기
+              </button>
+              <button
+                onClick={() => {
+                  // 삭제 로직
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                삭제하기
+              </button>
+              <button
+                onClick={() => {
+                  setIsProposalModalOpen(false);
+                  setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f1f5f9',
+                  color: '#64748b',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                닫기
+              </button>
+            </div>
           </ModalFooter>
         </ModalContent>
       </ModalOverlay>
@@ -1095,53 +1207,13 @@ const InfoValue = styled.span`
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 12px;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  background-color: ${props => {
-    switch (props.status) {
-      case ApprovalProposalStatus.DRAFT:
-        return 'rgba(75, 85, 99, 0.08)';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return 'rgba(30, 64, 175, 0.08)';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return 'rgba(4, 120, 87, 0.08)';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return 'rgba(185, 28, 28, 0.08)';
-      default:
-        return 'rgba(75, 85, 99, 0.08)';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case ApprovalProposalStatus.DRAFT:
-        return '#4B5563';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return '#1E40AF';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return '#047857';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return '#B91C1C';
-      default:
-        return '#4B5563';
-    }
-  }};
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  svg {
-    font-size: 14px;
-    opacity: 0.9;
-  }
+  font-weight: 500;
+  background-color: ${props => props.status ? getApprovalStatusBackgroundColor(props.status) : '#f1f5f9'};
+  color: ${props => props.status ? getApprovalStatusTextColor(props.status) : '#64748b'};
 `;
 
 const ReplyButton = styled.button`
