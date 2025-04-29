@@ -285,11 +285,8 @@ const ProjectStageProgress = ({
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [isClient, setIsClient] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
-  const [showStageModal, setShowStageModal] = useState(false);
-  const [stageAction, setStageAction] = useState('');
-  const [editingStage, setEditingStage] = useState(null);
-  const [stageName, setStageName] = useState('');
   
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -384,10 +381,12 @@ const ProjectStageProgress = ({
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
         const isAdminUser = decodedToken.role === 'ADMIN';
         const isClientUser = decodedToken.role === 'CUSTOMER';
+        setIsAdmin(isAdminUser);
         setIsClient(isClientUser);
         console.log(decodedToken.role);
       } catch (error) {
         console.error('Error decoding token:', error);
+        setIsAdmin(false);
         setIsClient(false);
       }
     }

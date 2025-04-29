@@ -64,6 +64,33 @@ const ProjectDetail = () => {
 
   const [isIncreasing, setIsIncreasing] = useState(false);
 
+  const handleDeleteProject = async () => {
+    if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token,
+            'accept': '*/*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        
+        if (response.ok) {
+          alert('프로젝트가 삭제되었습니다.');
+          navigate('/dashboard');
+        } else {
+          alert('프로젝트 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   useEffect(() => {
     fetchProjectDetail();
     fetchProjectPosts();
@@ -474,14 +501,10 @@ const ProjectDetail = () => {
   // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
-      const storedToken = localStorage.getItem('token');
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`, {
         headers: {
-          'Authorization': authToken,
-          'Content-Type': 'application/json',
-          'accept': '*/*'
+          'Authorization': token
         }
       });
       
@@ -664,60 +687,6 @@ const ProjectDetail = () => {
     }
   };
 
-  // 개발사 확인 함수
-  const checkDeveloperStatus = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setIsDeveloper(false);
-      return;
-    }
-
-    try {
-      const decodedToken = JSON.parse(atob(token.split('.')[1]));
-      console.log('Decoded Token:', decodedToken);
-      
-      // 개발사 확인 로직
-      const isDeveloperUser = decodedToken.role === 'DEVELOPER';
-      console.log('Is Developer:', isDeveloperUser);
-      
-      setIsDeveloper(isDeveloperUser);
-    } catch (error) {
-      console.error('Error checking developer status:', error);
-      setIsDeveloper(false);
-    }
-  };
-
-  useEffect(() => {
-    checkDeveloperStatus();
-  }, []);
-
-  const handleDeleteProject = async () => {
-    if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token,
-            'accept': '*/*',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        });
-        
-        if (response.ok) {
-          alert('프로젝트가 삭제되었습니다.');
-          navigate('/dashboard');
-        } else {
-          alert('프로젝트 삭제에 실패했습니다.');
-        }
-      } catch (error) {
-        console.error('Error deleting project:', error);
-        alert('프로젝트 삭제 중 오류가 발생했습니다.');
-      }
-    }
-  };
-
   return (
     <PageContainer>
       <Navbar 
@@ -730,189 +699,375 @@ const ProjectDetail = () => {
             <PageTitle>프로젝트 상세보기</PageTitle>
           </Header>
 
-          {loading ? (
-            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-          ) : project ? (
-            <ContentContainer>
-              <ProjectInfoSection>
-                <ProjectHeader>
-                  <ProjectTitle>{project.name}</ProjectTitle>
-                  <StatusContainer>
-                    <StatusBadge isDeleted={project.isDeleted}>
-                      {project.isDeleted ? '삭제됨' : '진행중'}
-                    </StatusBadge>
-                    {isAdmin && (
-                      <DropdownContainer>
-                        <DropdownButton onClick={() => setShowDropdown(!showDropdown)}>
-                          ⋮
-                        </DropdownButton>
-                        {showDropdown && (
-                          <DropdownMenu>
-                            <DropdownItem onClick={() => navigate(`/projectModify/${id}`)}>
-                              수정하기
-                            </DropdownItem>
-                            <DropdownItem onClick={() => handleDeleteProject()} className="delete">
-                              삭제하기
-                            </DropdownItem>
-                          </DropdownMenu>
-                        )}
-                      </DropdownContainer>
-                    )}
-                  </StatusContainer>
-                </ProjectHeader>
-                <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
-                <DateContainer>
-                  <DateItem>
-                    <DateLabel>시작일</DateLabel>
-                    <DateValue>{project.startDate}</DateValue>
-                  </DateItem>
-                  <DateItem>
-                    <DateLabel>종료일</DateLabel>
-                    <DateValue>{project.endDate}</DateValue>
-                  </DateItem>
-                </DateContainer>
-              </ProjectInfoSection>
+        {loading ? (
+          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+        ) : project ? (
+          <ContentContainer>
+            <ProjectInfoSection>
+              <ProjectHeader>
+                <ProjectTitle>{project.name}</ProjectTitle>
+                <StatusContainer>
+                  <StatusBadge isDeleted={project.isDeleted}>
+                    {project.isDeleted ? '삭제됨' : '진행중'}
+                  </StatusBadge>
+                  {isAdmin && (
+                    <DropdownContainer>
+                      <DropdownButton onClick={() => setShowDropdown(!showDropdown)}>
+                        ⋮
+                      </DropdownButton>
+                      {showDropdown && (
+                        <DropdownMenu>
+                          <DropdownItem onClick={() => navigate(`/projectModify/${id}`)}>
+                            수정하기
+                          </DropdownItem>
+                          <DropdownItem onClick={() => handleDeleteProject()} className="delete">
+                            삭제하기
+                          </DropdownItem>
+                        </DropdownMenu>
+                      )}
+                    </DropdownContainer>
+                  )}
+                </StatusContainer>
+              </ProjectHeader>
+              <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+              <DateContainer>
+                <DateItem>
+                  <DateLabel>시작일</DateLabel>
+                  <DateValue>{project.startDate}</DateValue>
+                </DateItem>
+                <DateItem>
+                  <DateLabel>종료일</DateLabel>
+                  <DateValue>{project.endDate}</DateValue>
+                </DateItem>
+              </DateContainer>
+            </ProjectInfoSection>
 
-              <StageSection>
-                <StageSplitLayout>
-                  <ProjectStageProgress 
-                    progressList={progressList}
-                    currentStageIndex={currentStageIndex}
-                    setCurrentStageIndex={setCurrentStageIndex}
-                    title="프로젝트 진행 단계"
-                    isAdmin={isAdmin}
-                    isDeveloper={isDeveloper}
-                    projectProgress={projectProgress}
-                    progressStatus={progressStatus}
-                    onIncreaseProgress={handleIncreaseProgress}
-                    currentProgress={project?.currentProgress}
-                  >
-                    {progressList.length > 0 ? (
-                      progressList
-                    .sort((a, b) => a.position - b.position)
-                      .map((stage, index) => (
-                        <StageContainer 
-                          key={stage.id} 
-                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+            <StageSection>
+              <StageSplitLayout>
+                <ProjectStageProgress 
+                  progressList={progressList}
+                  currentStageIndex={currentStageIndex}
+                  setCurrentStageIndex={setCurrentStageIndex}
+                  title="프로젝트 진행 단계"
+                  isAdmin={isAdmin}
+                  isDeveloperManager={isDeveloperManager}
+                  openStageModal={openStageModal}
+                  projectProgress={projectProgress}
+                  progressStatus={progressStatus}
+                  onIncreaseProgress={handleIncreaseProgress}
+                  currentProgress={project?.currentProgress}
+                >
+                  {progressList.length > 0 ? (
+                    progressList
+                  .sort((a, b) => a.position - b.position)
+                    .map((stage, index) => (
+                      <StageContainer 
+                        key={stage.id} 
+                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+                      >
+                        <StageItem 
+                          ref={el => stageRefs.current[index] = el} 
                         >
-                          <StageItem 
-                            ref={el => stageRefs.current[index] = el} 
-                          >
-                            <StageHeader>
-                              <StageTitle title={stage.name} />
-                            </StageHeader>
-                            <ApprovalProposal 
-                              progressId={stage.id} 
-                              progressStatus={progressStatus}
-                              isCustomer={isCustomer}
-                            />
-                          </StageItem>
-                        </StageContainer>
-                      ))
-                    ) : (
-                      <EmptyStageMessage>
-                        등록된 진행 단계가 없습니다.
-                        {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
-                      </EmptyStageMessage>
-                    )}
-                  </ProjectStageProgress>
-                </StageSplitLayout>
-              </StageSection>
-
-              <BoardSection>
-                <BoardHeader>
-                  <SectionTitle>게시판</SectionTitle>
-                  <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
-                    글쓰기
-                  </CreateButton>
-                </BoardHeader>
-                <BoardTable>
-                  <thead>
-                    <tr>
-                      <BoardHeaderCell>제목</BoardHeaderCell>
-                      <BoardHeaderCell>답글</BoardHeaderCell>
-                      <BoardHeaderCell>상태</BoardHeaderCell>
-                      <BoardHeaderCell>작성자</BoardHeaderCell>
-                      <BoardHeaderCell>역할</BoardHeaderCell>
-                      <BoardHeaderCell>작성일</BoardHeaderCell>
-                      <BoardHeaderCell>수정일</BoardHeaderCell>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {posts.length === 0 ? (
-                      <tr>
-                        <EmptyBoardCell colSpan="7">
-                          <EmptyStateContainer>
-                            <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
-                            <EmptyStateDescription>
-                              새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
-                            </EmptyStateDescription>
-                          </EmptyStateContainer>
-                        </EmptyBoardCell>
-                      </tr>
-                    ) : (
-                      posts
-                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                      .reduce((acc, post) => {
-                        if (!post.parentId) {
-                          acc.push(post);
-                          const replies = posts.filter(reply => reply.parentId === post.postId);
-                          acc.push(...replies);
-                        }
-                        return acc;
-                      }, [])
-                      .map((post) => (
-                        <BoardRow key={post.postId}>
-                          <BoardCell 
-                            className={`title-cell ${post.parentId ? 'child-post' : ''}`}
-                            onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
-                          >
-                            {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
-                            {post.title}
-                          </BoardCell>
-                          <BoardCell>
-                            {!post.parentId && (
-                              <ReplyButton onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/project/${id}/post/create`, {
-                                  state: { parentPost: post }
-                                });
-                              }}>
-                                답글
-                              </ReplyButton>
-                            )}
-                          </BoardCell>
-                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                            {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
-                             post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
-                          </BoardCell>
-                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                            {post.creatorName}
-                          </BoardCell>
-                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                            <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
-                          </BoardCell>
-                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                            {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                          </BoardCell>
-                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                            {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
-                          </BoardCell>
-                        </BoardRow>
-                      ))
-                    )}
-                  </tbody>
-                </BoardTable>
-              </BoardSection>
-            </ContentContainer>
-          ) : (
-            <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
-          )}
-        </MainContent>
-      </ContentWrapper>
+                          <StageHeader>
+                            <StageTitle title={stage.name} />
+                          </StageHeader>
+                          <ApprovalProposal 
+                            progressId={stage.id} 
+                            progressStatus={progressStatus}
+                          />
+                    </StageItem>
+                      </StageContainer>
+                    ))
+                  ) : (
+                    <EmptyStageMessage>
+                      등록된 진행 단계가 없습니다.
+                      {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
+                    </EmptyStageMessage>
+                  )}
+                </ProjectStageProgress>
+              </StageSplitLayout>
+            </StageSection>
+                        <BoardSection>
+                          <BoardHeader>
+                            <SectionTitle>게시판</SectionTitle>
+                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                              글쓰기
+                            </CreateButton>
+                          </BoardHeader>
+                          <BoardTable>
+                            <thead>
+                              <tr>
+                                <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>답글</BoardHeaderCell>
+                                <BoardHeaderCell>상태</BoardHeaderCell>
+                                <BoardHeaderCell>작성자</BoardHeaderCell>
+                                <BoardHeaderCell>역할</BoardHeaderCell>
+                                <BoardHeaderCell>작성일</BoardHeaderCell>
+                                <BoardHeaderCell>수정일</BoardHeaderCell>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {posts.length === 0 ? (
+                                <tr>
+                                  <EmptyBoardCell colSpan="7">
+                                    <EmptyStateContainer>
+                                      <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
+                                      <EmptyStateDescription>
+                                        새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
+                                      </EmptyStateDescription>
+                                    </EmptyStateContainer>
+                                  </EmptyBoardCell>
+                                </tr>
+                              ) : (
+                                posts
+                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                .reduce((acc, post) => {
+                                  if (!post.parentId) {
+                                    acc.push(post);
+                                    const replies = posts.filter(reply => reply.parentId === post.postId);
+                                    acc.push(...replies);
+                                  }
+                                  return acc;
+                                }, [])
+                                .map((post) => (
+                                  <BoardRow key={post.postId}>
+                                    <BoardCell 
+                                      className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                                    >
+                                      {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                                      {post.title}
+                                    </BoardCell>
+                                    <BoardCell>
+                                      {!post.parentId && (
+                                        <ReplyButton onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/project/${id}/post/create`, {
+                                            state: { parentPost: post }
+                                          });
+                                        }}>
+                                          답글
+                                        </ReplyButton>
+                                      )}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                                       post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.creatorName}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
+                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                      {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
+                                    </BoardCell>
+                                  </BoardRow>
+                                  ))
+                              )}
+                            </tbody>
+                          </BoardTable>
+                        </BoardSection>
+          </ContentContainer>
+        ) : (
+          <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
+        )}
+      </MainContent>
+    </ContentWrapper>
+    
+    {isProposalModalOpen && selectedProposal && (
+      <ModalOverlay onClick={() => {
+        setIsProposalModalOpen(false);
+        setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+      }}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>승인요청 상세보기</ModalTitle>
+            <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <ProposalTitle>{selectedProposal.title}</ProposalTitle>
+            <ProposalInfo>
+              <InfoItem>
+                <InfoLabel>작성자</InfoLabel>
+                <InfoValue>{selectedProposal.creator?.name} ({selectedProposal.creator?.companyName})</InfoValue>
+              </InfoItem>
+              <InfoItem>
+                <InfoLabel>작성일</InfoLabel>
+                <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
+              </InfoItem>
+              <InfoItem>
+                <InfoLabel>상태</InfoLabel>
+                <InfoValue>
+                  <StatusBadge status={selectedProposal.approvalProposalStatus}>
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && <FaEdit />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.UNDER_REVIEW && <FaClock />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED && <FaCheck />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && <FaTimes />}
+                    {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
+                  </StatusBadge>
+                </InfoValue>
+              </InfoItem>
+            </ProposalInfo>
+            <ContentSection>
+              {selectedProposal.content}
+            </ContentSection>
+            
+            {statusSummary && (
+              <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>승인 상태 요약</h3>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dcfce7', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#16a34a' }}>{statusSummary.approvedApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>승인</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fee2e2', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#dc2626' }}>{statusSummary.modificationRequestedApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>반려</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dbeafe', borderRadius: '8px', minWidth: '80px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#2563eb' }}>{statusSummary.waitingApproverCount}</div>
+                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>대기</div>
+                  </div>
+                  {statusSummary.totalApproverCount > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', minWidth: '80px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>{statusSummary.totalApproverCount}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>전체</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <ProposalSubtitle withMargin>
+              <span>승인권자별 응답목록</span>
+            </ProposalSubtitle>
+            <ApprovalDecision approvalId={selectedProposal.id} />
+          </ModalBody>
+          <ModalFooter>
+            <ModalButton onClick={() => {
+              setIsProposalModalOpen(false);
+              setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+            }}>닫기</ModalButton>
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    )}
+    {selectedApproval && (
+      <ApprovalDetailModal onClick={closeModal}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <h3>{selectedApproval.title}</h3>
+            <CloseButton onClick={closeModal}>&times;</CloseButton>
+          </ModalHeader>
+          
+          <ModalSection>
+            <h4>상태</h4>
+            <StatusBadge status={selectedApproval.status}>
+              {getApprovalStatusText(selectedApproval.status)}
+            </StatusBadge>
+          </ModalSection>
+          
+          <ModalSection>
+            <h4>요청 정보</h4>
+            <p><strong>요청자:</strong> {selectedApproval.requestMemberName}</p>
+            <p><strong>요청일:</strong> {new Date(selectedApproval.createdAt).toLocaleString()}</p>
+            <p><strong>설명:</strong> {selectedApproval.description || '설명 없음'}</p>
+          </ModalSection>
+          
+          <ModalSection>
+            <h4>승인자 목록</h4>
+            {selectedApproval.approvalList && selectedApproval.approvalList.length > 0 ? (
+              <div>
+                {selectedApproval.approvalList.map((approver, index) => (
+                  <div key={index} style={{ 
+                    margin: '8px 0', 
+                    padding: '8px', 
+                    borderBottom: index < selectedApproval.approvalList.length - 1 ? '1px solid #e2e8f0' : 'none' 
+                  }}>
+                    <p><strong>{approver.approverName}</strong></p>
+                    <p>상태: {getApprovalStatusText(approver.status)}</p>
+                    {approver.comment && <p>코멘트: {approver.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>승인자가 지정되지 않았습니다.</p>
+            )}
+          </ModalSection>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button 
+              onClick={closeModal}
+              style={{
+                background: '#f1f5f9',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              닫기
+            </button>
+          </div>
+        </ModalContent>
+      </ApprovalDetailModal>
+    )}
+    {/* 진행단계 추가/수정/삭제 모달 */}
+    {showStageModal && (
+      <ModalOverlay onClick={() => setShowStageModal(false)}>
+        <StageModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>
+              {stageAction === 'add' ? '진행 단계 추가' : 
+               stageAction === 'edit' ? '진행 단계 수정' : '진행 단계 삭제'}
+            </ModalTitle>
+            <CloseButton onClick={() => setShowStageModal(false)}>×</CloseButton>
+          </ModalHeader>
+          <ModalBody>
+            {stageAction !== 'delete' && (
+              <ModalForm>
+                <FormField>
+                  <FormLabel>단계명</FormLabel>
+                  <FormInput 
+                    type="text" 
+                    value={stageName}
+                    onChange={(e) => setStageName(e.target.value)}
+                    placeholder="단계명을 입력하세요"
+                  />
+                </FormField>
+              </ModalForm>
+            )}
+            {stageAction === 'delete' && (
+              <DeleteConfirmMessage>
+                정말로 '{editingStage?.name}' 단계를 삭제하시겠습니까?
+              </DeleteConfirmMessage>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {stageAction === 'add' && (
+              <ActionButton onClick={handleAddStage}>추가</ActionButton>
+            )}
+            {stageAction === 'edit' && (
+              <ActionButton onClick={handleEditStage}>수정</ActionButton>
+            )}
+            {stageAction === 'delete' && (
+              <ActionButton className="delete" onClick={handleDeleteStage}>삭제</ActionButton>
+            )}
+            <CancelButton onClick={() => setShowStageModal(false)}>취소</CancelButton>
+          </ModalFooter>
+        </StageModalContent>
+      </ModalOverlay>
+    )}
     </PageContainer>
   );
 };
+
 
 const PageContainer = styled.div`
   display: flex;
@@ -1006,13 +1161,53 @@ const InfoValue = styled.span`
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
   font-size: 12px;
-  font-weight: 500;
-  background-color: ${props => props.status ? getApprovalStatusBackgroundColor(props.status) : '#f1f5f9'};
-  color: ${props => props.status ? getApprovalStatusTextColor(props.status) : '#64748b'};
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return 'rgba(75, 85, 99, 0.08)';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return 'rgba(30, 64, 175, 0.08)';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return 'rgba(4, 120, 87, 0.08)';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return 'rgba(185, 28, 28, 0.08)';
+      default:
+        return 'rgba(75, 85, 99, 0.08)';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return '#4B5563';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return '#1E40AF';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return '#047857';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return '#B91C1C';
+      default:
+        return '#4B5563';
+    }
+  }};
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    font-size: 14px;
+    opacity: 0.9;
+  }
 `;
 
 const ReplyButton = styled.button`
@@ -1843,6 +2038,5 @@ const ManageDropdown = styled.div`
   margin-top: 5px;
   z-index: 100;
 `;
-
 
 
