@@ -40,21 +40,39 @@ const AdminProjects = () => {
                 <TableHeaderCell>시작일</TableHeaderCell>
                 <TableHeaderCell>종료일</TableHeaderCell>
                 <TableHeaderCell>상태</TableHeaderCell>
+                <TableHeaderCell>액션</TableHeaderCell>
               </tr>
             </thead>
             <tbody>
               {projects.map((project) => (
-                <TableRow 
-                  key={project.projectId}
-                  onClick={() => navigate(`/project/${project.projectId}`)}
-                >
-                  <TableCell>{project.name}</TableCell>
+                <TableRow key={project.projectId}>
+                  <TableCell 
+                    onClick={() => navigate(`/project/${project.projectId}`)}
+                    style={{ cursor: 'pointer', color: '#1e293b' }}
+                  >
+                    {project.name}
+                  </TableCell>
                   <TableCell>{project.startDate}</TableCell>
                   <TableCell>{project.endDate}</TableCell>
                   <TableCell>
                     <StatusBadge deleted={project.deleted}>
                       {project.deleted ? '삭제됨' : '진행중'}
                     </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    {!project.deleted && (
+                      <ActionButtonContainer>
+                        <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                          수정
+                        </ActionButton>
+                        <DeleteButton 
+                          onClick={() => handleDeleteProject(project.projectId)}
+                          disabled={project.deleted}
+                        >
+                          삭제
+                        </DeleteButton>
+                      </ActionButtonContainer>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -170,6 +188,46 @@ const StatusBadge = styled.span`
   ` : `
     background: rgba(46, 125, 50, 0.1);
     color: #2E7D32;
+  `}
+`;
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ActionButton = styled.button`
+  padding: 8px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #1B5E20;
+  }
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 16px;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #C51111;
+  }
+
+  ${props => props.disabled && `
+    background: #e2e8f0;
+    cursor: not-allowed;
   `}
 `;
 
