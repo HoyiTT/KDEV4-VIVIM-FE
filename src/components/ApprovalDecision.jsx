@@ -275,7 +275,6 @@ const ResponseItem = styled.div`
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
 
   & > div {
     flex: 1;
