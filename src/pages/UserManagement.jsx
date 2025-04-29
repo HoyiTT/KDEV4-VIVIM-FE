@@ -279,6 +279,12 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <ActionButtonContainer>
+                        <EditButton onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/user-edit/${user.id}`);
+                        }}>
+                          수정
+                        </EditButton>
                         <DeleteButton onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteUser(user.id, user.name);
@@ -449,7 +455,12 @@ const NoCompanyBadge = styled.span`
   font-weight: 500;
 `;
 
-const ActionButton = styled.button`
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const EditButton = styled.button`
   padding: 6px 12px;
   background: transparent;
   color: #4F6AFF;
@@ -462,20 +473,6 @@ const ActionButton = styled.button`
   &:hover {
     background: rgba(79, 106, 255, 0.1);
   }
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
 `;
 
 const DeleteButton = styled.button`
@@ -491,6 +488,15 @@ const DeleteButton = styled.button`
   &:hover {
     background: rgba(220, 38, 38, 0.1);
   }
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
 `;
 
 const SearchSection = styled.div`
