@@ -12,15 +12,14 @@ import { ApprovalProposalStatus } from '../constants/enums';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
-// JWT 토큰 디코딩 함수
-const decodeToken = (token) => {
-  if (!token) return null;
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (error) {
-    console.error('Error decoding token:', error);
-    return null;
-  }
+const PROGRESS_STAGE_MAP = {
+  'REQUIREMENTS': '요구사항 정의',
+  'WIREFRAME': '화면설계',
+  'DESIGN': '디자인',
+  'PUBLISHING': '퍼블리싱',
+  'DEVELOPMENT': '개발',
+  'INSPECTION': '검수',
+  'COMPLETED': '완료'
 };
 
 const ProjectDetail = () => {
@@ -45,7 +44,7 @@ const ProjectDetail = () => {
   const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
-  const [statusSummary, setStatusSummary] = useState(null); // 추가: 상태 요약 정보를 저장할 state
+  const [statusSummary, setStatusSummary] = useState(null);
   const [approvalRequests, setApprovalRequests] = useState([]);
   const [projectProgress, setProjectProgress] = useState({
     totalStageCount: 0,
@@ -58,42 +57,10 @@ const ProjectDetail = () => {
     progressList: []
   });
 
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(null);
-  const [isDeveloperManager, setIsDeveloperManager] = useState(false);
-  const [isDeveloper, setIsDeveloper] = useState(false);
-  
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const decodedToken = JSON.parse(atob(token.split('.')[1]));
-          console.log('Decoded Token Role:', decodedToken.role);
-          const isAdminUser = decodedToken.role === 'ADMIN';
-          const isDeveloperManagerUser = decodedToken.role === 'DEVELOPER_MANAGER';
-          const isDeveloperUser = decodedToken.role === 'DEVELOPER';
-          console.log('Is Admin:', isAdminUser);
-          console.log('Is Developer Manager:', isDeveloperManagerUser);
-          console.log('Is Developer:', isDeveloperUser);
-          setIsAdmin(isAdminUser);
-          setIsDeveloperManager(isDeveloperManagerUser);
-          setIsDeveloper(isDeveloperUser);
-        } catch (error) {
-          console.error('Error decoding token:', error);
-          setIsAdmin(false);
-          setIsDeveloperManager(false);
-          setIsDeveloper(false);
-        }
-      }
-      setAdminCheckLoading(false);
-    };
-    
-    checkAdminStatus();
-  }, []);
+  const [isClient, setIsClient] = useState(null);
+  const [isIncreasing, setIsIncreasing] = useState(false);
 
   // 개발사 확인 함수
   const checkDeveloperStatus = () => {
@@ -305,6 +272,28 @@ const ProjectDetail = () => {
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          const isAdminUser = decodedToken.role === 'ADMIN';
+          const isClientUser = decodedToken.role === 'CLIENT';
+          setIsAdmin(isAdminUser);
+          setIsClient(isClientUser);
+        } catch (error) {
+          console.error('Error decoding token:', error);
+          setIsAdmin(false);
+          setIsClient(false);
+        }
+      }
+      setAdminCheckLoading(false);
+    };
+    
+    checkUserRole();
+  }, []);
 
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
@@ -658,36 +647,43 @@ const ProjectDetail = () => {
     }
   };
   
-  // 승인응답 추가 버튼 컴포넌트
-  const ApprovalResponseButton = () => {
-    // 개발사일 경우 버튼을 표시하지 않음
-    if (isDeveloper) {
-      console.log('Developer detected, hiding approval response button');
-      return null;
-    }
+  // 단계 승급 처리 함수 추가
+  const handleIncreaseProgress = async () => {
+    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
+    
+    try {
+      setIsIncreasing(true); // 진행 중 상태로 설정
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    // 관리자나 개발자 매니저가 아닌 경우에도 버튼을 표시하지 않음
-    if (!isAdmin && !isDeveloperManager) {
-      console.log('Not admin or developer manager, hiding approval response button');
-      return null;
-    }
+      if (!response.ok) {
+        throw new Error('단계 승급에 실패했습니다.');
+      }
 
-    return (
-      <button
-        onClick={() => setShowModal(true)}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          marginBottom: '20px'
-        }}
-      >
-        <FaPlus /> 승인응답 추가
-      </button>
-    );
+      // 승급 후 데이터 새로고침 순서 변경
+      await Promise.all([
+        fetchProjectDetail(), // 프로젝트 정보 다시 가져오기
+        fetchProjectProgress(),
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
+      
+      // 현재 단계 인덱스 업데이트
+      setCurrentStageIndex(prev => prev + 1);
+      
+      alert('단계가 승급되었습니다.');
+    } catch (error) {
+      console.error('Error increasing progress:', error);
+      alert('단계 승급 중 오류가 발생했습니다.');
+    } finally {
+      setIsIncreasing(false); // 진행 중 상태 해제
+    }
   };
 
   return (
@@ -758,6 +754,8 @@ const ProjectDetail = () => {
                   openStageModal={openStageModal}
                   projectProgress={projectProgress}
                   progressStatus={progressStatus}
+                  onIncreaseProgress={handleIncreaseProgress}
+                  currentProgress={project?.currentProgress}
                 >
                   {progressList.length > 0 ? (
                     progressList
