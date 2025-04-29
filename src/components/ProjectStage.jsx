@@ -92,22 +92,33 @@ const StageProgressList = styled.div`
   z-index: 2;
   display: flex;
   justify-content: space-between;
-  overflow-x: visible;
-  padding: 0 20px;
-  /* 모바일 환경에서 스크롤 가능하도록 설정 */
+  overflow-x: auto;
+  padding: 0 4px;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
   @media (max-width: 768px) {
-    overflow-x: auto;
-    justify-content: flex-start;
-    gap: 30px;
-    padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch;
-    &::-webkit-scrollbar {
-      height: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-    }
+    padding: 0 2px;
+    gap: 10px;
   }
 `;
 
@@ -115,10 +126,10 @@ const StageProgressItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 120px;
+  min-width: 110px;
   cursor: pointer;
   flex-shrink: 0;
-  padding: 12px;
+  padding: 10px;
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
   position: relative;
