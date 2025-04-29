@@ -174,7 +174,7 @@ const ShowMoreButton = styled.button`
 
 const AddButton = styled.button`
   padding: 12px 24px;
-  background: ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
+  background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #3b82f6, #2563eb)'};
   border: none;
   border-radius: 6px;
   color: ${props => props.disabled ? '#94a3b8' : 'white'};
@@ -186,7 +186,11 @@ const AddButton = styled.button`
   width: 100%;
 
   &:hover {
-    background: ${props => props.disabled ? '#e2e8f0' : '#1B5E20'};
+    background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #2563eb, #1d4ed8)'};
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 `;
 
@@ -768,8 +772,7 @@ const ApprovalProposal = ({
   onShowMore,
   progressStatus = {
     progressList: []
-  },
-  isCustomer = false
+  }
 }) => {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
@@ -791,8 +794,26 @@ const ApprovalProposal = ({
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
+  const [isCustomer, setIsCustomer] = useState(false);
 
-  // 회사 및 승인권자 조회 함수들을 state 선언 이후에 위치시킵니다.
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const isCustomerUser = decodedToken.role === 'CUSTOMER';
+        setIsCustomer(isCustomerUser);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setIsCustomer(false);
+      }
+    }
+  };
+
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem('token');
