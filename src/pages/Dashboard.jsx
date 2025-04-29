@@ -234,10 +234,12 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {deadlineProjects.map((project) => (
-                  <tr key={project.projectId}>
-                    <Td onClick={() => navigate(`/project/${project.projectId}`)} style={{ cursor: 'pointer' }}>
-                      {project.name}
-                    </Td>
+                  <tr 
+                    key={project.projectId}
+                    onClick={() => navigate(`/project/${project.projectId}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <Td>{project.name}</Td>
                     <Td>
                       <DeadlineBadge status={project.remainingDays < 0 ? 'delayed' : 'normal'}>
                         D{project.remainingDays < 0 ? '+' : '-'}{Math.abs(project.remainingDays)}
