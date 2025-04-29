@@ -175,19 +175,19 @@ const ShowMoreButton = styled.button`
 
 const AddButton = styled.button`
   padding: 12px 24px;
-  background: #2E7D32;
+  background: ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
   border: none;
   border-radius: 6px;
-  color: white;
+  color: ${props => props.disabled ? '#94a3b8' : 'white'};
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
   align-self: flex-start;
   width: 100%;
 
   &:hover {
-    background: #1B5E20;
+    background: ${props => props.disabled ? '#e2e8f0' : '#1B5E20'};
   }
 `;
 
@@ -588,16 +588,36 @@ const getStatusColor = (status) => {
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 600;
-  gap: 5px;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  background-color: ${props => props.background};
+  background-color: ${props => {
+    switch (props.background) {
+      case '#dcfce7':
+        return 'rgba(4, 120, 87, 0.08)';
+      case '#fee2e2':
+        return 'rgba(185, 28, 28, 0.08)';
+      case '#f1f5f9':
+        return 'rgba(75, 85, 99, 0.08)';
+      case '#dbeafe':
+        return 'rgba(30, 64, 175, 0.08)';
+      default:
+        return 'rgba(75, 85, 99, 0.08)';
+    }
+  }};
   color: ${props => props.text};
-  
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
   &::before {
     content: "";
     display: inline-block;
@@ -605,6 +625,7 @@ const StatusBadge = styled.span`
     height: 6px;
     border-radius: 50%;
     background-color: ${props => props.text};
+    opacity: 0.9;
   }
 `;
 
@@ -742,7 +763,14 @@ const ActionIcon = styled.button`
   }
 `;
 
-const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
+const ApprovalProposal = ({ 
+  progressId, 
+  showMore, 
+  onShowMore,
+  progressStatus = {
+    progressList: []
+  }
+}) => {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1202,13 +1230,19 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   const handleShowMore = () => {
     // 더 이상 필요 없음
   };
+
+  // 현재 단계의 상태 확인
+  const isStageCompleted = progressStatus?.progressList?.find(
+    status => status.progressId === progressId
+  )?.isCompleted || false;
 
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
@@ -1249,20 +1283,22 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
                               전송
                             </SendButtonSmall>
                           )}
-                          <ActionIcons>
-                            <ActionIcon onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditClick(proposal);
-                            }} title="수정">
-                              <FaEdit />
-                            </ActionIcon>
-                            <ActionIcon className="delete" onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProposal(proposal.id);
-                            }} title="삭제">
-                              <FaTrashAlt />
-                            </ActionIcon>
-                          </ActionIcons>
+                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
+                            <ActionIcons>
+                              <ActionIcon onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(proposal);
+                              }} title="수정">
+                                <FaEdit />
+                              </ActionIcon>
+                              <ActionIcon className="delete" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProposal(proposal.id);
+                              }} title="삭제">
+                                <FaTrashAlt />
+                              </ActionIcon>
+                            </ActionIcons>
+                          )}
                         </HeaderRight>
                       </ProposalHeader>
                     </ProposalContent>
@@ -1279,11 +1315,13 @@ const ApprovalProposal = ({ progressId, showMore, onShowMore }) => {
             </>
           )}
         </ProposalList>
-        <AddButtonContainer>
-          <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
-            + 승인요청 추가
-          </AddButton>
-        </AddButtonContainer>
+        {!isStageCompleted && (
+          <AddButtonContainer>
+            <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
+              + 승인요청 추가
+            </AddButton>
+          </AddButtonContainer>
+        )}
       </ProposalContainer>
 
       {isModalOpen && (

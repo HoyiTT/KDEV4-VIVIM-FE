@@ -1,5 +1,5 @@
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
-// export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -35,8 +35,8 @@ export const API_ENDPOINTS = {
 
   APPROVAL: {
     LIST: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
-    CREATE: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
     DETAIL: (id) => `${API_BASE_URL}/approval/${id}`,
+    CREATE: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
     MODIFY: (id) => `${API_BASE_URL}/approval/${id}`,
     DELETE: (id) => `${API_BASE_URL}/approval/${id}`,
     APPROVERS: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
     RESEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/resend`,
     SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
     STATUS_SUMMARY: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/status`,
+    RECENT: `${API_BASE_URL}/proposals/recent`,
   },
   DECISION: {
     CREATE_WITH_APPROVER: (approverId) => `${API_BASE_URL}/approver/${approverId}/decision`,
