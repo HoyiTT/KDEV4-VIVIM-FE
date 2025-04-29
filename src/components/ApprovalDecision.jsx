@@ -986,14 +986,24 @@ const StatusLabel = styled.span`
   }
 `;
 
-const StatusCount = styled.span`
+const StatusCount = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   color: ${props => props.color || '#1e293b'};
-  font-size: 15px;
-  font-weight: 600;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid ${props => props.color || '#cbd5e1'};
+  
+  .count {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  
+  .unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${props => props.color || '#64748b'};
+    opacity: 0.8;
+  }
 `;
 
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
@@ -1003,36 +1013,75 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [newDecision, setNewDecision] = useState({ content: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [expandedApprovers, setExpandedApprovers] = useState(new Set());
+  const [isDeveloper, setIsDeveloper] = useState(false);
+  const [isCustomer, setIsCustomer] = useState(false);
   
   // 승인요청 전송 여부 확인
   const isRequestSent = statusSummary && 
     (statusSummary.proposalStatus !== ApprovalProposalStatus.DRAFT || statusSummary.lastSentAt);
-  
-  // 승인권자 수정 관련 상태
-  const [isEditApproversModalOpen, setIsEditApproversModalOpen] = useState(false);
-  const [companies, setCompanies] = useState([]);
-  const [companyEmployees, setCompanyEmployees] = useState({});
-  const [expandedCompanies, setExpandedCompanies] = useState(new Set());
-  const [selectedApprovers, setSelectedApprovers] = useState([]);
-  const [currentApprovers, setCurrentApprovers] = useState([]);
+
+  // 개발사 확인 함수
+  const checkDeveloperStatus = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsDeveloper(false);
+      return;
+    }
+
+    try {
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      console.log('Decoded Token for Developer Check:', decodedToken);
+
+      // 개발사 확인 로직
+      const isDeveloperUser = decodedToken.role === 'DEVELOPER';
+      console.log('Is Developer:', isDeveloperUser);
+
+      setIsDeveloper(isDeveloperUser);
+    } catch (error) {
+      console.error('Error checking developer status:', error);
+      setIsDeveloper(false);
+    }
+  };
+
+  // 고객사 확인 함수
+  const checkCustomerStatus = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsCustomer(false);
+      return;
+    }
+
+    try {
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      console.log('Decoded Token for Customer Check:', decodedToken);
+      console.log('Role:', decodedToken.role);
+
+      // 고객사 확인 로직 - role 확인
+      const isCustomerUser = decodedToken.role === 'CUSTOMER';
+      console.log('Is Customer:', isCustomerUser);
+
+      setIsCustomer(isCustomerUser);
+    } catch (error) {
+      console.error('Error checking customer status:', error);
+      setIsCustomer(false);
+    }
+  };
+
+  useEffect(() => {
+    checkDeveloperStatus();
+    checkCustomerStatus();
+  }, []);
 
   useEffect(() => {
     fetchDecisions();
-    // 디버깅을 위해 approvalId 로깅
-    console.log('ApprovalDecision 컴포넌트 마운트, approvalId:', approvalId, '타입:', typeof approvalId);
   }, [approvalId]);
 
   const fetchDecisions = async () => {
     try {
-      // 디버깅을 위해 approvalId 로깅
-      console.log('fetchDecisions 호출, approvalId:', approvalId);
-      
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
       
-      // 백엔드 API 엔드포인트 확인
       const apiUrl = API_ENDPOINTS.DECISION.LIST(approvalId);
-      console.log(`승인응답 목록 조회 URL: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -1042,35 +1091,22 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
         }
       });
 
-      console.log(`승인응답 목록 조회 상태: ${response.status} ${response.statusText}`);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
-      // 응답 내용 로깅
       const responseText = await response.text();
-      console.log('승인응답 목록 원본 응답:', responseText);
       
-      // 빈 응답 처리
       if (!responseText.trim()) {
-        console.warn('승인응답 목록이 비어있습니다.');
         setApproversData([]);
         return;
       }
       
       try {
-        // JSON 파싱 시도
         const data = JSON.parse(responseText);
-        console.log('파싱된 승응답 목록 데이터:', data);
-      
-        // 응답 구조에 맞게 데이터 처리 
-        // DecisionResponsesByAllApprover 타입의 응답을 처리
         const approvers = data.decisionResponses || data.approvers || [];
-        console.log('처리된 승응답 데이터:', approvers);
-        
-      setApproversData(approvers);
+        setApproversData(approvers);
       } catch (parseError) {
         console.error('JSON 파싱 오류:', parseError);
         alert('서버 응답을 처리할 수 없습니다. 관리자에게 문의하세요.');
@@ -1095,13 +1131,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     );
   };
 
-  // 현재 사용자가 해당 승인권자인지 확인하는 함수
   const isCurrentUserApprover = (approverId) => {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     return String(currentUser.id) === String(approverId);
   };
 
-  // 이미 승인 응답이 있는지 확인하는 함수 (APPROVED 상태만 체크)
   const hasExistingDecision = (approver) => {
     return approver.decisionResponses?.some(decision => 
       decision.status === ApprovalDecisionStatus.APPROVED
@@ -1119,13 +1153,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       return;
     }
 
-    // 권한 검증
     if (!isCurrentUserApprover(selectedApprover.memberId)) {
       alert('해당 승인 요청에 대한 결정을 등록할 권한이 없습니다.');
       return;
     }
 
-    // 이미 승인 응답이 있는 경우 경고 표시
     if (hasExistingDecision(selectedApprover)) {
       const confirmAdd = window.confirm(
         '이미 승인 응답이 등록되어 있습니다.\n' +
@@ -1143,31 +1175,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
       
-      // 사용자 정보 로깅 (디버깅용)
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      console.log('현재 로그인된 사용자:', {
-        id: currentUser.id,
-        name: currentUser.name,
-        email: currentUser.email,
-        role: currentUser.role,
-        companyId: currentUser.companyId,
-        companyName: currentUser.companyName
-      });
-      
-      // 승인권자 정보 로깅
-      console.log('선택된 승인권자 정보:', selectedApprover);
-      
-      // 요청 내용 로깅
       const requestBody = {
         content: newDecision.content || '',
         decisionStatus: newDecision.status,
-        title: '' // 명시적으로 빈 문자열 전송
+        title: ''
       };
       
-      console.log(`승인 응답 생성 요청: 승인권자 ID ${selectedApprover.approverId}`, requestBody);
-      console.log('API 엔드포인트:', API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId));
-      
-      // 백엔드 엔드포인트 /approver/{approverId}/decision 사용
       const response = await fetch(API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId), {
         method: 'POST',
         headers: {
@@ -1178,24 +1191,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
         body: JSON.stringify(requestBody)
       });
 
-      // 응답 상태 로깅
-      console.log('응답 상태:', response.status, response.statusText);
-
       if (!response.ok) {
-        // 오류 응답 자세히 로깅
         const errorText = await response.text();
-        console.error('서버 오류 응답:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
         
-        // 403 Forbidden 오류 특별 처리
         if (response.status === 403) {
           throw new Error(`권한이 없습니다. 해당 승인 요청에 대한 결정을 등록할 권한이 없거나, 이미 응답을 등록했을 수 있습니다.`);
         }
         
-        // 400 Bad Request - 승인요청 미전송 상태 처리
         if (response.status === 400) {
           throw new Error(`승인요청이 아직 전송되지 않았습니다. 승인요청을 먼저 전송해주세요.`);
         }
@@ -1205,21 +1207,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
       try {
         const data = await response.json();
-        console.log('Create decision response:', data);
         
-        // 새로운 응답 구조 처리
         if (data.statusCode === 201 || response.status === 201 || response.status === 200) {
-          // 성공적으로 생성됨
           alert('승응답이 성공적으로 등록되었습니다.');
-          
-          // decisionId가 응답에 포함되어 있는 경우 저장
-          if (data.data && data.data.decisionId) {
-            console.log('생성된 승응답 ID:', data.data.decisionId);
-            // 필요한 경우 여기서 decisionId 활용
-          }
         }
       } catch (jsonError) {
-        console.log('응답이 JSON 형식이 아닙니다. 응답 상태:', response.status);
         if (response.status === 200 || response.status === 201) {
           alert('승응답이 성공적으로 등록되었습니다.');
         } else {
@@ -1240,11 +1232,9 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   };
 
   const handleDeleteDecision = async (decisionId, status, approverId, approverName) => {
-    // 승인 결정 삭제 전 확인
     const statusText = status === ApprovalDecisionStatus.APPROVED ? '승인' : 
                       status === ApprovalDecisionStatus.REJECTED ? '반려' : '검토중';
     
-    // 승인 상태인 경우 삭제 거부
     if (status === ApprovalDecisionStatus.APPROVED) {
       alert('승인 상태의 응답은 삭제할 수 없습니다.\n다른 응답을 추가하시려면 먼저 반려 응답을 삭제해주세요.');
       return;
@@ -1253,7 +1243,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     const confirmMessage = `${approverName}님의 "${statusText}" 응답을 삭제하시겠습니까?\n\n이 작업은 취소할 수 없으며, 삭제 후에는 승인권자가 새로운 응답을 등록해야 합니다.`;
     
     if (!window.confirm(confirmMessage)) {
-      console.log('승응답 삭제 취소됨');
       return;
     }
 
@@ -1261,8 +1250,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       setLoading(true);
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
-      console.log(`승응답 삭제 요청: 결정 ID ${decisionId}, 승인권자 ${approverName}`);
       
       const response = await fetch(API_ENDPOINTS.DECISION.DELETE(decisionId), {
         method: 'DELETE',
@@ -1274,7 +1261,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('승응답 삭제 실패:', errorText);
         throw new Error(`응답 삭제 실패: ${response.status}`);
       }
 
@@ -1283,7 +1269,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
         alert('승응답이 성공적으로 삭제되었습니다.');
       }
 
-      // 화면 새로고침
       await fetchDecisions();
     } catch (error) {
       console.error('승응답 삭제 오류:', error);
@@ -1324,543 +1309,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     });
   };
 
-  // 회사 목록 조회
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      // 승인권자 ID 목록 확인
-      if (selectedApprovers && selectedApprovers.length > 0) {
-        console.log('회사 목록 조회 시 선택된 승인권자 ID 목록:', 
-          selectedApprovers.map(a => ({ id: a.memberId, name: a.memberName }))
-        );
-      }
-      
-      const response = await fetch(API_ENDPOINTS.COMPANIES, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-          'accept': '*/*'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('회사 목록을 불러오는데 실패했습니다.');
-      }
-      
-      const data = await response.json();
-      
-      // 응답의 다양한 형태 처리
-      const list = data.data ?? data.companies ?? data.companyList ?? data.items ?? (Array.isArray(data) ? data : []);
-      // 고객사(CUSTOMER) 역할을 가진 회사만 필터링
-      const customerCompanies = list.filter(c => c.companyRole?.toUpperCase() === 'CUSTOMER');
-      
-      console.log('고객사 목록:', customerCompanies);
-      setCompanies(customerCompanies);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-      alert(error.message);
-      setLoading(false);
-    }
-  };
-
-  // 회사 토글 및 직원 목록 조회
-  const toggleCompany = async (company) => {
-    const companyId = company.id;
-    
-    // 이미 확장된 회사면 접기
-    if (expandedCompanies.has(companyId)) {
-      setExpandedCompanies(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(companyId);
-        return newSet;
-      });
-      return;
-    }
-    
-    // 이미 직원 목록이 있으면 확장만 하기
-    if (companyEmployees[companyId]) {
-      setExpandedCompanies(prev => new Set([...prev, companyId]));
-      return;
-    }
-    
-    // 직원 목록 조회
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
-        headers: { 
-          'Authorization': token, 
-          'Content-Type': 'application/json',
-          'accept': '*/*' 
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('직원 목록을 불러오는데 실패했습니다.');
-      }
-      
-      const data = await response.json();
-      // 응답의 다양한 형태 처리
-      const empList = data.data ?? data.employees ?? data.memberList ?? data.items ?? (Array.isArray(data) ? data : []);
-      
-      console.log(`회사 ID ${companyId}의 직원 목록:`, empList);
-      
-      // 직원 목록 저장 전 현재 선택된 승인권자 ID 목록 로깅
-      if (selectedApprovers.length > 0) {
-        console.log('현재 선택된 승인권자 ID 목록:', selectedApprovers.map(a => String(a.memberId)));
-      }
-      
-      setCompanyEmployees(prev => ({
-        ...prev,
-        [companyId]: empList
-      }));
-      
-      // 회사 확장 상태 업데이트
-      setExpandedCompanies(prev => new Set([...prev, companyId]));
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-      alert(error.message);
-    }
-  };
-
-  // 승인권자 선택/해제
-  const handleSelectApprover = (employee, checked) => {
-    console.log(`승인권자 ${checked ? '선택' : '해제'} 시도:`, employee.name, employee.id);
-    
-    if (checked) {
-      // 체크 시 처리 (승인권자 추가)
-      // 직원 ID 문자열로 변환
-      const employeeIdStr = String(employee.id);
-      
-      // 타입을 일관되게 문자열로 비교하여 중복 체크
-      const isDuplicate = selectedApprovers.some(
-        approver => String(approver.memberId) === employeeIdStr
-      );
-      
-      if (!isDuplicate) {
-        // 중복이 아닌 경우에만 추가
-        const newApprover = {
-          id: `${Date.now()}-${employee.id}`,
-          memberId: employee.id,
-          memberName: employee.name,
-          companyId: employee.companyId,
-          companyName: companies.find(company => company.id === employee.companyId)?.name || ''
-        };
-        
-        setSelectedApprovers(prev => {
-          const updated = [...prev, newApprover];
-          console.log(`승인권자 추가 완료: ${employee.name}, 현재 총 ${updated.length}명`);
-          return updated;
-        });
-      } else {
-        console.log(`이미 선택된 승인권자입니다: ${employee.name} (ID: ${employee.id})`);
-      }
-    } else {
-      // 체크 해제 시 확인 대화상자 표시
-      if (!window.confirm(`"${employee.name}" 승인권자를 목록에서 제외하시겠습니까?\n제외 시 관련된 승응답 권한도 함께 제거됩니다.`)) {
-        console.log('승인권자 체크 해제 취소됨');
-        
-        // 체크박스 상태를 원래대로 유지
-        // 이 부분이 가장 중요: UI를 강제로 업데이트하여 체크박스가 다시 체크된 상태로 보이게 함
-        // 리렌더링을 트리거하기 위해 상태 업데이트 (동일한 배열을 새 참조로)
-        setSelectedApprovers(prev => [...prev]);
-        return;
-      }
-      
-      // 마지막 승인권자인 경우 추가 경고
-      if (selectedApprovers.length <= 1) {
-        if (!window.confirm('마지막 승인권자를 제외하면 모든 승인권자가 제거됩니다.\n정말로 계속하시겠습니까?')) {
-          console.log('마지막 승인권자 체크 해제 취소됨');
-          
-          // 체크박스 상태를 원래대로 유지
-          setSelectedApprovers(prev => [...prev]);
-          return;
-        }
-        
-        // 전체 삭제로 처리
-        setSelectedApprovers([]);
-        console.log(`마지막 승인권자 체크 해제: 전체 삭제 실행`);
-        return;
-      }
-      
-      // 선택 해제 - 문자열로 변환하여 비교
-      const employeeIdStr = String(employee.id);
-      
-      setSelectedApprovers(prev => {
-        const filtered = prev.filter(
-          approver => String(approver.memberId) !== employeeIdStr
-        );
-        console.log(`승인권자 제거 완료: ${employee.name}, 남은 수: ${filtered.length}`);
-        return filtered;
-      });
-    }
-  };
-
-  // 승인권자 제거
-  const handleRemoveApprover = (memberId, memberName) => {
-    // 삭제 전 확인 대화상자 표시
-    if (!window.confirm(`"${memberName}" 승인권자를 정말로 삭제하시겠습니까?\n삭제 시 관련된 승응답도 함께 사라집니다.`)) {
-      console.log('승응답 삭제 취소됨');
-      return;
-    }
-    
-    // 마지막 승인권자인 경우 특별 경고
-    if (selectedApprovers.length <= 1) {
-      if (!window.confirm('마지막 승인권자를 삭제하면 모든 승인권자가 제거됩니다.\n정말로 계속하시겠습니까?')) {
-        console.log('마지막 승인권자 삭제 취소됨');
-        return;
-      }
-      
-      // 전체 삭제 처리
-      setSelectedApprovers([]);
-      console.log('마지막 승인권자 제거: 전체 삭제 실행');
-      return;
-    }
-    
-    // 문자열로 비교하여 일관성 유지
-    setSelectedApprovers(prev => prev.filter(approver => 
-      String(approver.memberId) !== String(memberId)
-    ));
-    
-    console.log(`승인권자 제거: ${memberName}(ID: ${memberId}), 남은 수: ${selectedApprovers.length - 1}`);
-  };
-  
-  // 선택된 승인권자 목록의 "전체 삭제" 클릭 처리
-  const handleRemoveAllApprovers = () => {
-    // 전체 삭제 전 확인
-    if (!window.confirm('모든 승인권자를 삭제하시겠습니까?\n이 작업은 취소할 수 없으며, 모든 승응답이 사라집니다.')) {
-      console.log('전체 승인권자 삭제 취소됨');
-      return;
-    }
-    
-    setSelectedApprovers([]);
-    console.log('모든 승인권자 삭제됨');
-  };
-
-  // 모든 승인권자 목록 조회 함수
-  const fetchAllApprovers = async () => {
-    try {
-      if (!approvalId) {
-        console.error('승인권자 조회 실패: 유효한 승인 ID가 없습니다.');
-        setInitialApproversFromLocalData();
-        return;
-      }
-
-      const storedToken = localStorage.getItem('token');
-      if (!storedToken) {
-        throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
-      }
-      
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      const apiUrl = API_ENDPOINTS.APPROVAL.APPROVERS(approvalId);
-      
-      console.log(`승인권자 목록 조회 URL: ${apiUrl}`);
-      
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': authToken,
-          'accept': '*/*'
-        }
-      });
-      
-      console.log(`승인권자 목록 조회 상태: ${response.status} ${response.statusText}`);
-      
-      if (!response.ok) {
-        throw new Error(`승인권자 목록 조회 실패: ${response.status} ${response.statusText}`);
-      }
-      
-      const responseText = await response.text();
-      console.log('승인권자 목록 응답:', responseText);
-      
-      // API 응답이 비어있는 경우 처리
-      if (!responseText.trim()) {
-        console.warn('승인권자 목록 응답이 비어있습니다.');
-        setInitialApproversFromLocalData();
-        return;
-      }
-      
-      const data = JSON.parse(responseText);
-      console.log('파싱된 승인권자 목록 데이터:', data);
-      
-      // API 응답 구조에 맞게 필드 접근 (approverResponses 필드에서 데이터 추출)
-      const approverList = data.approverResponses || [];
-      console.log('추출된 승인권자 목록:', approverList);
-      
-      if (approverList.length === 0) {
-        console.warn('승인권자 목록이 비어있습니다.');
-        setInitialApproversFromLocalData();
-        return;
-      }
-      
-      // 승인권자 데이터 처리
-      const processedApprovers = processApproverData(approverList);
-      console.log('처리된 승인권자 목록:', processedApprovers);
-      
-      setSelectedApprovers(processedApprovers);
-    } catch (error) {
-      console.error('승인권자 목록 조회 오류:', error);
-      setInitialApproversFromLocalData();
-    }
-  };
-  
-  // 기존 데이터로 승인권자 초기화
-  const setInitialApproversFromLocalData = () => {
-    console.log('기존 승인권자 데이터 사용:', approversData);
-    const processedApprovers = processApproverData(approversData);
-    setSelectedApprovers(processedApprovers);
-  };
-
-  // 승인권자 데이터 처리 함수 (API 응답 구조에 맞게 수정)
-  const processApproverData = (approvers) => {
-    if (!approvers || approvers.length === 0) {
-      return [];
-    }
-    
-    // 응답 필드 구조 로깅
-    const sampleApprover = approvers[0];
-    console.log('승인권자 필드 구조 분석:', {
-      approverId: sampleApprover.approverId,
-      userId: sampleApprover.userId,
-      memberId: sampleApprover.memberId,
-      id: sampleApprover.id,
-      name: sampleApprover.name,
-      memberName: sampleApprover.memberName,
-      approverName: sampleApprover.approverName,
-      decisionStatus: sampleApprover.decisionStatus
-    });
-    
-    // 중복 제거된 승인권자 목록 생성
-    const uniqueApprovers = approvers.reduce((acc, approver) => {
-      // API 응답에 따라 필드 이름 처리 (userId를 memberId로 매핑)
-      const memberId = approver.userId || approver.memberId || approver.id;
-      const memberName = approver.name || approver.memberName || approver.approverName || '이름 없음';
-      
-      // 중복 확인을 위한 키 생성
-      const approverKey = String(memberId);
-      
-      if (memberId && !acc[approverKey]) {
-        acc[approverKey] = {
-          memberId: memberId,
-          memberName: memberName,
-          approverStatus: approver.decisionStatus || approver.approverStatus || 'PENDING',
-          id: approver.approverId || approver.id || memberId  // approverId를 ID로 사용
-        };
-      }
-      
-      return acc;
-    }, {});
-    
-    // 객체를 배열로 변환
-    const result = Object.values(uniqueApprovers);
-    console.log('처리된 승인권자 데이터:', result);
-    
-    return result;
-  };
-
-  // 승인권자 수정 모달 열기
-  const openEditApproversModal = () => {
-    // 승인 ID 검증
-    if (!approvalId) {
-      alert('유효한 승인 요청 ID가 없습니다.');
-      return;
-    }
-    
-    console.log('승인권자 수정 모달 열기, approvalId:', approvalId);
-    
-    // 초기화
-    setSelectedApprovers([]);
-    setExpandedCompanies(new Set());
-    setCompanyEmployees({});
-    
-    // 승인권자 전체 목록 API 호출
-    fetchAllApprovers();
-    
-    // 현재 승인권자 정보 저장 (로컬 데이터)
-    setCurrentApprovers(approversData.map(approver => ({
-      id: `${Date.now()}-${approver.memberId}`,
-      memberId: approver.memberId,
-      memberName: approver.approverName,
-      approverId: approver.approverId
-    })));
-    
-    // 모달 열기
-    setIsEditApproversModalOpen(true);
-  };
-
-  // 선택된 승인권자인지 확인하는 함수
-  const isApproverSelected = (employeeId) => {
-    if (!selectedApprovers || selectedApprovers.length === 0) return false;
-    
-    const employeeIdStr = String(employeeId);
-    return selectedApprovers.some(approver => 
-      String(approver.memberId) === employeeIdStr
-    );
-  };
-
-  // 승인권자 수정 저장
-  const handleSaveApprovers = async () => {
-    try {
-      setLoading(true);
-      
-      // 승인 ID 재검증
-      if (!approvalId) {
-        throw new Error('유효한 승인 요청 ID가 없습니다.');
-      }
-      
-      // 선택된 승인권자가 없으면 경고 표시 후 확인 받기
-      if (selectedApprovers.length === 0) {
-        const confirmEmptyApprovers = window.confirm(
-          '승인권자가 선택되지 않았습니다. 모든 승인권자가 제거됩니다.\n정말 진행하시겠습니까?'
-        );
-        
-        if (!confirmEmptyApprovers) {
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // API 호출을 위한 승인권자 ID 목록 (중복 제거)
-      const approverIds = [...new Set(selectedApprovers.map(approver => approver.memberId))];
-      
-      console.log('API 요청에 포함될 승인권자 IDs:', approverIds);
-      
-      // 요청 정보 로깅
-      console.log(`승인권자 수정 요청 URL: ${API_ENDPOINTS.APPROVAL.UPDATE_APPROVERS(approvalId)}`);
-      
-      // 토큰에 Bearer 접두사 추가
-      const storedToken = localStorage.getItem('token');
-      if (!storedToken) {
-        throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
-      }
-      
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
-      // 백엔드 요구 형식에 맞게 요청 본문 생성
-      const requestBody = {
-        approverIds: approverIds
-      };
-      
-      console.log('요청 본문:', JSON.stringify(requestBody));
-      
-      const headers = {
-        'Authorization': authToken,
-        'Content-Type': 'application/json',
-        'accept': '*/*'
-      };
-      
-      // API 엔드포인트
-      const apiEndpoint = API_ENDPOINTS.APPROVAL.UPDATE_APPROVERS(approvalId);
-      
-      // 백엔드 API 호출
-      const response = await fetch(apiEndpoint, {
-        method: 'PUT',
-        headers: headers,
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('응답 상태:', response.status, response.statusText);
-      
-      const responseText = await response.text();
-      console.log(`서버 응답 전문:`, responseText);
-      
-      // 403 오류 특별 처리
-      if (response.status === 403) {
-        console.error('403 오류 발생! 가능한 원인:');
-        console.error('1. 승인권자 수정 권한이 없음');
-        console.error('2. 토큰이 만료되었거나 유효하지 않음');
-        console.error('3. 백엔드의 권한 검증 로직 불일치');
-        
-        throw new Error('승인권자 수정 권한이 없습니다. 관리자에게 문의하세요. (오류 코드: 403)');
-      }
-      
-      // 성공 처리
-      if (response.ok) {
-        try {
-          // 응답이 있는 경우 파싱 시도
-          if (responseText.trim()) {
-            const result = JSON.parse(responseText);
-            if (result.statusCode && result.statusCode !== 200) {
-              throw new Error(result.statusMessage || `승인권자 수정에 실패했습니다. (${result.statusCode})`);
-            }
-          }
-          
-          // 성공 처리
-          setIsEditApproversModalOpen(false);
-          fetchDecisions(); // 승인권자 목록 다시 조회
-          alert('승인권자가 성공적으로 수정되었습니다.');
-        } catch (parseError) {
-          console.error('응답 파싱 오류:', parseError);
-          // 파싱 실패 시에도 응답이 OK이면 성공으로 처리
-          setIsEditApproversModalOpen(false);
-          fetchDecisions();
-          alert('승인권자가 성공적으로 수정되었습니다.');
-        }
-      } else {
-        throw new Error(`승인권자 수정에 실패했습니다 (${response.status}): ${responseText || '응답 없음'}`);
-      }
-    } catch (error) {
-      console.error('Error updating approvers:', error);
-      alert(`승인권자 수정 중 오류가 발생했습니다: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 모달이 열릴 때 회사 목록 조회
-  useEffect(() => {
-    if (isEditApproversModalOpen) {
-      console.log('모달 열림 - 회사 목록 조회 시작');
-      // 승인권자 데이터 재확인 및 표시
-      if (selectedApprovers && selectedApprovers.length > 0) {
-        console.log('모달 열림 시 승인권자 상태:', selectedApprovers);
-      }
-      
-      fetchCompanies();
-    } else {
-      // 모달 닫힐 때 상태 초기화
-      setCompanies([]);
-      setCompanyEmployees({});
-      setExpandedCompanies(new Set());
-      // 선택된 승인권자는 초기화하지 않음 (이미 설정된 상태 유지)
-    }
-  }, [isEditApproversModalOpen]);
-  
-  // 선택된 승인권자 변경 감지
-  useEffect(() => {
-    if (selectedApprovers && selectedApprovers.length > 0) {
-      console.log('선택된 승인권자 목록 업데이트됨:', 
-        selectedApprovers.map(a => ({ 
-          id: a.memberId, 
-          name: a.memberName,
-          approverId: a.approverId 
-        }))
-      );
-    }
-  }, [selectedApprovers]);
-
   return (
     <>
       <ResponseSection>
         <ApproversSectionHeader>
           <ApproversSectionTitle>승인권자별 응답목록</ApproversSectionTitle>
-          {/* 숨겨진 버튼 - DOM에 유지해서 클릭 이벤트만 허용 */}
-          <button 
-            onClick={openEditApproversModal} 
-            className="approvers-edit-button" 
-            name="editApprovers" 
-            style={{ 
-              position: 'absolute', 
-              opacity: 0, 
-              width: 0, 
-              height: 0, 
-              overflow: 'hidden',
-              pointerEvents: 'none'
-            }}
-          >
-            승인권자 수정
-          </button>
         </ApproversSectionHeader>
         
         {/* 승인요청 전송 전 상태 */}
@@ -1909,20 +1362,32 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                   {statusSummary.totalApproverCount > 0 && (
                     <StatusItem bgColor="#f8fafc">
                       <StatusLabel>전체</StatusLabel>
-                      <StatusCount>{statusSummary.totalApproverCount}명</StatusCount>
+                      <StatusCount>
+                        <span className="count">{statusSummary.totalApproverCount}</span>
+                        <span className="unit">명</span>
+                      </StatusCount>
                     </StatusItem>
                   )}
                   <StatusItem bgColor="#eff6ff">
                     <StatusLabel color="#1e40af">대기</StatusLabel>
-                    <StatusCount color="#1e40af">{statusSummary.waitingApproverCount}명</StatusCount>
+                    <StatusCount color="#1e40af">
+                      <span className="count">{statusSummary.waitingApproverCount}</span>
+                      <span className="unit">명</span>
+                    </StatusCount>
                   </StatusItem>
                   <StatusItem bgColor="#f0fdf4">
                     <StatusLabel color="#166534">승인</StatusLabel>
-                    <StatusCount color="#166534">{statusSummary.approvedApproverCount}명</StatusCount>
+                    <StatusCount color="#166534">
+                      <span className="count">{statusSummary.approvedApproverCount}</span>
+                      <span className="unit">명</span>
+                    </StatusCount>
                   </StatusItem>
                   <StatusItem bgColor="#fef2f2">
                     <StatusLabel color="#991b1b">반려</StatusLabel>
-                    <StatusCount color="#991b1b">{statusSummary.modificationRequestedApproverCount}명</StatusCount>
+                    <StatusCount color="#991b1b">
+                      <span className="count">{statusSummary.modificationRequestedApproverCount}</span>
+                      <span className="unit">명</span>
+                    </StatusCount>
                   </StatusItem>
                 </StatusSummaryGrid>
               </StatusSummary>
@@ -2053,19 +1518,22 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                   </DecisionActions>
                                 </div>
                               ) : (
-                                <AddResponseButton 
-                                  onClick={() => {
-                                    setIsInputOpen(true);
-                                    setSelectedApprover(approver);
-                                    setNewDecision({ content: '', status: '' });
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                  </svg>
-                                  <span>승인응답 추가</span>
-                                </AddResponseButton>
+                                !isDeveloper && !isCustomer && (
+                                  <AddResponseButton 
+                                    onClick={() => {
+                                      console.log('Button clicked - isDeveloper:', isDeveloper, 'isCustomer:', isCustomer);
+                                      setIsInputOpen(true);
+                                      setSelectedApprover(approver);
+                                      setNewDecision({ content: '', status: '' });
+                                    }}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span>승인응답 추가</span>
+                                  </AddResponseButton>
+                                )
                               )}
                             </>
                           ) : (
@@ -2125,19 +1593,22 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                   </DecisionActions>
                                 </div>
                               ) : (
-                                <AddResponseButton 
-                                  onClick={() => {
-                                    setIsInputOpen(true);
-                                    setSelectedApprover(approver);
-                                    setNewDecision({ content: '', status: '' });
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                  </svg>
-                                  <span>승인응답 추가</span>
-                                </AddResponseButton>
+                                !isDeveloper && !isCustomer && (
+                                  <AddResponseButton 
+                                    onClick={() => {
+                                      console.log('Button clicked - isDeveloper:', isDeveloper, 'isCustomer:', isCustomer);
+                                      setIsInputOpen(true);
+                                      setSelectedApprover(approver);
+                                      setNewDecision({ content: '', status: '' });
+                                    }}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span>승인응답 추가</span>
+                                  </AddResponseButton>
+                                )
                               )}
                             </>
                           )}
@@ -2151,137 +1622,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
           </>
         )}
       </ResponseSection>
-
-      {/* 승인권자 수정 모달 */}
-      {isEditApproversModalOpen && (
-        <ModalOverlay>
-          <ModalContainer>
-            <ModalHeader>
-              <ModalTitle>승인권자 수정</ModalTitle>
-              <CloseButton onClick={() => setIsEditApproversModalOpen(false)} disabled={loading}>×</CloseButton>
-            </ModalHeader>
-            
-            <ModalContent>
-              {loading && <LoadingIndicator>데이터를 불러오는 중...</LoadingIndicator>}
-              
-              <CompanyList>
-                {loading ? (
-                  <LoadingIndicator>회사 목록을 불러오는 중...</LoadingIndicator>
-                ) : (
-                  companies.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                      등록된 회사가 없습니다.
-                    </div>
-                  ) : (
-                    companies.map(company => (
-                      <CompanyItem key={company.id}>
-                        <CompanyHeader onClick={() => !loading && toggleCompany(company)}>
-                          <CompanyName>{company.name}</CompanyName>
-                          <span>{expandedCompanies.has(company.id) ? '▼' : '▶'}</span>
-                        </CompanyHeader>
-                        
-                        {expandedCompanies.has(company.id) && (
-                          <EmployeeList>
-                            {!companyEmployees[company.id] ? (
-                              <LoadingIndicator>직원 목록을 불러오는 중...</LoadingIndicator>
-                            ) : companyEmployees[company.id].length === 0 ? (
-                              <div style={{ padding: '10px', color: '#64748b' }}>등록된 직원이 없습니다.</div>
-                            ) : (
-                              companyEmployees[company.id].map(employee => {
-                                // 각 직원이 이미 선택되었는지 확인 (문자열/숫자 타입 불일치 문제 해결)
-                                const employeeId = employee.id;
-                                const employeeIdStr = String(employeeId);
-                                
-                                // 새로 추가한 isApproverSelected 함수 사용
-                                const isSelected = isApproverSelected(employeeId);
-                                
-                                // 선택된 승인권자 디버깅
-                                if (isSelected) {
-                                  console.log(`✓ 체크된 승인권자: ${employee.name} (ID: ${employeeId})`);
-                                }
-                                
-                                return (
-                                  <EmployeeItem key={employee.id}>
-                                    <EmployeeCheckbox 
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={(e) => !loading && handleSelectApprover(employee, e.target.checked)}
-                                      disabled={loading}
-                                    />
-                                    <EmployeeName>{employee.name}</EmployeeName>
-                                    <span style={{ fontSize: '12px', color: '#666' }}>
-                                      {employee.email || '이메일 정보 없음'}
-                                      {employee.department && ` / ${employee.department}`}
-                                      {employee.position && ` / ${employee.position}`}
-                                    </span>
-                                  </EmployeeItem>
-                                );
-                              })
-                            )}
-                          </EmployeeList>
-                        )}
-                      </CompanyItem>
-                    ))
-                  )
-                )}
-              </CompanyList>
-              
-              <SelectedApprovers>
-                <div style={{ fontWeight: '600', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>선택된 승인권자 ({selectedApprovers.length}명)</span>
-                  {selectedApprovers.length > 0 && (
-                    <span 
-                      style={{ 
-                        fontSize: '12px', 
-                        color: '#dc2626', 
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.5 : 1
-                      }}
-                      onClick={() => !loading && handleRemoveAllApprovers()}
-                    >
-                      전체 삭제
-                    </span>
-                  )}
-                </div>
-                <SelectedApproverList>
-                  {selectedApprovers.length === 0 ? (
-                    <div style={{ color: '#64748b', fontSize: '14px', padding: '10px 0' }}>
-                      선택된 승인권자가 없습니다. 최소 한 명 이상의 승인권자를 선택해주세요.
-                    </div>
-                  ) : (
-                    selectedApprovers.map(approver => (
-                      <SelectedApproverItem key={approver.id}>
-                        {approver.memberName}
-                        <RemoveApproverButton 
-                          onClick={() => !loading && handleRemoveApprover(approver.memberId, approver.memberName)}
-                          disabled={loading}
-                        >
-                          ×
-                        </RemoveApproverButton>
-                      </SelectedApproverItem>
-                    ))
-                  )}
-                </SelectedApproverList>
-              </SelectedApprovers>
-            </ModalContent>
-            
-            <ModalButtonContainer>
-              <CancelButton 
-                onClick={() => setIsEditApproversModalOpen(false)}
-                disabled={loading}
-              >
-                취소
-              </CancelButton>
-              <SaveButton 
-                onClick={handleSaveApprovers}
-                disabled={loading}
-              >
-                {loading ? '저장 중...' : '저장'}
-              </SaveButton>
-            </ModalButtonContainer>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
     </>
   );
 };

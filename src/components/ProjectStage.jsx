@@ -255,8 +255,8 @@ const ProjectStageProgress = ({
   currentStageIndex, 
   setCurrentStageIndex,
   title = "프로젝트 진행 단계",
-
-  openStageModal,
+  isAdmin,
+  isDeveloper,
   projectProgress = {
     totalStageCount: 0,
     completedStageCount: 0,
@@ -273,8 +273,11 @@ const ProjectStageProgress = ({
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [isClient, setIsClient] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
+  const [showStageModal, setShowStageModal] = useState(false);
+  const [stageAction, setStageAction] = useState('');
+  const [editingStage, setEditingStage] = useState(null);
+  const [stageName, setStageName] = useState('');
   
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -315,12 +318,10 @@ const ProjectStageProgress = ({
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
         const isAdminUser = decodedToken.role === 'ADMIN';
         const isClientUser = decodedToken.role === 'CUSTOMER';
-        setIsAdmin(isAdminUser);
         setIsClient(isClientUser);
         console.log(decodedToken.role);
       } catch (error) {
         console.error('Error decoding token:', error);
-        setIsAdmin(false);
         setIsClient(false);
       }
     }
@@ -337,6 +338,14 @@ const ProjectStageProgress = ({
     } finally {
       setIsIncreasing(false); // 진행 중 상태 해제
     }
+  };
+
+  // 진행단계 모달 열기
+  const openStageModal = (action, stage = null) => {
+    setStageAction(action);
+    setEditingStage(stage);
+    setStageName(stage ? stage.name : '');
+    setShowStageModal(true);
   };
 
   return (
@@ -362,7 +371,7 @@ const ProjectStageProgress = ({
                 <FaArrowRight />
               </NavButton>
             </StageNavigation>
-            {(isAdmin && isDeveloperManager) && (
+            {isAdmin && (
               <ManageButtonContainer ref={menuRef}>
                 <ManageButton onClick={() => setShowMenu(!showMenu)}>
                   <FaEllipsisV /> 단계 관리
@@ -528,7 +537,7 @@ const ProjectStageProgress = ({
                 {projectProgress.completedStageCount}/{projectProgress.totalStageCount} 단계
               </small>
             </ProgressInfoValue>
-            {(isAdmin==true || isClient==true) && (
+            {(isAdmin || isDeveloper) && (
               <IncreaseProgressButton onClick={onIncreaseProgress}>
                 단계 승급
               </IncreaseProgressButton>

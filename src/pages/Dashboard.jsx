@@ -27,13 +27,11 @@ const Dashboard = () => {
   const token = localStorage.getItem('token');
   const decodedToken = decodeToken(token);
   const isAdmin = decodedToken?.role === 'ADMIN';
-  const isDeveloperManager = decodedToken?.role === 'DEVELOPER_MANAGER';
   const currentUserId = decodedToken?.userId;
 
   // 디버깅을 위한 로그 추가
   console.log('User Role:', decodedToken?.role);
   console.log('Is Admin:', isAdmin);
-  console.log('Is Developer Manager:', isDeveloperManager);
   console.log('Current User ID:', currentUserId);
 
   const handleMenuClick = (menuItem) => {
@@ -70,12 +68,7 @@ const Dashboard = () => {
   const canEditProgress = (project) => {
     // 디버깅을 위한 로그 추가
     console.log('Project Creator ID:', project.creatorId);
-    console.log('Can Edit:', isAdmin || isDeveloperManager || (currentUserId && project.creatorId === currentUserId));
-    
-    // 개발사 담당자도 수정/삭제 가능하도록 수정
-    if (isDeveloperManager) {
-      return true;
-    }
+    console.log('Can Edit:', isAdmin || (currentUserId && project.creatorId === currentUserId));
     
     return isAdmin || (currentUserId && project.creatorId === currentUserId);
   };

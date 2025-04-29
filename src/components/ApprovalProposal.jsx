@@ -768,7 +768,8 @@ const ApprovalProposal = ({
   onShowMore,
   progressStatus = {
     progressList: []
-  }
+  },
+  isCustomer = false
 }) => {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
@@ -1311,7 +1312,7 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!isStageCompleted && (
+        {!isStageCompleted && !isCustomer && (
           <AddButtonContainer>
             <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
               + 승인요청 추가
