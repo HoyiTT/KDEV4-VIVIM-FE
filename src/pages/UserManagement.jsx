@@ -232,8 +232,10 @@ const UserManagement = () => {
           </AddButton>
         </Header>
 
+
+    {/* 회사별 직원 수 파이 차트 
         <ChartsContainer>
-          {/* 회사별 직원 수 파이 차트 */}
+
           <ChartSection>
             <StatisticsTitle>회사별 직원 수</StatisticsTitle>
             <ChartContainer>
@@ -260,7 +262,8 @@ const UserManagement = () => {
             </ChartContainer>
           </ChartSection>
 
-          {/* 직원 등록 추이 라인 차트 */}
+
+
           <ChartSection>
             <StatisticsTitle>직원 등록 추이</StatisticsTitle>
             <ChartContainer>
@@ -286,7 +289,7 @@ const UserManagement = () => {
             </ChartContainer>
           </ChartSection>
         </ChartsContainer>
-
+        */}
         <SearchSection>
           <SearchInput
             type="text"
