@@ -756,6 +756,7 @@ const ProjectDetail = () => {
                   progressStatus={progressStatus}
                   onIncreaseProgress={handleIncreaseProgress}
                   currentProgress={project?.currentProgress}
+                  projectId={project?.id}
                 >
                   {progressList.length > 0 ? (
                     progressList
@@ -2038,6 +2039,5 @@ const ManageDropdown = styled.div`
   margin-top: 5px;
   z-index: 100;
 `;
-
 
 

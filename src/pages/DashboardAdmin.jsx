@@ -10,8 +10,9 @@ const DashboardAdmin = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
   const [summaryData, setSummaryData] = useState([
-    { title: '계약', value: 0 },
-    { title: '검수', value: 0 },
+    { title: '계약중인 프로젝트', value: 0 },
+    { title: '검수중인 프로젝트', value: 0 },
+    { title: '완료된 프로젝트', value: 0 },
   ]);
   const [revenueData, setRevenueData] = useState([
     { name: '1주차', amount: 0 },
@@ -29,6 +30,10 @@ const DashboardAdmin = () => {
     { title: '검수', count: 0, color: '#FF8A65' }
   ]);
   const [adminInquiries, setAdminInquiries] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [projectList, setProjectList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -113,13 +118,24 @@ const DashboardAdmin = () => {
         
         if (!response.ok) throw new Error('Failed to fetch summary data');
         const data = await response.json();
+        console.log('Summary data response:', data); // 전체 응답 데이터 로깅
+        console.log('Progress count:', data.progressCount);
+        console.log('Inspection count:', data.inspectionCount);
+        console.log('Completed count:', data.completedCount);
+        console.log('All keys:', Object.keys(data)); // 응답 데이터의 모든 키 확인
         
         setSummaryData([
-          { title: '계약', value: data.progressCount },
-          { title: '검수', value: data.inspectionCount },
+          { title: '계약중인 프로젝트', value: data.progressCount || 0 },
+          { title: '검수중인 프로젝트', value: data.inspectionCount || 0 },
+          { title: '완료된 프로젝트', value: data.completedCount || 0 },
         ]);
       } catch (error) {
         console.error('Error fetching summary data:', error);
+        setSummaryData([
+          { title: '계약중인 프로젝트', value: 0 },
+          { title: '검수중인 프로젝트', value: 0 },
+          { title: '완료된 프로젝트', value: 0 },
+        ]);
       }
     };
 
@@ -187,6 +203,49 @@ const DashboardAdmin = () => {
     navigate(`/project/${projectId}/post/${postId}`);
   };
 
+  const handleSummaryClick = async (title) => {
+    setModalTitle(title);
+    setShowModal(true);
+    setLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/projects/all`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch projects');
+      const data = await response.json();
+      
+      // 프로젝트 상태 로깅 추가
+      console.log('All projects:', data);
+      console.log('Project statuses:', data.map(p => p.projectStatus));
+      console.log('Completed projects:', data.filter(p => p.projectStatus === 'COMPLETED'));
+      
+      // 제목에 따라 프로젝트 필터링
+      const filteredProjects = title === '계약중인 프로젝트'
+        ? data.filter(project => project.projectStatus === 'PROGRESS')
+        : title === '검수중인 프로젝트'
+        ? data.filter(project => project.projectStatus === 'INSPECTION')
+        : data.filter(project => project.projectStatus === 'COMPLETED');
+      
+      // 필터링 결과 로깅
+      console.log('Filtered projects for title:', title);
+      console.log('Filtered projects:', filteredProjects);
+      console.log('Filtered projects count:', filteredProjects.length);
+      console.log('Filtered projects statuses:', filteredProjects.map(p => p.projectStatus));
+      
+      setProjectList(filteredProjects);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setProjectList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -200,7 +259,11 @@ const DashboardAdmin = () => {
               <SectionTitle>프로젝트 진행 현황 요약</SectionTitle>
               <SummaryGrid>
                 {summaryData.map((item, index) => (
-                  <SummaryCard key={index}>
+                  <SummaryCard 
+                    key={index}
+                    onClick={() => handleSummaryClick(item.title)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <SummaryTitle>{item.title}</SummaryTitle>
                     <SummaryValue>{item.value}</SummaryValue>
                   </SummaryCard>
@@ -336,6 +399,42 @@ const DashboardAdmin = () => {
           </PostList>
         </RecentPostSection>
       </MainContent>
+
+      {showModal && (
+        <ModalOverlay onClick={() => setShowModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>{modalTitle}</ModalTitle>
+              <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              {loading ? (
+                <LoadingMessage>로딩 중...</LoadingMessage>
+              ) : projectList.length > 0 ? (
+                <ProjectList>
+                  {projectList.map((project) => (
+                    <ProjectItem 
+                      key={project.id}
+                      onClick={() => navigate(`/project/${project.projectId}`)}
+                    >
+                      <ProjectName>{project.name}</ProjectName>
+                      <ProjectInfo>
+                        <CompanyName>{project.companyName}</CompanyName>
+                        <ProjectDate>
+                          {new Date(project.startDate).toLocaleDateString('ko-KR')} ~ 
+                          {new Date(project.endDate).toLocaleDateString('ko-KR')}
+                        </ProjectDate>
+                      </ProjectInfo>
+                    </ProjectItem>
+                  ))}
+                </ProjectList>
+              ) : (
+                <EmptyMessage>프로젝트가 없습니다.</EmptyMessage>
+              )}
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </PageContainer>
   );
 };
@@ -366,7 +465,7 @@ const SectionTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
 `;
 
 const ChartSection = styled.div`
@@ -451,22 +550,22 @@ const SummaryGrid = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
-  height: calc(100% - 60px);
-  margin-top: 20px;
-  padding: 20px 0;
+  gap: 12px;
+  height: calc(100% - 40px);
+  margin-top: 0px;
+  padding: 10px 0;
 `;
 
 const SummaryCard = styled.div`
   background: #f8fafc;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   transition: transform 0.2s;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 80px;
+  height: 70px;
   text-align: center;
 
   &:hover {
@@ -475,15 +574,15 @@ const SummaryCard = styled.div`
 `;
 
 const SummaryTitle = styled.div`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   text-align: center;
 `;
 
 const SummaryValue = styled.div`
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: #2E7D32;
   display: flex;
@@ -494,7 +593,7 @@ const SummaryValue = styled.div`
 
   &::after {
     content: '건';
-    font-size: 16px;
+    font-size: 14px;
     color: #64748b;
   }
 `;
@@ -506,11 +605,14 @@ const InquirySection = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   width: 49%;
   height: 420px;
+  display: flex;
+  flex-direction: column;
   
   ${SectionTitle} {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
     
     &::after {
       content: '더보기 >';
@@ -530,7 +632,27 @@ const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 16px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 8px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 `;
 
 const InquiryItem = styled.div`
@@ -734,6 +856,121 @@ const PostAuthor = styled.span`
 const PostDate = styled.span`
   font-size: 13px;
   color: #94a3b8;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  
+  &:hover {
+    color: #1e293b;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+`;
+
+const ProjectList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ProjectItem = styled.div`
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+  }
+`;
+
+const ProjectName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+`;
+
+const ProjectInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const CompanyName = styled.span`
+  font-weight: 500;
+`;
+
+const ProjectDate = styled.span`
+  color: #94a3b8;
+`;
+
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 16px;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 16px;
 `;
 
 export default DashboardAdmin;

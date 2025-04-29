@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
-export const API_BASE_URL = 'https://localhost/api';
+export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+// export const API_BASE_URL = 'https://localhost/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -62,4 +62,5 @@ export const API_ENDPOINTS = {
     ALL: () => `${API_BASE_URL}/approval/approver/decision`,
     SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`
   },
+  PROJECT_COMPANIES: (projectId) => `${API_BASE_URL}/projects/${projectId}/companies`,
 };

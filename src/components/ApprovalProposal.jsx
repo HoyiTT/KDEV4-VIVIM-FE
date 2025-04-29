@@ -132,9 +132,9 @@ const DeleteButton = styled(ActionButton)`
 `;
 
 const SendButton = styled(ActionButton)`
-  background: white;
-  border: 1px solid #2E7D32;
-  color: #2E7D32;
+  background: #2E7D32;
+  border: none;
+  color: white;
   width: 100%;
   text-align: center;
   padding: 8px 16px;
@@ -145,15 +145,14 @@ const SendButton = styled(ActionButton)`
   overflow: hidden;
 
   &:hover {
-    color: #3b82f6;
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    background: #1B5E20;
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
   }
 
   &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.1);
   }
 `;
 
@@ -175,7 +174,7 @@ const ShowMoreButton = styled.button`
 
 const AddButton = styled.button`
   padding: 12px 24px;
-  background: ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
+  background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #3b82f6, #2563eb)'};
   border: none;
   border-radius: 6px;
   color: ${props => props.disabled ? '#94a3b8' : 'white'};
@@ -187,7 +186,11 @@ const AddButton = styled.button`
   width: 100%;
 
   &:hover {
-    background: ${props => props.disabled ? '#e2e8f0' : '#1B5E20'};
+    background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #2563eb, #1d4ed8)'};
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 `;
 
@@ -765,6 +768,7 @@ const ActionIcon = styled.button`
 
 const ApprovalProposal = ({ 
   progressId, 
+  projectId,
   showMore, 
   onShowMore,
   progressStatus = {
@@ -791,28 +795,30 @@ const ApprovalProposal = ({
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
+  const [isCustomer, setIsCustomer] = useState(false);
+  const [projectUsers, setProjectUsers] = useState([]);
 
-  // 회사 및 승인권자 조회 함수들을 state 선언 이후에 위치시킵니다.
-  const fetchCompanies = async () => {
+  // 프로젝트 참여 유저 목록 가져오기
+  const fetchProjectUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(API_ENDPOINTS.COMPANIES, {
+      const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
         headers: {
-          'Authorization': token,
-          'accept': '*/*'
+          'Authorization': token
         }
       });
-      if (!res.ok) throw new Error('회사 목록 조회 실패');
-      const json = await res.json();
-      // 응답의 data 필드를 우선 사용
-      const list = json.data ?? json.companies ?? json.items ?? (Array.isArray(json) ? json : []);
-      const customerCompanies = list.filter(c => c.companyRole?.toUpperCase() === 'CUSTOMER');
-      setCompanies(customerCompanies);
-    } catch (err) {
-      console.error(err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
+      const data = await response.json();
+      setProjectUsers(data);
+    } catch (error) {
+      console.error('Error fetching project users:', error);
     }
   };
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectUsers();
+    }
+  }, [projectId]);
 
   const toggleCompany = async (company) => {
     // 이미 펼쳐진 회사는 닫기
@@ -834,7 +840,13 @@ const ApprovalProposal = ({
         if (res.ok) {
           const json = await res.json();
           const empList = json.data ?? json.employees ?? json.items ?? (Array.isArray(json) ? json : []);
-          setCompanyEmployees(prev => ({ ...prev, [company.id]: empList }));
+          
+          // 프로젝트에 참여하는 직원만 필터링
+          const projectParticipatingEmployees = empList.filter(emp => 
+            projectUsers.some(pu => pu.userId === emp.id)
+          );
+          
+          setCompanyEmployees(prev => ({ ...prev, [company.id]: projectParticipatingEmployees }));
         }
       } catch (err) {
         console.error('Error fetching employees:', err);
@@ -1244,6 +1256,43 @@ const ApprovalProposal = ({
     status => status.progressId === progressId
   )?.isCompleted || false;
 
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const isCustomerUser = decodedToken.role === 'CUSTOMER';
+        setIsCustomer(isCustomerUser);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setIsCustomer(false);
+      }
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
+        headers: {
+          'Authorization': token,
+          'accept': '*/*'
+        }
+      });
+      if (!res.ok) throw new Error('회사 목록 조회 실패');
+      const json = await res.json();
+      const customerCompanies = json.filter(company => company.companyRole === 'CUSTOMER');
+      setCompanies(customerCompanies);
+    } catch (err) {
+      console.error(err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1276,12 +1325,9 @@ const ApprovalProposal = ({
                             proposal.approvalProposalStatus === 'REJECTED_BY_ANY_DECISION' || 
                             proposal.approvalProposalStatus === 'REJECTED') && 
                             !window.location.pathname.includes('/project/') && (
-                            <SendButtonSmall onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendProposal(proposal.id);
-                            }}>
-                              전송
-                            </SendButtonSmall>
+                            <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                              승인요청
+                            </SendButton>
                           )}
                           {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
                             <ActionIcons>
@@ -1315,7 +1361,7 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!isStageCompleted && (
+        {!isStageCompleted && !isCustomer && (
           <AddButtonContainer>
             <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
               + 승인요청 추가

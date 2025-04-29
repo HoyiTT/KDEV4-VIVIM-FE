@@ -261,20 +261,34 @@ const UserManagement = () => {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow 
+                    key={user.id}
+                    onClick={() => navigate(`/user-edit/${user.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
                     <TableCell>{user.companyName}</TableCell>
                     <TableCell>
-                      {user.companyRole === 'ADMIN' ? '관리자' :
-                       user.companyRole === 'DEVELOPER' ? '개발사' :
-                       user.companyRole === 'CUSTOMER' ? '고객사' : ''}
+                      <RoleBadge role={user.companyRole}>
+                        {user.companyRole === 'ADMIN' ? '관리자' :
+                         user.companyRole === 'DEVELOPER' ? '개발사' :
+                         user.companyRole === 'CUSTOMER' ? '고객사' : ''}
+                      </RoleBadge>
                     </TableCell>
                     <TableCell>
                       <ActionButtonContainer>
-                        <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정</ActionButton>
-                        <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
+                        <EditButton onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/user-edit/${user.id}`);
+                        }}>
+                          수정
+                        </EditButton>
+                        <DeleteButton onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUser(user.id, user.name);
+                        }}>
                           삭제
                         </DeleteButton>
                       </ActionButtonContainer>
@@ -283,23 +297,29 @@ const UserManagement = () => {
                 ))}
               </TableBody>
             </UserTable>
-            <Pagination>
-              <PageButton
-                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+            <PaginationContainer>
+              <PaginationButton 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
                 disabled={currentPage === 0}
               >
                 이전
-              </PageButton>
-              <PageInfo>
-                {currentPage + 1} / {totalPages}
-              </PageInfo>
-              <PageButton
-                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+              </PaginationButton>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <PaginationButton
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  active={currentPage === i}
+                >
+                  {i + 1}
+                </PaginationButton>
+              ))}
+              <PaginationButton
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
                 disabled={currentPage === totalPages - 1}
               >
                 다음
-              </PageButton>
-            </Pagination>
+              </PaginationButton>
+            </PaginationContainer>
           </>
         )}
       </MainContent>
@@ -435,7 +455,12 @@ const NoCompanyBadge = styled.span`
   font-weight: 500;
 `;
 
-const ActionButton = styled.button`
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const EditButton = styled.button`
   padding: 6px 12px;
   background: transparent;
   color: #4F6AFF;
@@ -448,20 +473,6 @@ const ActionButton = styled.button`
   &:hover {
     background: rgba(79, 106, 255, 0.1);
   }
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
 `;
 
 const DeleteButton = styled.button`
@@ -477,6 +488,15 @@ const DeleteButton = styled.button`
   &:hover {
     background: rgba(220, 38, 38, 0.1);
   }
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
 `;
 
 const SearchSection = styled.div`
@@ -543,37 +563,35 @@ const SearchButton = styled.button`
   }
 `;
 
-const Pagination = styled.div`  display: flex;
+const PaginationContainer = styled.div`
+  display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   margin-top: 24px;
 `;
 
-const PageButton = styled.button`
-  padding: 8px 16px;
+const PaginationButton = styled.button`
+  padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  background: white;
-  color: #64748b;
+  background-color: ${props => props.active ? '#3b82f6' : 'white'};
+  color: ${props => props.active ? 'white' : '#64748b'};
   font-size: 14px;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
+  min-width: 36px;
   
-  &:hover:not(:disabled) {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+  &:hover {
+    background-color: ${props => props.active ? '#3b82f6' : '#f8fafc'};
+    border-color: ${props => props.active ? '#3b82f6' : '#cbd5e1'};
   }
   
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
   }
-`;
-
-const PageInfo = styled.span`
-  font-size: 14px;
-  color: #64748b;
 `;
 
 const ChartsContainer = styled.div`
@@ -601,6 +619,38 @@ const StatisticsTitle = styled.h2`
 const ChartContainer = styled.div`
   height: 300px;
   margin-top: 16px;
+`;
+
+const RoleBadge = styled.span`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return 'rgba(79, 106, 255, 0.1)';
+      case 'DEVELOPER':
+        return 'rgba(255, 107, 107, 0.1)';
+      case 'CUSTOMER':
+        return 'rgba(76, 175, 80, 0.1)';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return '#4F6AFF';
+      case 'DEVELOPER':
+        return '#FF6B6B';
+      case 'CUSTOMER':
+        return '#4CAF50';
+      default:
+        return '#64748b';
+    }
+  }};
 `;
 
 export default UserManagement;

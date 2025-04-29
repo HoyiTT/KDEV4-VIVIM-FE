@@ -838,17 +838,15 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -875,8 +873,10 @@ const ProfileImage = styled.img`
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 30px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  max-width: 800px;
 `;
 
 const Form = styled.form`
@@ -985,18 +985,28 @@ const CancelButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  background-color: #2E7D32;
+  padding: 12px 20px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
   color: white;
-  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   
   &:hover {
-    background-color: #1B5E20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
   }
 `;
 
