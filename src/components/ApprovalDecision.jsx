@@ -44,40 +44,36 @@ const ResponseList = styled.div`
 
 const ApproverCard = styled.div`
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
   border: 1px solid #f0f0f0;
+  margin-bottom: 16px;
   
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
 `;
 
 const ApproverHeader = styled.div`
-  padding: 20px;
-  background-color: ${props => {
-    if (props.$hasApproved) return '#f0fdf4';
-    if (props.$hasRejected) return '#fef2f2';
-    return '#f9fafb';
-  }};
-  border-bottom: 1px solid ${props => {
-    if (props.$hasApproved) return '#dcfce7';
-    if (props.$hasRejected) return '#fee2e2';
-    return '#f0f0f0';
-  }};
+  padding: 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const ApproverName = styled.div`
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #111827;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
 `;
 
 const ApproverContent = styled.div`
@@ -87,28 +83,32 @@ const ApproverContent = styled.div`
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
   
   ${props => {
     if (props.$status === ApprovalDecisionStatus.APPROVED) {
       return `
-        background-color: #dcfce7;
+        background-color: #f0fdf4;
         color: #15803d;
+        border-color: #dcfce7;
       `;
     } else if (props.$status === ApprovalDecisionStatus.REJECTED) {
       return `
-        background-color: #fee2e2;
+        background-color: #fef2f2;
         color: #b91c1c;
+        border-color: #fee2e2;
       `;
     } else {
       return `
-        background-color: #e0f2fe;
-        color: #0369a1;
+        background-color: #f8fafc;
+        color: #64748b;
+        border-color: #e2e8f0;
       `;
     }
   }}
@@ -142,52 +142,44 @@ const ToggleButton = styled.button`
 `;
 
 const ResponseDecision = styled.div`
-  margin-top: 12px;
-  padding: 16px;
-  background-color: white;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+  padding: 20px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 `;
 
 const DecisionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
 `;
 
 const DecisionStatus = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  
-  ${props => {
-    if (props.$status === ApprovalDecisionStatus.APPROVED) {
-      return 'color: #15803d;';
-    } else if (props.$status === ApprovalDecisionStatus.REJECTED) {
-      return 'color: #b91c1c;';
-    } else {
-      return 'color: #0369a1;';
-    }
-  }}
+  gap: 8px;
+  font-weight: 500;
+  color: #64748b;
   
   &::before {
     content: '';
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
+    background-color: #94a3b8;
+    transition: all 0.3s ease;
     
     ${props => {
       if (props.$status === ApprovalDecisionStatus.APPROVED) {
-        return 'background-color: #15803d;';
+        return 'background-color: #22c55e;';
       } else if (props.$status === ApprovalDecisionStatus.REJECTED) {
-        return 'background-color: #b91c1c;';
+        return 'background-color: #ef4444;';
       } else {
-        return 'background-color: #0369a1;';
+        return 'background-color: #94a3b8;';
       }
     }}
   }
@@ -201,37 +193,39 @@ const DecisionDate = styled.div`
 `;
 
 const DecisionContent = styled.div`
-  font-size: 13px;
-  color: #4b5563;
-  line-height: 1.5;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
   
   strong {
     font-weight: 600;
-    color: #111827;
+    color: #1e293b;
     display: block;
-    margin-bottom: 4px;
-    font-size: 14px;
+    margin-bottom: 8px;
+    font-size: 15px;
   }
 `;
 
 const DecisionActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: 16px;
+  gap: 8px;
 `;
 
 const DeleteAction = styled.button`
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #be123c;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #ef4444;
   background-color: transparent;
-  border: 1px solid #fda4af;
-  border-radius: 4px;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   
   &:hover {
-    background-color: #fecdd3;
+    background-color: #fef2f2;
+    border-color: #fca5a5;
   }
 `;
 
@@ -264,56 +258,66 @@ const AddResponseButton = styled.button`
 `;
 
 const ResponseItem = styled.div`
-  background: ${props => props.$hasApproved ? '#f0fdf4' : props.$hasRejected ? '#fef2f2' : '#f8fafc'};
-  border: 1px solid ${props => props.$hasApproved ? '#dcfce7' : props.$hasRejected ? '#fee2e2' : '#e2e8f0'};
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
   max-width: 100%;
   overflow-x: hidden;
+  position: relative;
+  margin-bottom: 16px;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-  & > div {
-    flex: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #cbd5e1;
+    border-radius: 4px 0 0 4px;
+    transition: all 0.3s ease;
+  }
+
+  ${props => {
+    if (props.$hasApproved) {
+      return `
+        &::before {
+          background-color: #22c55e;
+        }
+      `;
+    } else if (props.$hasRejected) {
+      return `
+        &::before {
+          background-color: #ef4444;
+        }
+      `;
+    }
+  }}
 `;
 
 const ResponseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 8px;
-`;
-
-const ResponseStatusContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const ResponseActionsContainer = styled.div`
-  display: flex;
-  justify-content: flex-end;
   gap: 12px;
-  margin-top: 16px;
-  padding: 0;
-  width: 100%;
-  box-sizing: border-box;
 `;
 
 const ResponseName = styled.div`
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   color: #1e293b;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 12px;
 `;
 
 const ResponseDate = styled.div`
@@ -322,7 +326,7 @@ const ResponseDate = styled.div`
 `;
 
 const ResponseContent = styled.div`
-  font-size: 13px;
+  font-size: 14px;
   color: #475569;
   line-height: 1.6;
   display: flex;
@@ -338,37 +342,40 @@ const ResponseStatus = styled.div`
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  gap: 6px;
+  font-weight: 500;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  gap: 8px;
   
   &::before {
-    content: "";
+    content: '';
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    }
+    background-color: #94a3b8;
+    transition: all 0.3s ease;
+  }
   
   ${props => {
     const status = props.status;
     switch (status) {
       case ApprovalDecisionStatus.APPROVED:
         return `
-          background-color: #ecfdf5;
-          color: #047857;
-          border: 1px solid #a7f3d0;
+          background-color: #f0fdf4;
+          color: #15803d;
+          border-color: #86efac;
           
           &::before {
-            background-color: #10b981;
+            background-color: #22c55e;
           }
         `;
       case ApprovalDecisionStatus.REJECTED:
         return `
           background-color: #fef2f2;
           color: #b91c1c;
-          border: 1px solid #fecaca;
+          border-color: #fca5a5;
           
           &::before {
             background-color: #ef4444;
@@ -378,7 +385,7 @@ const ResponseStatus = styled.div`
         return `
           background-color: #f8fafc;
           color: #64748b;
-          border: 1px solid #e2e8f0;
+          border-color: #cbd5e1;
           
           &::before {
             background-color: #94a3b8;
@@ -389,49 +396,65 @@ const ResponseStatus = styled.div`
 `;
 
 const ResponseText = styled.div`
-  font-size: 13px;
+  font-size: 14px;
   color: #475569;
-  line-height: 1.5;
+  line-height: 1.6;
   flex: 1;
   text-align: left;
   
   strong {
-    font-weight: 500;
+    font-weight: 600;
     color: #1e293b;
   }
 `;
 
 const EmptyResponseMessage = styled.div`
-  padding: 24px;
+  padding: 32px;
   text-align: center;
   color: #64748b;
   font-size: 15px;
   background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  margin: 16px 0;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  
+  svg {
+    width: 32px;
+    height: 32px;
+    color: #94a3b8;
+  }
 `;
 
 const ResponseButton = styled.button`
   width: 100%;
-  padding: 10px 18px;
+  padding: 12px 20px;
   background: #2E7D32;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: white;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 24px;
-  font-weight: 500;
 
   &:hover {
     background: #1B5E20;
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -578,13 +601,25 @@ const DeleteButton = styled.button`
 `;
 
 const CompletedBadge = styled.span`
-  background-color: #dcfce7;
-  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #16a34a;
-  margin-left: 10px;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    margin-right: 6px;
+  }
 `;
 
 const CompletedMessage = styled.div`
@@ -899,18 +934,18 @@ const ModalContent = styled.div`
 `;
 
 const StatusSummary = styled.div`
-  background-color: #fcfcfc;
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid #f1f5f9;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #cbd5e1;
 `;
 
 const StatusSummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 16px;
   
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -921,28 +956,44 @@ const StatusItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 16px;
   background-color: ${props => props.bgColor || '#f8fafc'};
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  transition: all 0.3s ease;
   
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 `;
 
 const StatusLabel = styled.span`
   color: ${props => props.color || '#64748b'};
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: ${props => props.color || '#64748b'};
+  }
 `;
 
 const StatusCount = styled.span`
-  color: ${props => props.color || '#0f172a'};
-  font-size: 13px;
+  color: ${props => props.color || '#1e293b'};
+  font-size: 15px;
   font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid ${props => props.color || '#cbd5e1'};
 `;
 
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
