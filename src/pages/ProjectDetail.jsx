@@ -60,6 +60,7 @@ const ProjectDetail = () => {
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(null);
   const [isClient, setIsClient] = useState(null);
+  const [isDeveloperManager, setIsDeveloperManager] = useState(null);
 
   const [isIncreasing, setIsIncreasing] = useState(false);
 
@@ -254,13 +255,17 @@ const ProjectDetail = () => {
         try {
           const decodedToken = JSON.parse(atob(token.split('.')[1]));
           const isAdminUser = decodedToken.role === 'ADMIN';
-          const isClientUser = decodedToken.role === 'CLIENT';
+          const isClientUser = decodedToken.role === 'CUSTOMER';
+          const isDeveloperManagerUser = decodedToken.role === 'DEVELOPER_MANAGER';
           setIsAdmin(isAdminUser);
           setIsClient(isClientUser);
+          setIsDeveloperManager(isDeveloperManagerUser);
+          console.log(decodedToken.role);
         } catch (error) {
           console.error('Error decoding token:', error);
           setIsAdmin(false);
           setIsClient(false);
+          setIsDeveloperManager(false);
         }
       }
       setAdminCheckLoading(false);
@@ -512,7 +517,25 @@ const ProjectDetail = () => {
       setApprovalRequests(data);
       
       // 승인요청 상태가 변경되면 진행률 다시 조회
-      fetchProjectOverallProgress();
+      await Promise.all([
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
+      
+      // 현재 단계의 승인요청 상태 로그 출력
+      const currentStage = progressList[currentStageIndex];
+      if (currentStage) {
+        const stageStatus = progressStatus.progressList.find(
+          status => status.progressId === currentStage.id
+        );
+        console.log('현재 단계 승인요청 상태:', {
+          stageName: currentStage.name,
+          progressRate: stageStatus?.progressRate,
+          approvedCount: stageStatus?.approvedApprovalCount,
+          totalCount: stageStatus?.totalApprovalCount,
+          isCompleted: stageStatus?.isCompleted
+        });
+      }
     } catch (error) {
       console.error('승인요청 목록 조회 중 오류 발생:', error);
     }
@@ -588,11 +611,10 @@ const ProjectDetail = () => {
       const data = await response.json();
       console.log('단계별 진척도:', data);
 
-      // 각 단계의 완료 여부 계산
+      // 각 단계의 완료 여부는 단계 승급 버튼을 눌러야만 설정되도록 수정
       const updatedProgressList = data.progressList.map(progress => ({
         ...progress,
-        isCompleted: progress.totalApprovalCount > 0 && 
-                    progress.approvedApprovalCount === progress.totalApprovalCount
+        isCompleted: progress.isCompleted || false // 기존 isCompleted 값 유지
       }));
 
       setProgressStatus({
@@ -624,6 +646,11 @@ const ProjectDetail = () => {
   // 단계 승급 처리 함수 추가
   const handleIncreaseProgress = async () => {
     if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
+    
+    // 확인 메시지 추가
+    if (!window.confirm('현재 단계를 승급하시겠습니까?')) {
+      return;
+    }
     
     try {
       setIsIncreasing(true); // 진행 중 상태로 설정
