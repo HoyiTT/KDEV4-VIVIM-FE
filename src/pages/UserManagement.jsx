@@ -21,10 +21,6 @@ const UserManagement = () => {
     companyRole: '',
     isDeleted: false
   });
-  const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: 'ascending'
-  });
 
   useEffect(() => {
     fetchCompanies();
@@ -175,48 +171,6 @@ const UserManagement = () => {
 
   const COLORS = ['#4F6AFF', '#FF6B6B', '#4CAF50', '#FFC107', '#9C27B0', '#00BCD4'];
 
-  const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedUsers = React.useMemo(() => {
-    if (!sortConfig.key) return users;
-
-    return [...users].sort((a, b) => {
-      if (sortConfig.key === 'name') {
-        return sortConfig.direction === 'ascending' 
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      }
-      if (sortConfig.key === 'email') {
-        return sortConfig.direction === 'ascending'
-          ? a.email.localeCompare(b.email)
-          : b.email.localeCompare(a.email);
-      }
-      if (sortConfig.key === 'phone') {
-        return sortConfig.direction === 'ascending'
-          ? a.phone.localeCompare(b.phone)
-          : b.phone.localeCompare(a.phone);
-      }
-      if (sortConfig.key === 'companyName') {
-        return sortConfig.direction === 'ascending'
-          ? (a.companyName || '').localeCompare(b.companyName || '')
-          : (b.companyName || '').localeCompare(a.companyName || '');
-      }
-      if (sortConfig.key === 'companyRole') {
-        const roleOrder = { 'ADMIN': 0, 'DEVELOPER': 1, 'CUSTOMER': 2 };
-        return sortConfig.direction === 'ascending'
-          ? roleOrder[a.companyRole] - roleOrder[b.companyRole]
-          : roleOrder[b.companyRole] - roleOrder[a.companyRole];
-      }
-      return 0;
-    });
-  }, [users, sortConfig]);
-
   return (
     <PageContainer>
       <Navbar 
@@ -232,64 +186,6 @@ const UserManagement = () => {
           </AddButton>
         </Header>
 
-
-    {/* 회사별 직원 수 파이 차트 
-        <ChartsContainer>
-
-          <ChartSection>
-            <StatisticsTitle>회사별 직원 수</StatisticsTitle>
-            <ChartContainer>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={getCompanyUserDistribution()}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {getCompanyUserDistribution().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </ChartSection>
-
-
-
-          <ChartSection>
-            <StatisticsTitle>직원 등록 추이</StatisticsTitle>
-            <ChartContainer>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={getRegistrationTrend()}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#4F6AFF"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </ChartSection>
-        </ChartsContainer>
-        */}
         <SearchSection>
           <SearchInput
             type="text"
@@ -355,41 +251,16 @@ const UserManagement = () => {
             <UserTable>
               <TableHeader>
                 <TableRow>
-                  <TableHeaderCell 
-                    onClick={() => handleSort('name')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    이름 {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                  </TableHeaderCell>
-                  <TableHeaderCell 
-                    onClick={() => handleSort('email')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    이메일 {sortConfig.key === 'email' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                  </TableHeaderCell>
-                  <TableHeaderCell 
-                    onClick={() => handleSort('phone')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    전화번호 {sortConfig.key === 'phone' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                  </TableHeaderCell>
-                  <TableHeaderCell 
-                    onClick={() => handleSort('companyName')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    소속 회사 {sortConfig.key === 'companyName' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                  </TableHeaderCell>
-                  <TableHeaderCell 
-                    onClick={() => handleSort('companyRole')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    역할 {sortConfig.key === 'companyRole' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                  </TableHeaderCell>
+                  <TableHeaderCell>이름</TableHeaderCell>
+                  <TableHeaderCell>이메일</TableHeaderCell>
+                  <TableHeaderCell>전화번호</TableHeaderCell>
+                  <TableHeaderCell>소속 회사</TableHeaderCell>
+                  <TableHeaderCell>역할</TableHeaderCell>
                   <TableHeaderCell>관리</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedUsers.map((user) => (
+                {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -672,8 +543,7 @@ const SearchButton = styled.button`
   }
 `;
 
-const Pagination = styled.div`
-  display: flex;
+const Pagination = styled.div`  display: flex;
   justify-content: center;
   align-items: center;
   gap: 16px;
