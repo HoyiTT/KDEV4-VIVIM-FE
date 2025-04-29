@@ -122,7 +122,7 @@ const ProjectDetail = () => {
     fetchProjectOverallProgress();
     fetchProgressStatus();
 
-    // 30초마다 데이터 업데이트 (1분에서 30초로 변경)
+    // 30초마다 데이터 업데이트
     const updateInterval = setInterval(() => {
       fetchProjectOverallProgress();
       fetchProgressStatus();
@@ -139,7 +139,7 @@ const ProjectDetail = () => {
       fetchProjectOverallProgress();
       fetchProgressStatus();
     }
-  }, [currentStageIndex, progressList]);
+  }, [currentStageIndex]);
 
   // 승인요청 상태가 변경될 때마다 진행률 다시 계산
   useEffect(() => {
@@ -148,6 +148,23 @@ const ProjectDetail = () => {
       fetchProgressStatus();
     }
   }, [approvalRequests]);
+
+  // 진행률 데이터 업데이트 함수
+  const updateProgressData = async () => {
+    try {
+      await Promise.all([
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
+    } catch (error) {
+      console.error('진행률 데이터 업데이트 중 오류 발생:', error);
+    }
+  };
+
+  // 승인요청 상태 변경 시 진행률 업데이트
+  const handleApprovalStatusChange = () => {
+    updateProgressData();
+  };
 
   const translateRole = (role) => {
     switch (role) {
@@ -690,6 +707,7 @@ const ProjectDetail = () => {
                           </StageHeader>
                           <ApprovalProposal 
                             progressId={stage.id} 
+                            progressStatus={progressStatus}
                           />
                     </StageItem>
                       </StageContainer>
@@ -1078,12 +1096,25 @@ const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 12px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
-  background-color: white;
+  background-color: ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return 'rgba(75, 85, 99, 0.08)';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return 'rgba(30, 64, 175, 0.08)';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return 'rgba(4, 120, 87, 0.08)';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return 'rgba(185, 28, 28, 0.08)';
+      default:
+        return 'rgba(75, 85, 99, 0.08)';
+    }
+  }};
   color: ${props => {
     switch (props.status) {
       case ApprovalProposalStatus.DRAFT:
@@ -1098,30 +1129,18 @@ const StatusBadge = styled.span`
         return '#4B5563';
     }
   }};
-  border: 1px solid ${props => {
-    switch (props.status) {
-      case ApprovalProposalStatus.DRAFT:
-        return '#F3F4F6';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return '#EFF6FF';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return '#ECFDF5';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return '#FEF2F2';
-      default:
-        return '#F3F4F6';
-    }
-  }};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   svg {
     font-size: 14px;
+    opacity: 0.9;
   }
 `;
 

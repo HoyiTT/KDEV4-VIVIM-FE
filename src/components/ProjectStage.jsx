@@ -124,7 +124,6 @@ const StageProgressMarker = styled.div`
       ? '0 0 0 2px #fff, 0 0 0 4px #3b82f6' 
       : '0 2px 4px rgba(0, 0, 0, 0.1)'
   };
-  transition: all 0.2s ease-in-out;
   
   svg {
     color: white;
@@ -160,7 +159,7 @@ const StageProgressStatus = styled.div`
   }};
   font-weight: 500;
   letter-spacing: -0.2px;
-  opacity: ${props => (props.isCompleted || props.isCurrent) ? 1 : 0.8};
+  opacity: 1;
   text-align: center;
 `;
 
@@ -228,7 +227,6 @@ const ProgressFill = styled.div`
   height: 100%;
   background-color: ${props => props.color || '#22c55e'};
   border-radius: 2px;
-  transition: width 0.3s ease-in-out;
 `;
 
 /**
@@ -368,34 +366,34 @@ const ProjectStageProgress = ({
             };
             
             const isCompleted = stageStatus.isCompleted;
-            const isCurrent = !isCompleted && index === projectProgress.completedStageCount;
+            const isCurrent = index === projectProgress.completedStageCount;
             const isViewing = index === currentStageIndex;
             
             return (
             <StageProgressItem 
               key={stage.id}
               onClick={() => setCurrentStageIndex(index)}
-                active={isViewing}
+              active={isViewing}
             >
               <StageProgressMarker 
-                  completed={isCompleted}
-                  current={isCurrent}
-                  viewing={isViewing}
+                completed={isCompleted}
+                current={isCurrent}
+                viewing={isViewing}
               >
-                  {isCompleted ? 
-                    <FaCheck /> : 
-                    isCurrent ? <FaClock /> : index + 1
-                  }
+                {isCompleted ? 
+                  <FaCheck /> : 
+                  isCurrent ? <FaClock /> : index + 1
+                }
               </StageProgressMarker>
               <StageProgressDetails>
                 <StageProgressName>{stage.name}</StageProgressName>
-                  <StageProgressStatus 
-                    isCompleted={isCompleted}
-                    isCurrent={isCurrent}
-                  >
-                    {isCompleted ? '완료' : 
-                     isCurrent ? '진행중' : 
-                     '대기'}
+                <StageProgressStatus 
+                  isCompleted={isCompleted}
+                  isCurrent={isCurrent}
+                >
+                  {isCompleted ? '완료' : 
+                   isCurrent ? '진행중' : 
+                   '대기'}
                 </StageProgressStatus>
               </StageProgressDetails>
             </StageProgressItem>
