@@ -11,6 +11,16 @@ import approvalUtils from '../utils/approvalStatus';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
+const PROGRESS_STAGE_MAP = {
+  'REQUIREMENTS': '요구사항 정의',
+  'WIREFRAME': '화면설계',
+  'DESIGN': '디자인',
+  'PUBLISHING': '퍼블리싱',
+  'DEVELOPMENT': '개발',
+  'INSPECTION': '검수',
+  'COMPLETED': '완료'
+};
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,7 +43,7 @@ const ProjectDetail = () => {
   const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
-  const [statusSummary, setStatusSummary] = useState(null); // 추가: 상태 요약 정보를 저장할 state
+  const [statusSummary, setStatusSummary] = useState(null);
   const [approvalRequests, setApprovalRequests] = useState([]);
   const [projectProgress, setProjectProgress] = useState({
     totalStageCount: 0,
@@ -45,6 +55,12 @@ const ProjectDetail = () => {
   const [progressStatus, setProgressStatus] = useState({
     progressList: []
   });
+
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(null);
+  const [isClient, setIsClient] = useState(null);
+
+  const [isIncreasing, setIsIncreasing] = useState(false);
 
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -204,28 +220,27 @@ const ProjectDetail = () => {
     setActiveMenuItem(menuItem);
   };
 
-    const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-    const [isAdmin, setIsAdmin] = useState(null);
-  
-    useEffect(() => {
-      const checkAdminStatus = async () => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            const isAdminUser = decodedToken.role === 'ADMIN';
-            setIsAdmin(isAdminUser);
-          } catch (error) {
-            console.error('Error decoding token:', error);
-            setIsAdmin(false);
-          }
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          const isAdminUser = decodedToken.role === 'ADMIN';
+          const isClientUser = decodedToken.role === 'CLIENT';
+          setIsAdmin(isAdminUser);
+          setIsClient(isClientUser);
+        } catch (error) {
+          console.error('Error decoding token:', error);
+          setIsAdmin(false);
+          setIsClient(false);
         }
-        setAdminCheckLoading(false);
-      };
-      
-      checkAdminStatus();
-    }, []);
-  
+      }
+      setAdminCheckLoading(false);
+    };
+    
+    checkUserRole();
+  }, []);
 
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
@@ -570,6 +585,45 @@ const ProjectDetail = () => {
     }
   };
   
+  // 단계 승급 처리 함수 추가
+  const handleIncreaseProgress = async () => {
+    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
+    
+    try {
+      setIsIncreasing(true); // 진행 중 상태로 설정
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('단계 승급에 실패했습니다.');
+      }
+
+      // 승급 후 데이터 새로고침 순서 변경
+      await Promise.all([
+        fetchProjectDetail(), // 프로젝트 정보 다시 가져오기
+        fetchProjectProgress(),
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
+      
+      // 현재 단계 인덱스 업데이트
+      setCurrentStageIndex(prev => prev + 1);
+      
+      alert('단계가 승급되었습니다.');
+    } catch (error) {
+      console.error('Error increasing progress:', error);
+      alert('단계 승급 중 오류가 발생했습니다.');
+    } finally {
+      setIsIncreasing(false); // 진행 중 상태 해제
+    }
+  };
+
   return (
     <PageContainer>
       <Navbar 
@@ -636,6 +690,8 @@ const ProjectDetail = () => {
                   openStageModal={openStageModal}
                   projectProgress={projectProgress}
                   progressStatus={progressStatus}
+                  onIncreaseProgress={handleIncreaseProgress}
+                  currentProgress={project?.currentProgress}
                 >
                   {progressList.length > 0 ? (
                     progressList
