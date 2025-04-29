@@ -12,6 +12,7 @@ const DashboardAdmin = () => {
   const [summaryData, setSummaryData] = useState([
     { title: '계약중인 프로젝트', value: 0 },
     { title: '검수중인 프로젝트', value: 0 },
+    { title: '완료된 프로젝트', value: 0 },
   ]);
   const [revenueData, setRevenueData] = useState([
     { name: '1주차', amount: 0 },
@@ -117,13 +118,24 @@ const DashboardAdmin = () => {
         
         if (!response.ok) throw new Error('Failed to fetch summary data');
         const data = await response.json();
+        console.log('Summary data response:', data); // 전체 응답 데이터 로깅
+        console.log('Progress count:', data.progressCount);
+        console.log('Inspection count:', data.inspectionCount);
+        console.log('Completed count:', data.completedCount);
+        console.log('All keys:', Object.keys(data)); // 응답 데이터의 모든 키 확인
         
         setSummaryData([
-          { title: '계약중인 프로젝트', value: data.progressCount },
-          { title: '검수중인 프로젝트', value: data.inspectionCount },
+          { title: '계약중인 프로젝트', value: data.progressCount || 0 },
+          { title: '검수중인 프로젝트', value: data.inspectionCount || 0 },
+          { title: '완료된 프로젝트', value: data.completedCount || 0 },
         ]);
       } catch (error) {
         console.error('Error fetching summary data:', error);
+        setSummaryData([
+          { title: '계약중인 프로젝트', value: 0 },
+          { title: '검수중인 프로젝트', value: 0 },
+          { title: '완료된 프로젝트', value: 0 },
+        ]);
       }
     };
 
@@ -207,10 +219,23 @@ const DashboardAdmin = () => {
       if (!response.ok) throw new Error('Failed to fetch projects');
       const data = await response.json();
       
+      // 프로젝트 상태 로깅 추가
+      console.log('All projects:', data);
+      console.log('Project statuses:', data.map(p => p.projectStatus));
+      console.log('Completed projects:', data.filter(p => p.projectStatus === 'COMPLETED'));
+      
       // 제목에 따라 프로젝트 필터링
       const filteredProjects = title === '계약중인 프로젝트'
         ? data.filter(project => project.projectStatus === 'PROGRESS')
-        : data.filter(project => project.projectStatus === 'INSPECTION');
+        : title === '검수중인 프로젝트'
+        ? data.filter(project => project.projectStatus === 'INSPECTION')
+        : data.filter(project => project.projectStatus === 'COMPLETED');
+      
+      // 필터링 결과 로깅
+      console.log('Filtered projects for title:', title);
+      console.log('Filtered projects:', filteredProjects);
+      console.log('Filtered projects count:', filteredProjects.length);
+      console.log('Filtered projects statuses:', filteredProjects.map(p => p.projectStatus));
       
       setProjectList(filteredProjects);
     } catch (error) {
@@ -440,7 +465,7 @@ const SectionTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
 `;
 
 const ChartSection = styled.div`
@@ -525,22 +550,22 @@ const SummaryGrid = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
-  height: calc(100% - 60px);
-  margin-top: 20px;
-  padding: 20px 0;
+  gap: 12px;
+  height: calc(100% - 40px);
+  margin-top: 0px;
+  padding: 10px 0;
 `;
 
 const SummaryCard = styled.div`
   background: #f8fafc;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   transition: transform 0.2s;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 80px;
+  height: 70px;
   text-align: center;
 
   &:hover {
@@ -549,15 +574,15 @@ const SummaryCard = styled.div`
 `;
 
 const SummaryTitle = styled.div`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   text-align: center;
 `;
 
 const SummaryValue = styled.div`
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: #2E7D32;
   display: flex;
@@ -568,7 +593,7 @@ const SummaryValue = styled.div`
 
   &::after {
     content: '건';
-    font-size: 16px;
+    font-size: 14px;
     color: #64748b;
   }
 `;
