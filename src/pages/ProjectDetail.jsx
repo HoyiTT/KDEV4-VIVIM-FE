@@ -756,6 +756,7 @@ const ProjectDetail = () => {
                   progressStatus={progressStatus}
                   onIncreaseProgress={handleIncreaseProgress}
                   currentProgress={project?.currentProgress}
+                  projectId={project?.id}
                 >
                   {progressList.length > 0 ? (
                     progressList

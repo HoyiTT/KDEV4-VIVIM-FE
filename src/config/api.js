@@ -62,4 +62,5 @@ export const API_ENDPOINTS = {
     ALL: () => `${API_BASE_URL}/approval/approver/decision`,
     SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`
   },
+  PROJECT_COMPANIES: (projectId) => `${API_BASE_URL}/projects/${projectId}/companies`,
 };

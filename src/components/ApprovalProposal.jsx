@@ -768,6 +768,7 @@ const ActionIcon = styled.button`
 
 const ApprovalProposal = ({ 
   progressId, 
+  projectId,
   showMore, 
   onShowMore,
   progressStatus = {
@@ -795,45 +796,29 @@ const ApprovalProposal = ({
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
   const [isCustomer, setIsCustomer] = useState(false);
+  const [projectUsers, setProjectUsers] = useState([]);
 
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const isCustomerUser = decodedToken.role === 'CUSTOMER';
-        setIsCustomer(isCustomerUser);
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        setIsCustomer(false);
-      }
-    }
-  };
-
-  const fetchCompanies = async () => {
+  // 프로젝트 참여 유저 목록 가져오기
+  const fetchProjectUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(API_ENDPOINTS.COMPANIES, {
+      const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
         headers: {
-          'Authorization': token,
-          'accept': '*/*'
+          'Authorization': token
         }
       });
-      if (!res.ok) throw new Error('회사 목록 조회 실패');
-      const json = await res.json();
-      // 응답의 data 필드를 우선 사용
-      const list = json.data ?? json.companies ?? json.items ?? (Array.isArray(json) ? json : []);
-      const customerCompanies = list.filter(c => c.companyRole?.toUpperCase() === 'CUSTOMER');
-      setCompanies(customerCompanies);
-    } catch (err) {
-      console.error(err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
+      const data = await response.json();
+      setProjectUsers(data);
+    } catch (error) {
+      console.error('Error fetching project users:', error);
     }
   };
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectUsers();
+    }
+  }, [projectId]);
 
   const toggleCompany = async (company) => {
     // 이미 펼쳐진 회사는 닫기
@@ -855,7 +840,13 @@ const ApprovalProposal = ({
         if (res.ok) {
           const json = await res.json();
           const empList = json.data ?? json.employees ?? json.items ?? (Array.isArray(json) ? json : []);
-          setCompanyEmployees(prev => ({ ...prev, [company.id]: empList }));
+          
+          // 프로젝트에 참여하는 직원만 필터링
+          const projectParticipatingEmployees = empList.filter(emp => 
+            projectUsers.some(pu => pu.userId === emp.id)
+          );
+          
+          setCompanyEmployees(prev => ({ ...prev, [company.id]: projectParticipatingEmployees }));
         }
       } catch (err) {
         console.error('Error fetching employees:', err);
@@ -1264,6 +1255,43 @@ const ApprovalProposal = ({
   const isStageCompleted = progressStatus?.progressList?.find(
     status => status.progressId === progressId
   )?.isCompleted || false;
+
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const isCustomerUser = decodedToken.role === 'CUSTOMER';
+        setIsCustomer(isCustomerUser);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setIsCustomer(false);
+      }
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
+        headers: {
+          'Authorization': token,
+          'accept': '*/*'
+        }
+      });
+      if (!res.ok) throw new Error('회사 목록 조회 실패');
+      const json = await res.json();
+      const customerCompanies = json.filter(company => company.companyRole === 'CUSTOMER');
+      setCompanies(customerCompanies);
+    } catch (err) {
+      console.error(err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
+    }
+  };
 
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
