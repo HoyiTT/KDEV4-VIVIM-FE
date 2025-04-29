@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '../config/api';
 import ApprovalDecision from '../components/ApprovalDecision';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import ProjectStageProgress from '../components/ProjectStage';
-import { FaEdit, FaTrashAlt, FaSave, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrashAlt, FaSave, FaTimes, FaCheck, FaClock } from 'react-icons/fa';
 import approvalUtils from '../utils/approvalStatus';
 import ApprovalProposal from '../components/ApprovalProposal';
 
@@ -397,6 +397,58 @@ const EditLabel = styled.div`
   font-weight: 500;
   color: #64748b;
   margin-bottom: 6px;
+`;
+
+const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return 'rgba(75, 85, 99, 0.08)';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return 'rgba(30, 64, 175, 0.08)';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return 'rgba(4, 120, 87, 0.08)';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return 'rgba(185, 28, 28, 0.08)';
+      default:
+        return 'rgba(75, 85, 99, 0.08)';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return '#4B5563';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return '#1E40AF';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return '#047857';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return '#B91C1C';
+      default:
+        return '#4B5563';
+    }
+  }};
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    font-size: 14px;
+    opacity: 0.9;
+  }
 `;
 
 const ApprovalDetail = () => {
@@ -918,9 +970,9 @@ const ApprovalDetail = () => {
                     
                     {/* 요청 상태를 제목 위에 표시 */}
                     <StatusContainer>
-                      <ResponseStatus status={proposal.displayStatus || proposal.proposalStatus || proposal.approvalProposalStatus}>
-                        {getApprovalStatusText(proposal.displayStatus || proposal.proposalStatus || proposal.approvalProposalStatus)}
-                      </ResponseStatus>
+                      <StatusBadge status={proposal.approvalProposalStatus}>
+                        {getApprovalStatusText(proposal.approvalProposalStatus)}
+                      </StatusBadge>
                       <div style={{ flex: 1 }}></div>
                       
                       {!isEditing && (

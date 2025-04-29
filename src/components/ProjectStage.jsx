@@ -41,6 +41,13 @@ const StageProgressHeader = styled.div`
   margin-bottom: 20px;
 `;
 
+const StageProgressTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+`;
+
 const StageProgressTimeline = styled.div`
   position: relative;
   padding: 0 10px;
@@ -128,7 +135,6 @@ const StageProgressMarker = styled.div`
       ? '0 0 0 2px #fff, 0 0 0 4px #3b82f6' 
       : '0 2px 4px rgba(0, 0, 0, 0.1)'
   };
-  transition: all 0.2s ease-in-out;
   
   svg {
     color: white;
@@ -164,7 +170,7 @@ const StageProgressStatus = styled.div`
   }};
   font-weight: 500;
   letter-spacing: -0.2px;
-  opacity: ${props => (props.isCompleted || props.isCurrent) ? 1 : 0.8};
+  opacity: 1;
   text-align: center;
 `;
 
@@ -232,7 +238,6 @@ const ProgressFill = styled.div`
   height: 100%;
   background-color: ${props => props.color || '#22c55e'};
   border-radius: 2px;
-  transition: width 0.3s ease-in-out;
 `;
 
 /**
@@ -250,7 +255,8 @@ const ProjectStageProgress = ({
   currentStageIndex, 
   setCurrentStageIndex,
   title = "프로젝트 진행 단계",
-  openStageModal,
+  isAdmin,
+  isDeveloper,
   projectProgress = {
     totalStageCount: 0,
     completedStageCount: 0,
@@ -267,8 +273,11 @@ const ProjectStageProgress = ({
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [isClient, setIsClient] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
+  const [showStageModal, setShowStageModal] = useState(false);
+  const [stageAction, setStageAction] = useState('');
+  const [editingStage, setEditingStage] = useState(null);
+  const [stageName, setStageName] = useState('');
   
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -309,12 +318,10 @@ const ProjectStageProgress = ({
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
         const isAdminUser = decodedToken.role === 'ADMIN';
         const isClientUser = decodedToken.role === 'CUSTOMER';
-        setIsAdmin(isAdminUser);
         setIsClient(isClientUser);
         console.log(decodedToken.role);
       } catch (error) {
         console.error('Error decoding token:', error);
-        setIsAdmin(false);
         setIsClient(false);
       }
     }
@@ -333,17 +340,23 @@ const ProjectStageProgress = ({
     }
   };
 
+  // 진행단계 모달 열기
+  const openStageModal = (action, stage = null) => {
+    setStageAction(action);
+    setEditingStage(stage);
+    setStageName(stage ? stage.name : '');
+    setShowStageModal(true);
+  };
+
   return (
     <StageProgressColumn>
       <StageProgressHeader>
         <HeaderContent>
-          <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>
-            {title}
-          </h3>
+          <StageProgressTitle>{title}</StageProgressTitle>
           <StageActions>
             <StageNavigation>
               <NavButton 
-                onClick={handlePrevStage} 
+                onClick={handlePrevStage}
                 disabled={currentStageIndex === 0}
               >
                 <FaArrowLeft />
@@ -352,7 +365,7 @@ const ProjectStageProgress = ({
                 {currentStageIndex + 1} / {progressList.length}
               </StageIndicator>
               <NavButton 
-                onClick={handleNextStage} 
+                onClick={handleNextStage}
                 disabled={currentStageIndex === progressList.length - 1}
               >
                 <FaArrowRight />
@@ -524,7 +537,7 @@ const ProjectStageProgress = ({
                 {projectProgress.completedStageCount}/{projectProgress.totalStageCount} 단계
               </small>
             </ProgressInfoValue>
-            {(isAdmin==true || isClient==true) && (
+            {(isAdmin || isDeveloper) && (
               <IncreaseProgressButton onClick={onIncreaseProgress}>
                 단계 승급
               </IncreaseProgressButton>
