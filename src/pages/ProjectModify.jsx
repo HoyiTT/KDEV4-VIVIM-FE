@@ -358,7 +358,7 @@ const ProjectModify = () => {
     .then(data => {
       console.log('Success:', data);
       // Navigate back to dashboard on success
-      navigate('/dashboard');
+      navigate('/dashboard-admin');
     })
     .catch(error => {
       console.error('Error:', error);
