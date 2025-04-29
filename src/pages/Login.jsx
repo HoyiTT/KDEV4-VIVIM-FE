@@ -6,17 +6,17 @@ import { API_ENDPOINTS } from '../config/api'; // Import API_ENDPOINTS
 const LoginContainer = styled.div`
   display: flex;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f8fafc;
 `;
 
 const LeftPanel = styled.div`
-  flex: 1;
+  flex: 1.5;
   background: linear-gradient(135deg, #2E7D32 0%, #81C784 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  padding: 40px;
+  padding: 60px;
   position: relative;
   overflow: hidden;
   
@@ -50,7 +50,7 @@ const FeatureContent = styled.div`
   
   h2 {
     font-size: 36px;
-    margin-bottom: 16px;
+    margin-bottom: 50px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     animation: fadeInDown 1s ease-out;
     font-family: 'BMHANNAAir', 'Nanum Gothic', sans-serif;
@@ -85,7 +85,7 @@ const FeatureList = styled.ul`
 
 const FeatureItem = styled.li`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 16px;
   font-size: 16px;
   opacity: 0;
@@ -93,10 +93,26 @@ const FeatureItem = styled.li`
   animation-delay: ${props => props.index * 0.2 + 0.5}s;
   font-family: 'Nanum Gothic', sans-serif;
   letter-spacing: -0.3px;
+  line-height: 1.6;
   
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+
+  span {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-right: 8px;
+    font-size: 14px;
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  div {
+    flex: 1;
   }
 `;
 
@@ -114,31 +130,26 @@ const FeatureIcon = styled.span`
 `;
 
 const LoginBox = styled.div`
-  width: 100%;
-  max-width: 450px;
-  padding: 48px;
+  flex: 0.8;
+  max-width: 400px;
+  padding: 60px;
   background-color: white;
-  text-align: center;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-  animation: fadeIn 1s ease-out;
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+  box-shadow: -4px 0 24px rgba(0,0,0,0.05);
+  margin: 0 auto;
   
   @media (max-width: 768px) {
+    padding: 40px 20px;
     max-width: 100%;
   }
 `;
 
 const LogoImage = styled.img`
-  width: 120px;
-  height: 100px;
-  margin: 0 auto 20px;
+  width: 140px;
+  height: 120px;
+  margin: 0 auto 40px;
   object-fit: contain;
   animation: bounce 1s ease-out;
   
@@ -165,7 +176,7 @@ const Title = styled.h1`
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 `;
 
 const InputGroup = styled.div`
@@ -176,18 +187,29 @@ const Label = styled.label`
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #666;
+  color: #475569;
+  font-weight: 500;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #1e293b;
+  transition: all 0.2s;
+  background-color: #f8fafc;
+  
   &:focus {
     outline: none;
-    border-color: #4040ff;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    background-color: white;
+  }
+  
+  &::placeholder {
+    color: #94a3b8;
   }
 `;
 
@@ -197,17 +219,18 @@ const LoginButton = styled.button`
   background: linear-gradient(90deg, #2E7D32 0%, #81C784 100%);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  margin-top: 16px;
+  margin-top: 8px;
   transition: all 0.3s;
   position: relative;
   overflow: hidden;
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
   }
   
   &:active {
@@ -233,19 +256,23 @@ const LoginButton = styled.button`
 const ForgotPassword = styled.a`
   display: block;
   margin-top: 16px;
-  color: #666;
+  color: #64748b;
   text-decoration: none;
   font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
+  
   &:hover {
+    color: #2E7D32;
     text-decoration: underline;
   }
 `;
 
 const Footer = styled.footer`
   margin-top: 40px;
-  color: #999;
-  font-size: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
 `;
 
 const ModalOverlay = styled.div`
@@ -317,22 +344,24 @@ const CancelButton = styled.button`
 `;
 
 const DemoCredentials = styled.div`
-  margin-bottom: 24px;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  margin-bottom: 32px;
+  padding: 20px;
+  background-color: #f8fafc;
+  border-radius: 12px;
   text-align: left;
-  border-left: 4px solid #2E7D32;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 `;
 
 const DemoTitle = styled.h3`
   font-size: 16px;
   color: #2E7D32;
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
+  font-weight: 600;
 `;
 
 const CredentialGroup = styled.div`
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   font-size: 14px;
@@ -344,16 +373,32 @@ const CredentialGroup = styled.div`
 
 const CredentialLabel = styled.span`
   font-weight: 600;
-  margin-right: 8px;
-  color: #333;
+  margin: 0px;
+  padding: 0px;
+  color: #334155;
+  min-width: 60px;
+  display: inline-block;
+  text-align: right;
 `;
 
 const CredentialText = styled.span`
-  color: #666;
-  font-family: monospace;
-  background-color: #e9ecef;
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: #475569;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  background-color: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CredentialPassword = styled.span`
+  color: #2E7D32;
+  font-weight: 500;
+  margin-left: ;
+  padding-left: 8px;
+  border-left: 1px solid #e2e8f0;
 `;
 
 const SubmitButton = styled.button`
@@ -466,20 +511,16 @@ const Login = () => {
     <LoginContainer>
       <LeftPanel>
         <FeatureContent>
-          <h2>효율적인 프로젝트 관리</h2>
-          <p>팀과 함께 프로젝트를 계획하고, 추적하고, 완료하세요.</p>
+          <h2>비빔, 다채로운 소통의 한 그릇</h2>
           <FeatureList>
             <FeatureItem index={0}>
-              <FeatureIcon>✓</FeatureIcon>
-              <span>직관적인 대시보드</span>
+              <div><span>개발사</span>팀과 함께 프로젝트를 계획하고, 추적하고, 완료하세요.</div>
             </FeatureItem>
             <FeatureItem index={1}>
-              <FeatureIcon>✓</FeatureIcon>
-              <span>회사간 협업</span>
+              <div><span>고객사</span>계약된 의뢰를 확인하고, 승인하고, 수정요청하세요.</div>
             </FeatureItem>
             <FeatureItem index={2}>
-              <FeatureIcon>✓</FeatureIcon>
-              <span>진행 상황 추적</span>
+              <div><span>관리자</span>프로젝트 진행 상황을 확인하고, 관리하세요.</div>
             </FeatureItem>
           </FeatureList>
         </FeatureContent>
@@ -490,12 +531,25 @@ const Login = () => {
         <DemoCredentials>
           <DemoTitle>체험용 계정</DemoTitle>
           <CredentialGroup>
-            <CredentialLabel>관리자:</CredentialLabel>
-            <CredentialText>admin@naver.com / 1234</CredentialText>
+            <CredentialLabel>관리자 :</CredentialLabel>
+            <CredentialText>
+              admin@naver.com
+              <CredentialPassword>1234</CredentialPassword>
+            </CredentialText>
           </CredentialGroup>
           <CredentialGroup>
-            <CredentialLabel>개발사:</CredentialLabel>
-            <CredentialText>developer@naver.com / 1234</CredentialText>
+            <CredentialLabel>개발사 :</CredentialLabel>
+            <CredentialText>
+              developer@naver.com
+              <CredentialPassword>1234</CredentialPassword>
+            </CredentialText>
+          </CredentialGroup>
+          <CredentialGroup>
+            <CredentialLabel>고객사 :</CredentialLabel>
+            <CredentialText>
+              customer@naver.com
+              <CredentialPassword>1234</CredentialPassword>
+            </CredentialText>
           </CredentialGroup>
         </DemoCredentials>
         

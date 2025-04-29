@@ -60,7 +60,7 @@ const AppContent = () => {
             <Route path="/project/:projectId/post/:postId" element={<ProjectPostDetail />} />
             <Route path="/project/:projectId/post/create" element={<ProjectPostCreate />} />
             <Route path="/project/:projectId/post/:postId/modify" element={<ProjectPostModify />} />
-            <Route path="/approval/:id" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
+            <Route path="/approval/:id" element={<ApprovalDetail />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/user-edit/:userId" element={<UserEdit />} />
           </Routes>

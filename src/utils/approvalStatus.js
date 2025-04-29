@@ -1,28 +1,24 @@
 import { ApprovalProposalStatus, ApprovalApproverStatus } from '../constants/enums';
 
 /**
- * 승인 요청의 상태를 한글 텍스트로 변환하는 함수입니다.
+ *   요청의 상태를 한글 텍스트로 변환하는 함수입니다.
  * ApprovalDetail과 ProjectDetail 페이지에서 공통으로 사용합니다.
  * 
  * @param {string} status - 승인 요청의 상태 코드
  * @returns {string} 상태에 해당하는 한글 텍스트
  */
-const getApprovalStatusText = (status) => {
+export const getApprovalStatusText = (status) => {
   switch (status) {
     case ApprovalProposalStatus.DRAFT:
-      return '요청전';
+      return '작성중';
     case ApprovalProposalStatus.UNDER_REVIEW:
-      return '응답 대기중';
+      return '검토중';
     case ApprovalProposalStatus.FINAL_APPROVED:
       return '승인완료';
     case ApprovalProposalStatus.FINAL_REJECTED:
-      return '수정요청';
-    case 'APPROVED':
-      return '승인';
-    case 'REJECTED':
       return '반려';
     default:
-      return status;
+      return '알 수 없음';
   }
 };
 

@@ -5,11 +5,23 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes } from 'react-icons/fa';
 import ProjectStageProgress from '../components/ProjectStage';
 import approvalUtils from '../utils/approvalStatus';
+import { ApprovalProposalStatus } from '../constants/enums';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
+
+// JWT 토큰 디코딩 함수
+const decodeToken = (token) => {
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -46,6 +58,35 @@ const ProjectDetail = () => {
     progressList: []
   });
 
+  const token = localStorage.getItem('token');
+  const decodedToken = decodeToken(token);
+
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(null);
+  const [isDeveloperManager, setIsDeveloperManager] = useState(false);
+  
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          const isAdminUser = decodedToken.role === 'ADMIN';
+          const isDeveloperManagerUser = decodedToken.role === 'DEVELOPER_MANAGER';
+          setIsAdmin(isAdminUser);
+          setIsDeveloperManager(isDeveloperManagerUser);
+        } catch (error) {
+          console.error('Error decoding token:', error);
+          setIsAdmin(false);
+          setIsDeveloperManager(false);
+        }
+      }
+      setAdminCheckLoading(false);
+    };
+    
+    checkAdminStatus();
+  }, []);
+
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
@@ -81,11 +122,11 @@ const ProjectDetail = () => {
     fetchProjectOverallProgress();
     fetchProgressStatus();
 
-    // 1분마다 데이터 업데이트
+    // 30초마다 데이터 업데이트 (1분에서 30초로 변경)
     const updateInterval = setInterval(() => {
       fetchProjectOverallProgress();
       fetchProgressStatus();
-    }, 60000);
+    }, 30000);
 
     return () => {
       clearInterval(updateInterval);
@@ -94,10 +135,19 @@ const ProjectDetail = () => {
 
   // 현재 단계가 변경될 때마다 진행률 다시 계산
   useEffect(() => {
-    if (progressList.length > 0 && approvalRequests.length > 0) {
+    if (progressList.length > 0) {
       fetchProjectOverallProgress();
+      fetchProgressStatus();
     }
-  }, [currentStageIndex, approvalRequests]);
+  }, [currentStageIndex, progressList]);
+
+  // 승인요청 상태가 변경될 때마다 진행률 다시 계산
+  useEffect(() => {
+    if (approvalRequests.length > 0) {
+      fetchProjectOverallProgress();
+      fetchProgressStatus();
+    }
+  }, [approvalRequests]);
 
   const translateRole = (role) => {
     switch (role) {
@@ -203,29 +253,6 @@ const ProjectDetail = () => {
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
-
-    const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-    const [isAdmin, setIsAdmin] = useState(null);
-  
-    useEffect(() => {
-      const checkAdminStatus = async () => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            const isAdminUser = decodedToken.role === 'ADMIN';
-            setIsAdmin(isAdminUser);
-          } catch (error) {
-            console.error('Error decoding token:', error);
-            setIsAdmin(false);
-          }
-        }
-        setAdminCheckLoading(false);
-      };
-      
-      checkAdminStatus();
-    }, []);
-  
 
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
@@ -503,19 +530,28 @@ const ProjectDetail = () => {
       let currentStageProgress = 0;
       if (currentStageApprovals.length > 0) {
         const approvedCount = currentStageApprovals.filter(
-          req => req.approvalProposalStatus === 'APPROVED'
+          req => req.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED
         ).length;
-        currentStageProgress = approvedCount / currentStageApprovals.length;
+        currentStageProgress = (approvedCount / currentStageApprovals.length) * 100;
       }
       
       // 진행률 데이터 업데이트
       setProjectProgress({
-        ...data,
-        currentStageProgressRate: currentStageProgress
+        totalStageCount: data.totalStageCount || 0,
+        completedStageCount: data.completedStageCount || 0,
+        currentStageProgressRate: currentStageProgress,
+        overallProgressRate: data.overallProgressRate || 0
       });
       
     } catch (error) {
       console.error('프로젝트 진행률 조회 중 오류 발생:', error);
+      // 에러 발생 시 기본값 설정
+      setProjectProgress({
+        totalStageCount: 0,
+        completedStageCount: 0,
+        currentStageProgressRate: 0,
+        overallProgressRate: 0
+      });
     }
   };
 
@@ -633,6 +669,7 @@ const ProjectDetail = () => {
                   setCurrentStageIndex={setCurrentStageIndex}
                   title="프로젝트 진행 단계"
                   isAdmin={isAdmin}
+                  isDeveloperManager={isDeveloperManager}
                   openStageModal={openStageModal}
                   projectProgress={projectProgress}
                   progressStatus={progressStatus}
@@ -782,9 +819,13 @@ const ProjectDetail = () => {
               <InfoItem>
                 <InfoLabel>상태</InfoLabel>
                 <InfoValue>
-                  <ApprovalStatus status={selectedProposal.approvalProposalStatus}>
+                  <StatusBadge status={selectedProposal.approvalProposalStatus}>
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && <FaEdit />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.UNDER_REVIEW && <FaClock />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED && <FaCheck />}
+                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && <FaTimes />}
                     {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
-                  </ApprovalStatus>
+                  </StatusBadge>
                 </InfoValue>
               </InfoItem>
             </ProposalInfo>
@@ -1034,39 +1075,54 @@ const InfoValue = styled.span`
 `;
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  background-color: ${props => {
-    switch (props.status) {
-      case 'APPROVED':
-        return '#dcfce7';
-      case 'REJECTED':
-        return '#fee2e2';
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '#f1f5f9';
-      case 'REQUEST_PROPOSAL':
-        return '#dbeafe';
-      default:
-        return '#f1f5f9';
-    }
-  }};
+  white-space: nowrap;
+  background-color: white;
   color: ${props => {
     switch (props.status) {
-      case 'APPROVED':
-        return '#16a34a';
-      case 'REJECTED':
-        return '#dc2626';
-      case 'BEFORE_REQUEST_PROPOSAL':
-        return '#64748b';
-      case 'REQUEST_PROPOSAL':
-        return '#2563eb';
+      case ApprovalProposalStatus.DRAFT:
+        return '#4B5563';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return '#1E40AF';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return '#047857';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return '#B91C1C';
       default:
-        return '#64748b';
+        return '#4B5563';
     }
   }};
+  border: 1px solid ${props => {
+    switch (props.status) {
+      case ApprovalProposalStatus.DRAFT:
+        return '#F3F4F6';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return '#EFF6FF';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return '#ECFDF5';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return '#FEF2F2';
+      default:
+        return '#F3F4F6';
+    }
+  }};
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    font-size: 14px;
+  }
 `;
 
 const ReplyButton = styled.button`
@@ -1574,7 +1630,7 @@ const ProposalSubtitle = styled.h2`
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
 const ApprovalDetailModal = styled.div`
@@ -1631,16 +1687,6 @@ const ApprovalDecision = styled.div`
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #e2e8f0;
-`;
-
-const ApprovalStatus = styled.span`
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  background-color: ${props => getApprovalStatusBackgroundColor(props.status)};
-  color: ${props => getApprovalStatusTextColor(props.status)};
 `;
 
 const StageProgressHeader = styled.div`

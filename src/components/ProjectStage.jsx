@@ -30,6 +30,13 @@ const StageProgressHeader = styled.div`
   margin-bottom: 20px;
 `;
 
+const StageProgressTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+`;
+
 const StageProgressTimeline = styled.div`
   position: relative;
   padding: 0 10px;
@@ -231,6 +238,7 @@ const ProgressFill = styled.div`
  * @param {Function} setCurrentStageIndex - 단계 선택 시 호출되는 함수
  * @param {String} title - 타임라인 제목 (기본값: "프로젝트 진행 단계")
  * @param {Boolean} isAdmin - 관리자 여부
+ * @param {Boolean} isDeveloperManager - 개발사 담당자 여부
  * @param {Function} openStageModal - 단계 추가 모달을 여는 함수
  * @param {Object} projectProgress - 프로젝트 전체 진행률 정보
  * @param {Object} progressStatus - 프로젝트 단계별 진척도 정보
@@ -241,6 +249,7 @@ const ProjectStageProgress = ({
   setCurrentStageIndex,
   title = "프로젝트 진행 단계",
   isAdmin = false,
+  isDeveloperManager = false,
   openStageModal,
   projectProgress = {
     totalStageCount: 0,
@@ -287,13 +296,11 @@ const ProjectStageProgress = ({
     <StageProgressColumn>
       <StageProgressHeader>
         <HeaderContent>
-          <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '600', color: '#334155' }}>
-            {title}
-          </h3>
+          <StageProgressTitle>{title}</StageProgressTitle>
           <StageActions>
             <StageNavigation>
               <NavButton 
-                onClick={handlePrevStage} 
+                onClick={handlePrevStage}
                 disabled={currentStageIndex === 0}
               >
                 <FaArrowLeft />
@@ -302,13 +309,13 @@ const ProjectStageProgress = ({
                 {currentStageIndex + 1} / {progressList.length}
               </StageIndicator>
               <NavButton 
-                onClick={handleNextStage} 
+                onClick={handleNextStage}
                 disabled={currentStageIndex === progressList.length - 1}
               >
                 <FaArrowRight />
               </NavButton>
             </StageNavigation>
-            {isAdmin && (
+            {(isAdmin || isDeveloperManager) && (
               <ManageButtonContainer ref={menuRef}>
                 <ManageButton onClick={() => setShowMenu(!showMenu)}>
                   <FaEllipsisV /> 단계 관리
