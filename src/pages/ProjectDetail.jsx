@@ -1104,6 +1104,7 @@ const StageGrid = styled.div`
 const StageItem = styled.div`
   background: #f8fafc;
   border-radius: 12px;
+  border: 1px solid #e2e8f0;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1428,6 +1429,8 @@ const StageContainer = styled.div`
   gap: 8px;
   width: 100%;
   margin: 0 auto;
+  padding: 1px;
+  padding-top: 20px;
   box-sizing: border-box;
 `;
 
