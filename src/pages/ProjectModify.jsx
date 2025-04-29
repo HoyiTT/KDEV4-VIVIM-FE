@@ -701,12 +701,11 @@ const ProjectModify = () => {
                     <SelectedCompanyInfo>
                       <CompanyName>{selectedClientCompany.name}</CompanyName>
                       <CompanyDetails>
-                        <DetailItem>
-                          {/* <span>담당자: {clientManagers.length}명</span>
+                        {/* <DetailItem>
+                          <span>담당자: {clientManagers.length}명</span>
                         </DetailItem>
                         <DetailItem>
                           <span>일반 사용자: {clientUsers.length}명</span> */}
-                        </DetailItem>
                       </CompanyDetails>
                       <ButtonGroup>
                         <EditButton 
@@ -1029,13 +1028,15 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -1048,8 +1049,10 @@ const PageTitle = styled.h1`
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 30px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  max-width: 800px;
 `;
 
 const Form = styled.form`

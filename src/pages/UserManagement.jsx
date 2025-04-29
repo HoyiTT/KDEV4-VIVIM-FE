@@ -261,7 +261,11 @@ const UserManagement = () => {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow 
+                    key={user.id}
+                    onClick={() => navigate(`/user-edit/${user.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
@@ -275,8 +279,10 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <ActionButtonContainer>
-                        <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>수정</ActionButton>
-                        <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
+                        <DeleteButton onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUser(user.id, user.name);
+                        }}>
                           삭제
                         </DeleteButton>
                       </ActionButtonContainer>

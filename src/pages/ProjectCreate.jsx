@@ -838,17 +838,15 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -875,8 +873,10 @@ const ProfileImage = styled.img`
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 30px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  max-width: 800px;
 `;
 
 const Form = styled.form`
