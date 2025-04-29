@@ -9,7 +9,8 @@ export const API_ENDPOINTS = {
   USERS: `${API_BASE_URL}/users`,
   USER_DETAIL: (id) => `${API_BASE_URL}/users/${id}`,
   USER_PASSWORD_MODIFY: (userId, password) => `${API_BASE_URL}/users/modifypassword/${userId}?password=${password}`,
-  
+  USERS_SEARCH: `${API_BASE_URL}/users/search`,
+
   // Companies
   COMPANIES: `${API_BASE_URL}/companies`,
   COMPANY_DETAIL: (id) => `${API_BASE_URL}/companies/${id}`,
