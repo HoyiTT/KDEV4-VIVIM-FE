@@ -18,10 +18,6 @@ const CompanyManagement = () => {
     email: '',
     isDeleted: false
   });
-  const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: 'ascending'
-  });
 
   useEffect(() => {
     fetchCompanies();
@@ -120,91 +116,6 @@ const CompanyManagement = () => {
     setActiveMenuItem(menuItem);
   };
 
-  // 회사 역할별 통계 계산
-  const getRoleDistribution = () => {
-    const roleCount = {
-      'ADMIN': 0,
-      'DEVELOPER': 0,
-      'CUSTOMER': 0
-    };
-
-    companies.forEach(company => {
-      roleCount[company.companyRole] = (roleCount[company.companyRole] || 0) + 1;
-    });
-
-    return Object.entries(roleCount).map(([name, value]) => ({
-      name: name === 'ADMIN' ? '관리자' : 
-            name === 'DEVELOPER' ? '개발사' : 
-            name === 'CUSTOMER' ? '고객사' : name,
-      value
-    }));
-  };
-
-  // 회사 등록 추이 데이터 계산
-  const getRegistrationTrend = () => {
-    // 임시 데이터
-    const mockData = [
-      { date: '2024-01-01', count: 5 },
-      { date: '2024-02-01', count: 8 },
-      { date: '2024-03-01', count: 12 },
-      { date: '2024-04-01', count: 15 },
-      { date: '2024-05-01', count: 20 },
-      { date: '2024-06-01', count: 25 },
-      { date: '2024-07-01', count: 30 },
-      { date: '2024-08-01', count: 35 },
-      { date: '2024-09-01', count: 40 },
-      { date: '2024-10-01', count: 45 },
-      { date: '2024-11-01', count: 50 },
-      { date: '2024-12-01', count: 55 }
-    ];
-
-    return mockData;
-  };
-
-  const COLORS = ['#4F6AFF', '#FF6B6B', '#4CAF50'];
-
-  const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedCompanies = React.useMemo(() => {
-    if (!sortConfig.key) return companies;
-
-    return [...companies].sort((a, b) => {
-      if (sortConfig.key === 'name') {
-        return sortConfig.direction === 'ascending' 
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
-      }
-      if (sortConfig.key === 'businessNumber') {
-        return sortConfig.direction === 'ascending'
-          ? a.businessNumber.localeCompare(b.businessNumber)
-          : b.businessNumber.localeCompare(a.businessNumber);
-      }
-      if (sortConfig.key === 'coOwner') {
-        return sortConfig.direction === 'ascending'
-          ? a.coOwner.localeCompare(b.coOwner)
-          : b.coOwner.localeCompare(a.coOwner);
-      }
-      if (sortConfig.key === 'phone') {
-        return sortConfig.direction === 'ascending'
-          ? a.phone.localeCompare(b.phone)
-          : b.phone.localeCompare(a.phone);
-      }
-      if (sortConfig.key === 'companyRole') {
-        const roleOrder = { 'ADMIN': 0, 'DEVELOPER': 1, 'CUSTOMER': 2 };
-        return sortConfig.direction === 'ascending'
-          ? roleOrder[a.companyRole] - roleOrder[b.companyRole]
-          : roleOrder[b.companyRole] - roleOrder[a.companyRole];
-      }
-      return 0;
-    });
-  }, [companies, sortConfig]);
-
   const getRoleName = (role) => {
     switch (role) {
       case 'ADMIN':
@@ -231,62 +142,7 @@ const CompanyManagement = () => {
             새 회사 등록
           </AddButton>
         </Header>
-{/* 
-        <ChartsContainer>
-          
-          <ChartSection>
-            <StatisticsTitle>회사 역할 분포</StatisticsTitle>
-            <ChartContainer>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={getRoleDistribution()}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {getRoleDistribution().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </ChartSection>
 
-          {/* 회사 등록 추이 라인 차트 
-          <ChartSection>
-            <StatisticsTitle>회사 등록 추이</StatisticsTitle>
-            <ChartContainer>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={getRegistrationTrend()}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#4F6AFF"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </ChartSection>
-        </ChartsContainer>
-*/}
         <SearchSection>
           <SearchInput
             type="text"
@@ -323,48 +179,22 @@ const CompanyManagement = () => {
           </SearchButton>
         </SearchSection>
 
-        {/* 기존 테이블 섹션 */}
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
           <CompanyTable>
             <thead>
               <tr>
-                <TableHeaderCell 
-                  onClick={() => handleSort('name')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  회사명 {sortConfig.key === 'name' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                </TableHeaderCell>
-                <TableHeaderCell 
-                  onClick={() => handleSort('businessNumber')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  사업자등록번호 {sortConfig.key === 'businessNumber' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                </TableHeaderCell>
-                <TableHeaderCell 
-                  onClick={() => handleSort('coOwner')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  대표자 {sortConfig.key === 'coOwner' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                </TableHeaderCell>
-                <TableHeaderCell 
-                  onClick={() => handleSort('phone')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  연락처 {sortConfig.key === 'phone' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                </TableHeaderCell>
-                <TableHeaderCell 
-                  onClick={() => handleSort('companyRole')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  역할 {sortConfig.key === 'companyRole' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                </TableHeaderCell>
+                <TableHeaderCell>회사명</TableHeaderCell>
+                <TableHeaderCell>사업자등록번호</TableHeaderCell>
+                <TableHeaderCell>대표자</TableHeaderCell>
+                <TableHeaderCell>연락처</TableHeaderCell>
+                <TableHeaderCell>역할</TableHeaderCell>
                 <TableHeaderCell>관리</TableHeaderCell>
               </tr>
             </thead>
             <tbody>
-              {sortedCompanies.map((company) => (
+              {companies.map((company) => (
                 <TableRow key={company.id}>
                   <TableCell 
                     onClick={() => navigate(`/company-edit/${company.id}`)}
