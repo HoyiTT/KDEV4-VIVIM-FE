@@ -499,11 +499,12 @@ const FileList = styled.div`
 const FileItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 4px;
+  justify-content: space-between;
+  padding: 8px 12px;
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  
   &:hover {
     background-color: #f1f5f9;
   }
@@ -570,21 +571,54 @@ const HiddenFileInput = styled.input`
 `;
 
 const FileButton = styled.button`
-  background: none;
-  border: none;
+  padding: 8px 12px;
+  background-color: white;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   font-size: 14px;
-  color: #475569;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const AddLinkButton = styled(FileButton)`
+  &:hover {
+    background-color: #f8fafc;
+  }
+
+  ${props => props.$hasValue && `
+    background-color: #2E7D32;
+    color: white;
+    border-color: #2E7D32;
+
+    &:hover {
+      background-color: #1B5E20;
+      border-color: #1B5E20;
+    }
+  `}
 `;
 
 const DeleteButton = styled.button`
   background: none;
   border: none;
-  font-size: 14px;
   color: #dc2626;
   cursor: pointer;
-  padding: 0;
+  padding: 4px;
+  font-size: 14px;
+  
+  &:hover {
+    color: #b91c1c;
+  }
 `;
 
 const ApprovalDetail = () => {
@@ -1400,12 +1434,13 @@ const ApprovalDetail = () => {
                               onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
                               style={{ flex: 2 }}
                             />
-                            <FileButton 
+                            <AddLinkButton 
                               type="button" 
                               onClick={handleAddLink}
+                              $hasValue={newLink.title.trim() && newLink.url.trim()}
                             >
                               추가
-                            </FileButton>
+                            </AddLinkButton>
                           </div>
                           {editLinks.length > 0 && (
                             <FileList>

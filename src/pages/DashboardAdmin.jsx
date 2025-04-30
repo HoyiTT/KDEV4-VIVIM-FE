@@ -256,7 +256,7 @@ const DashboardAdmin = () => {
         <TopSection>
           <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', width: '100%' }}>
             <SummarySection>
-              <SectionTitle>프로젝트 진행 현황 요약</SectionTitle>
+              <ProjectSummaryTitle>프로젝트 진행 현황 요약</ProjectSummaryTitle>
               <SummaryGrid>
                 {summaryData.map((item, index) => (
                   <SummaryCard 
@@ -465,7 +465,14 @@ const SectionTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 0px;
+  margin: 0 0 40px 0;
+`;
+
+const ProjectSummaryTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 5px 0 0 0;
 `;
 
 const ChartSection = styled.div`
