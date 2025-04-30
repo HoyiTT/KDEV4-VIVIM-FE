@@ -121,13 +121,20 @@ const ActionButton = styled.button`
   }
 `;
 
-const DeleteButton = styled(ActionButton)`
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #dc2626;
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+  margin-left: 8px;
 
   &:hover {
-    background: #fecaca;
+    background-color: #fee2e2;
+    color: #dc2626;
   }
 `;
 
@@ -766,6 +773,105 @@ const ActionIcon = styled.button`
   }
 `;
 
+// 파일 관련 스타일 컴포넌트 추가
+const FileInputContainer = styled.div`
+  margin-bottom: 16px;
+
+  &::after {
+    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const FileButton = styled.button`
+  padding: 8px 16px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const FileList = styled.ul`
+  list-style: none;
+  padding: 8px 16px;
+  margin: 8px 0 0 0;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const FileItem = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const FileContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const LinkContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+  color: #2563eb;
+  text-decoration: underline;
+  padding: 4px;
+  border-radius: 4px;
+
+  &:hover {
+    color: #1d4ed8;
+    background-color: #f1f5f9;
+  }
+`;
+
+const ErrorMessage = styled.span`
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+`;
+
 const ApprovalProposal = ({ 
   progressId, 
   projectId,
@@ -797,6 +903,45 @@ const ApprovalProposal = ({
   const [selectedApprovers, setSelectedApprovers] = useState([]);
   const [isCustomer, setIsCustomer] = useState(false);
   const [projectUsers, setProjectUsers] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [fileError, setFileError] = useState('');
+  const [newLink, setNewLink] = useState({ title: '', url: '' });
+  const [links, setLinks] = useState([]);
+  
+  const allowedMimeTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
+    'application/pdf', 'application/rtf', 'text/plain', 'text/rtf',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/gzip',
+    'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
+  ];
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const handleFileDelete = (indexToDelete) => {
+    setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    console.log('선택된 파일들:', selectedFiles);
+    
+    // 파일 크기 검증
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    
+    if (oversizedFiles.length > 0) {
+      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n' + 
+        oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
+      e.target.value = ''; // 파일 선택 초기화
+      return;
+    }
+
+    // 기존 파일 목록에 새로 선택된 파일들 추가
+    setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+    e.target.value = ''; // 파일 선택 초기화
+  };
 
   // 프로젝트 참여 유저 목록 가져오기
   const fetchProjectUsers = async () => {
@@ -931,134 +1076,136 @@ const ApprovalProposal = ({
   };
 
   const handleAddProposal = async () => {
-    if (!newProposal.title.trim()) {
-      alert('제목을 입력해주세요.');
+    if (!newProposal.title.trim() || !newProposal.content.trim()) {
+      alert('제목과 내용을 입력해주세요.');
       return;
     }
 
-    if (!newProposal.content.trim()) {
-      alert('내용을 입력해주세요.');
-      return;
-    }
-
-    setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      // 1. 승인요청 생성
       const response = await fetch(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         method: 'POST',
         headers: {
           'Authorization': token,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           title: newProposal.title,
-          content: newProposal.content,
-        }),
+          content: newProposal.content
+        })
       });
 
       if (!response.ok) {
-        throw new Error('승인 요청 생성에 실패했습니다.');
+        throw new Error('승인요청 생성에 실패했습니다.');
       }
 
-      const approvalData = await response.json();
-      console.log('승인 요청 생성 응답:', approvalData);
-      
-      // 응답 형식에 따라 ID를 추출
-      let createdId;
-      
-      if (approvalData.approvalProposalId) {
-        createdId = approvalData.approvalProposalId;
-      } else if (approvalData.data && typeof approvalData.data === 'object' && approvalData.data.id) {
-        createdId = approvalData.data.id;
-      } else if (approvalData.data && typeof approvalData.data === 'number') {
-        // data 필드가 직접 숫자인 경우 (백엔드가 data에 ID를 직접 전달)
-        createdId = approvalData.data;
-      } else if (approvalData.id) {
-        createdId = approvalData.id;
-      } else {
-        console.error('생성된 승인 요청의 ID를 찾을 수 없습니다:', approvalData);
-        throw new Error('승인 요청 ID를 찾을 수 없습니다.');
-      }
-      
-      console.log('생성된 승인 요청 ID:', createdId);
+      const data = await response.json();
+      const approvalId = data.data;
+      console.log('생성된 data', data);
 
-      // 선택된 승인권자가 있는 경우 승인권자 등록
-      if (selectedApprovers.length > 0) {
-        // createdId가 undefined인지 확인
-        if (!createdId) {
-          console.error('승인 요청 ID가 없어 승인권자를 등록할 수 없습니다.');
-          alert('승인 요청은 생성되었으나, 승인권자를 등록할 수 없습니다. (ID 누락)');
-          setIsLoading(false);
-          setIsModalOpen(false);
-          setNewProposal({ title: '', content: '' });
-          setSelectedApprovers([]);
-          fetchProposals();
-          return;
+      // 2. 파일 업로드 처리
+      console.log('파일 업로드 시작, 파일 수:', files.length);
+      for (const file of files) {
+        console.log('파일 업로드 시도:', file.name);
+        
+        // 2-1. Presigned URL 요청
+        const presignedResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(approvalId), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: file.type
+          })
+        });
+
+        if (!presignedResponse.ok) {
+          console.error('Presigned URL 요청 실패:', await presignedResponse.text());
+          throw new Error(`Presigned URL 요청 실패: ${file.name}`);
         }
-        
-        console.log(`승인권자 등록 시작: proposalId=${createdId}, 승인권자 수=${selectedApprovers.length}`);
-        
-        try {
-          const storedToken = localStorage.getItem('token');
-          const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-          
-          // API 엔드포인트 확인
-          const apiEndpoint = API_ENDPOINTS.APPROVAL.CREATE_APPROVER(createdId);
-          console.log('승인권자 등록 API 엔드포인트:', apiEndpoint);
-          
-          const approverIds = selectedApprovers.map(approver => approver.memberId);
-          console.log('등록할 승인권자 ID 목록:', approverIds);
-          
-          const approverResponse = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers: {
-              'Authorization': authToken,
-              'Content-Type': 'application/json',
-              'accept': '*/*'
-            },
-            body: JSON.stringify({
-              approverIds: approverIds
-            }),
-          });
 
-          if (!approverResponse.ok) {
-            const errorText = await approverResponse.text();
-            console.error('승인권자 등록 실패:', errorText);
-            
-            // 에러 응답이 JSON 형식인지 확인
-            try {
-              const errorJson = JSON.parse(errorText);
-              if (errorJson.status === 400 && errorJson.code === 'AP007') {
-                console.warn('이미 등록된 승인권자가 포함되어 있습니다.');
-                // 특정 에러는 경고로만 처리하고 계속 진행
-              } else {
-                throw new Error(errorJson.message || '승인권자 등록에 실패했습니다.');
-              }
-            } catch (jsonError) {
-              // JSON 파싱 에러면 원본 에러 텍스트 사용
-              throw new Error(`승인권자 등록에 실패했습니다: ${errorText}`);
-            }
-          } else {
-            // 응답 처리
-            const approverData = await approverResponse.json();
-            console.log('승인권자 등록 성공:', approverData);
+        const { preSignedUrl } = await presignedResponse.json();
+        console.log('Presigned URL 획득 성공:', file.name);
+
+        // 2-2. 파일 업로드
+        const uploadResponse = await fetch(preSignedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type
           }
-        } catch (error) {
-          console.error('승인권자 등록 중 오류 발생:', error);
-          // 승인요청 생성은 성공했으므로 알림만 표시
-          alert('승인요청은 생성되었으나, 승인권자 등록 중 오류가 발생했습니다: ' + error.message);
+        });
+
+        if (!uploadResponse.ok) {
+          console.error('파일 업로드 실패:', await uploadResponse.text());
+          throw new Error(`파일 업로드 실패: ${file.name}`);
+        }
+        console.log('파일 업로드 성공:', file.name);
+      }
+
+      // 3. 링크 저장 처리
+      console.log('링크 저장 시작, approvalId:', data);
+      console.log('저장할 링크 목록:', links);
+      for (const link of links) {
+        console.log('링크 저장 시도:', link);
+        const linkResponse = await fetch(API_ENDPOINTS.APPROVAL.LINKS(approvalId), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: link.title,
+            url: link.url
+          })
+        });
+
+        if (!linkResponse.ok) {
+          console.error('링크 저장 실패 응답:', await linkResponse.text());
+          throw new Error(`링크 저장 실패: ${link.title}`);
+        }
+        console.log('링크 저장 성공:', link.title);
+      }
+
+      // 4. 승인권자 설정
+      if (selectedApprovers.length > 0) {
+        const approversResponse = await fetch(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            approverIds: selectedApprovers.map(approver => approver.userId)
+          })
+        });
+
+        if (!approversResponse.ok) {
+          throw new Error('승인권자 설정에 실패했습니다.');
         }
       }
 
-      setIsLoading(false);
-      setIsModalOpen(false);
+      alert('승인요청이 성공적으로 생성되었습니다.');
       setNewProposal({ title: '', content: '' });
+      setFiles([]);
+      setLinks([]);
+      setNewLink({ title: '', url: '' });
       setSelectedApprovers([]);
+      setIsModalOpen(false);
+      onShowMore();
       fetchProposals();
     } catch (error) {
-      console.error('승인 요청 생성 중 오류 발생:', error);
-      setIsLoading(false);
-      alert(error.message);
+      console.error('Error creating proposal:', error);
+      alert(`승인요청 생성에 실패했습니다: ${error.message}`);
     }
   };
 
@@ -1293,6 +1440,31 @@ const ApprovalProposal = ({
     }
   };
 
+  const handleAddLink = () => {
+    if (!newLink.title.trim() || !newLink.url.trim()) {
+      alert('링크 제목과 URL을 모두 입력해주세요.');
+      return;
+    }
+
+    // URL 형식 검증
+    try {
+      new URL(newLink.url);
+    } catch (e) {
+      alert('올바른 URL 형식이 아닙니다.');
+      return;
+    }
+
+    // 새 링크 추가
+    setLinks(prevLinks => [...prevLinks, { ...newLink }]);
+    
+    // 입력 필드 초기화
+    setNewLink({ title: '', url: '' });
+  };
+
+  const handleLinkDelete = (indexToDelete) => {
+    setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
+  };
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1396,6 +1568,101 @@ const ApprovalProposal = ({
                   onChange={handleInputChange}
                   placeholder="내용을 입력하세요"
                 />
+              </InputGroup>
+              <InputGroup>
+                <Label>파일 첨부 (선택사항)</Label>
+                <FileInputContainer>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <HiddenFileInput
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      accept="*/*"
+                      id="fileInput"
+                    />
+                    <FileButton 
+                      type="button" 
+                      onClick={() => document.getElementById('fileInput').click()}
+                    >
+                      파일 선택
+                    </FileButton>
+                  </div>
+                  {files.length > 0 && (
+                    <FileList>
+                      {Array.from(files).map((file, index) => (
+                        <FileItem 
+                          key={index}
+                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                        >
+                          <FileContent>
+                            <span style={{ fontSize: '16px' }}>📎</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
+                              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                {(file.size / 1024).toFixed(1)} KB
+                              </span>
+                            </div>
+                          </FileContent>
+                          <DeleteButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileDelete(index);
+                            }}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+                    </FileList>
+                  )}
+                </FileInputContainer>
+              </InputGroup>
+              <InputGroup>
+                <Label>링크 추가 (선택사항)</Label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <Input
+                    type="text"
+                    placeholder="링크 제목"
+                    value={newLink.title}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="URL"
+                    value={newLink.url}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
+                    style={{ flex: 2 }}
+                  />
+                  <FileButton 
+                    type="button" 
+                    onClick={handleAddLink}
+                  >
+                    추가
+                  </FileButton>
+                </div>
+                {links.length > 0 && (
+                  <FileList>
+                    {links.map((link, index) => (
+                      <FileItem 
+                        key={index}
+                        onClick={() => window.open(link.url, '_blank')}
+                      >
+                        <LinkContent>
+                          🔗 {link.title}
+                        </LinkContent>
+                        <DeleteButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLinkDelete(index);
+                          }}
+                        >
+                          ✕
+                        </DeleteButton>
+                      </FileItem>
+                    ))}
+                  </FileList>
+                )}
               </InputGroup>
               <InputGroup>
                 <Label>승인권자 목록</Label>

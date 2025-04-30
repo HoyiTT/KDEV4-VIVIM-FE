@@ -451,6 +451,142 @@ const StatusBadge = styled.span`
   }
 `;
 
+const AttachmentsSection = styled.div`
+  width: 100%;
+  padding: 16px 0;
+  margin: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 24px;
+`;
+
+const AttachmentContainer = styled.div`
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+
+  &:first-child::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: #e2e8f0;
+  }
+`;
+
+const AttachmentGroup = styled.div`
+  width: 100%;
+`;
+
+const GroupTitle = styled.h4`
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0 0 8px 0;
+`;
+
+const FileList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FileItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const FileIcon = styled.span`
+  font-size: 16px;
+`;
+
+const FileName = styled.span`
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const LinkList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const LinkItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const LinkIcon = styled.span`
+  font-size: 16px;
+`;
+
+const LinkTitle = styled.span`
+  font-size: 14px;
+  color: #2563eb;
+  text-decoration: underline;
+`;
+
+const PlaceholderMessage = styled.p`
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+  padding: 8px;
+  background-color: #f8fafc;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+`;
+
+const FileInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const FileButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+  padding: 0;
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 0;
+`;
+
 const ApprovalDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -473,9 +609,18 @@ const ApprovalDetail = () => {
   const [saving, setSaving] = useState(false);
   const approvalDecisionRef = useRef(null);
   const actionsMenuRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [editFiles, setEditFiles] = useState([]);
+  const [editLinks, setEditLinks] = useState([]);
+  const [newLink, setNewLink] = useState({ title: '', url: '' });
+  const [deletedFileIds, setDeletedFileIds] = useState([]);
+  const [deletedLinkIds, setDeletedLinkIds] = useState([]);
 
   useEffect(() => {
     fetchProposalDetail();
+    fetchFiles();
+    fetchLinks();
   }, [id]);
 
   // 프로젝트 진행 상태 조회
@@ -798,9 +943,10 @@ const ApprovalDetail = () => {
 
   // 수정 및 삭제 핸들러 추가
   const handleEditProposal = () => {
-    // 수정 모드로 전환
     setEditTitle(proposal.title);
     setEditContent(proposal.content);
+    setEditFiles(files);
+    setEditLinks(links);
     setIsEditing(true);
     setShowActionsMenu(false);
   };
@@ -808,6 +954,56 @@ const ApprovalDetail = () => {
   // 수정 취소
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setEditFiles(files);
+    setEditLinks(links);
+    setDeletedFileIds([]); // 삭제 목록 초기화
+    setDeletedLinkIds([]); // 링크 삭제 목록 초기화
+  };
+
+  const handleFileDelete = (indexToDelete) => {
+    const fileToDelete = editFiles[indexToDelete];
+    if (fileToDelete.id) {
+      // 기존 파일인 경우 삭제 목록에 추가
+      setDeletedFileIds(prev => [...prev, fileToDelete.id]);
+    }
+    // 파일 목록에서 제거
+    setEditFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    setEditFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+  };
+
+  const handleLinkDelete = (indexToDelete) => {
+    const linkToDelete = editLinks[indexToDelete];
+    if (linkToDelete.id) {
+      // 기존 링크인 경우 삭제 목록에 추가
+      setDeletedLinkIds(prev => [...prev, linkToDelete.id]);
+    }
+    // 링크 목록에서 제거
+    setEditLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
+  };
+
+  const handleAddLink = () => {
+    if (!newLink.title.trim() || !newLink.url.trim()) {
+      alert('링크 제목과 URL을 모두 입력해주세요.');
+      return;
+    }
+
+    // URL 형식 검증
+    try {
+      new URL(newLink.url);
+    } catch (e) {
+      alert('올바른 URL 형식이 아닙니다.');
+      return;
+    }
+
+    // 새 링크 추가
+    setEditLinks(prevLinks => [...prevLinks, { ...newLink }]);
+    
+    // 입력 필드 초기화
+    setNewLink({ title: '', url: '' });
   };
 
   // 수정 내용 저장
@@ -819,7 +1015,6 @@ const ApprovalDetail = () => {
 
     try {
       setSaving(true);
-      // 토큰 새로 가져오기
       const token = localStorage.getItem('token');
       if (!token) {
         alert('로그인이 필요합니다.');
@@ -828,13 +1023,11 @@ const ApprovalDetail = () => {
       
       console.log('수정 요청 시작:', proposal.id);
       
-      // 요청 데이터 로깅
+      // 1. 기본 정보 수정
       const requestData = {
         title: editTitle,
         content: editContent
       };
-      console.log('수정 요청 데이터:', requestData);
-      console.log('API 엔드포인트:', API_ENDPOINTS.APPROVAL.MODIFY(proposal.id));
       
       const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), {
         method: 'PATCH', 
@@ -845,31 +1038,109 @@ const ApprovalDetail = () => {
         body: JSON.stringify(requestData)
       });
       
-      console.log('수정 응답 상태:', response.status, response.statusText);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('수정 응답 에러 내용:', errorText);
-        
-        // 권한 오류(403)인 경우 특별 처리
         if (response.status === 403) {
           alert('이 승인요청을 수정할 권한이 없습니다. 작성자 또는 관리자만 수정할 수 있습니다.');
           return;
         }
-        
         throw new Error(`승인요청 수정 실패 (${response.status}): ${errorText}`);
       }
 
-      // 응답 데이터 확인 시도
-      let responseData;
-      try {
-        responseData = await response.json();
-        console.log('수정 응답 데이터:', responseData);
-      } catch (jsonError) {
-        console.log('수정 응답 데이터 없음 (json 파싱 오류)');
+      // 2. 삭제된 파일 처리
+      for (const fileId of deletedFileIds) {
+        const deleteResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
+          method: 'PATCH',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!deleteResponse.ok) {
+          throw new Error(`파일 삭제 실패: ${fileId}`);
+        }
       }
 
-      // 수정된 정보로 proposal 업데이트 (서버 응답이 없는 경우에도 UI 업데이트)
+      // 3. 삭제된 링크 처리
+      for (const linkId of deletedLinkIds) {
+        const deleteResponse = await fetch(API_ENDPOINTS.APPROVAL.DELETE_LINK(linkId), {
+          method: 'PATCH',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!deleteResponse.ok) {
+          throw new Error(`링크 삭제 실패: ${linkId}`);
+        }
+      }
+
+      // 4. 새 파일 업로드 처리
+      for (const file of editFiles) {
+        // 기존 파일인 경우 건너뛰기
+        if (file.id) continue;
+
+        // 새 파일인 경우에만 업로드
+        const presignedResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(proposal.id), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: file.type
+          })
+        });
+
+        if (!presignedResponse.ok) {
+          throw new Error(`Presigned URL 요청 실패: ${file.name}`);
+        }
+
+        const { preSignedUrl, fileId } = await presignedResponse.json();
+
+        // S3에 파일 업로드
+        const uploadResponse = await fetch(preSignedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type
+          }
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`파일 업로드 실패: ${file.name}`);
+        }
+      }
+
+      // 5. 새 링크 저장 처리
+      for (const link of editLinks) {
+        // 기존 링크인 경우 건너뛰기
+        if (link.id) continue;
+
+        const linkResponse = await fetch(API_ENDPOINTS.APPROVAL.LINKS(proposal.id), {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(link)
+        });
+
+        if (!linkResponse.ok) {
+          throw new Error(`링크 저장 실패: ${link.title}`);
+        }
+      }
+
+      // 6. 파일 목록 새로고침
+      await fetchFiles();
+      // 7. 링크 목록 새로고침
+      await fetchLinks();
+
+      // 8. UI 업데이트
       setProposal({
         ...proposal,
         title: editTitle,
@@ -877,9 +1148,10 @@ const ApprovalDetail = () => {
         updatedAt: new Date().toISOString()
       });
       
-      console.log('수정 완료, UI 업데이트');
       setIsEditing(false);
       setHasChanges(true);
+      setDeletedFileIds([]); // 삭제 목록 초기화
+      setDeletedLinkIds([]); // 링크 삭제 목록 초기화
       alert('승인요청이 성공적으로 수정되었습니다.');
     } catch (error) {
       console.error('승인요청 수정 중 오류:', error);
@@ -915,6 +1187,57 @@ const ApprovalDetail = () => {
     } catch (error) {
       console.error('Error deleting proposal:', error);
       alert('승인요청 삭제에 실패했습니다.');
+    }
+  };
+
+  const fetchFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.FILES(id), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setFiles(data);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+
+  const fetchLinks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_ENDPOINTS.APPROVAL.GET_LINKS(id), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      const data = await response.json();
+      setLinks(data);
+    } catch (error) {
+      console.error('Error fetching links:', error);
+    }
+  };
+
+  const handleFileDownload = async (fileId, fileName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const presignedResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DOWNLOAD(fileId), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!presignedResponse.ok) {
+        throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
+      }
+
+      const { preSignedUrl } = await presignedResponse.json();
+      window.location.href = preSignedUrl;
+    } catch (error) {
+      console.error('파일 다운로드 중 오류 발생:', error);
+      alert('파일 다운로드에 실패했습니다.');
     }
   };
 
@@ -1019,7 +1342,90 @@ const ApprovalDetail = () => {
                             onChange={(e) => setEditContent(e.target.value)}
                           />
                         </div>
-                        
+
+                        {/* 파일 수정 섹션 */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <EditLabel>파일</EditLabel>
+                          <FileInputContainer>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                              <HiddenFileInput
+                                type="file"
+                                onChange={handleFileChange}
+                                multiple
+                                accept="*/*"
+                                id="fileInput"
+                              />
+                              <FileButton 
+                                type="button" 
+                                onClick={() => document.getElementById('fileInput').click()}
+                              >
+                                파일 선택
+                              </FileButton>
+                            </div>
+                            {editFiles.length > 0 && (
+                              <FileList>
+                                {editFiles.map((file, index) => (
+                                  <FileItem key={index}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      📎 {file.fileName || file.name}
+                                    </div>
+                                    <DeleteButton
+                                      type="button"
+                                      onClick={() => handleFileDelete(index)}
+                                    >
+                                      ✕
+                                    </DeleteButton>
+                                  </FileItem>
+                                ))}
+                              </FileList>
+                            )}
+                          </FileInputContainer>
+                        </div>
+
+                        {/* 링크 수정 섹션 */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <EditLabel>링크</EditLabel>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <Input
+                              type="text"
+                              placeholder="링크 제목"
+                              value={newLink.title}
+                              onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
+                              style={{ flex: 1 }}
+                            />
+                            <Input
+                              type="text"
+                              placeholder="URL"
+                              value={newLink.url}
+                              onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
+                              style={{ flex: 2 }}
+                            />
+                            <FileButton 
+                              type="button" 
+                              onClick={handleAddLink}
+                            >
+                              추가
+                            </FileButton>
+                          </div>
+                          {editLinks.length > 0 && (
+                            <FileList>
+                              {editLinks.map((link, index) => (
+                                <FileItem key={index}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    🔗 {link.title}
+                                  </div>
+                                  <DeleteButton
+                                    type="button"
+                                    onClick={() => handleLinkDelete(index)}
+                                  >
+                                    ✕
+                                  </DeleteButton>
+                                </FileItem>
+                              ))}
+                            </FileList>
+                          )}
+                        </div>
+
                         <ApprovalButtonContainer>
                           <ApprovalActionButton 
                             secondary
@@ -1059,6 +1465,49 @@ const ApprovalDetail = () => {
                             {proposal.content}
                           </div>
                         </ProposalContent>
+                        
+                        {/* 파일 목록 섹션 */}
+                        <AttachmentsSection>
+                          <AttachmentContainer>
+                            <AttachmentGroup>
+                              <GroupTitle>파일</GroupTitle>
+                              {files.length > 0 ? (
+                                <FileList>
+                                  {files.map((file) => (
+                                    <FileItem 
+                                      key={file.id} 
+                                      onClick={() => handleFileDownload(file.id, file.fileName)}
+                                      style={{ cursor: 'pointer' }}
+                                    >
+                                      <FileIcon>📎</FileIcon>
+                                      <FileName>{file.fileName}</FileName>
+                                    </FileItem>
+                                  ))}
+                                </FileList>
+                              ) : (
+                                <PlaceholderMessage>아직 등록된 파일이 없습니다.</PlaceholderMessage>
+                              )}
+                            </AttachmentGroup>
+                          </AttachmentContainer>
+                          
+                          <AttachmentContainer>
+                            <AttachmentGroup>
+                              <GroupTitle>링크</GroupTitle>
+                              {links.length > 0 ? (
+                                <LinkList>
+                                  {links.map((link, index) => (
+                                    <LinkItem key={index} onClick={() => window.open(link.url, '_blank')}>
+                                      <LinkIcon>🔗</LinkIcon>
+                                      <LinkTitle>{link.title}</LinkTitle>
+                                    </LinkItem>
+                                  ))}
+                                </LinkList>
+                              ) : (
+                                <PlaceholderMessage>아직 등록된 링크가 없습니다.</PlaceholderMessage>
+                              )}
+                            </AttachmentGroup>
+                          </AttachmentContainer>
+                        </AttachmentsSection>
                         
                         {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
                         <ApprovalButtonContainer>

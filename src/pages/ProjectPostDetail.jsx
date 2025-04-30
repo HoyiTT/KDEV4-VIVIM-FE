@@ -45,8 +45,7 @@ const ProjectPostDetail = () => {
     try {
       const token = localStorage.getItem('token');
       // 1. presigned URL 받아오기
-      //const presignedResponse = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
-      const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}/download`, {
+      const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId), {
         headers: {
           'Authorization': token
         }
@@ -66,6 +65,7 @@ const ProjectPostDetail = () => {
       alert('파일 다운로드에 실패했습니다.');
     }
   };
+
   const handleUpdateComment = async (commentId) => {
     if (!editedComment.trim()) {
       alert('댓글 내용을 입력해주세요.');
@@ -129,7 +129,7 @@ const ProjectPostDetail = () => {
   const fetchPostDetail = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/posts/${postId}`, {
+      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
         headers: {
           'Authorization': token
         }
@@ -142,6 +142,7 @@ const ProjectPostDetail = () => {
       setLoading(false);
     }
   };
+
   const translateRole = (role) => {
     switch (role) {
       case 'DEVELOPER':
@@ -243,7 +244,7 @@ const ProjectPostDetail = () => {
     if (window.confirm('게시글을 삭제하시겠습니까?')) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}`, {
+        const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': token
