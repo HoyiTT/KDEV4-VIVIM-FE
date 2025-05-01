@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminInquiryEdit = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const AdminInquiryEdit = () => {
   useEffect(() => {
     const fetchInquiryDetail = async () => {
       try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
+        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
           headers: {
             'Authorization': token
           }
@@ -50,7 +51,7 @@ const AdminInquiryEdit = () => {
           });
 
           if (data.inquiryType === 'PROJECT') {
-            const projectResponse = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+            const projectResponse = await fetch(API_ENDPOINTS.USER_PROJECTS(decodedToken.userId), {
               headers: {
                 'Authorization': token
               }
@@ -77,7 +78,7 @@ const AdminInquiryEdit = () => {
     const fetchProjects = async () => {
       if (formData.inquiryType === 'PROJECT') {
         try {
-          const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+          const response = await fetch(API_ENDPOINTS.USER_PROJECTS(decodedToken.userId), {
             headers: {
               'Authorization': token
             }
@@ -107,7 +108,7 @@ const AdminInquiryEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_EDIT(id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

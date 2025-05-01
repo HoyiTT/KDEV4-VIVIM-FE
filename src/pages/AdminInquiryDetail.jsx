@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminInquiryDetail = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchInquiryDetail = async () => {
       try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}`, {
+        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
           headers: {
             'Authorization': token
           }
@@ -42,7 +43,7 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment`, {
+        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id), {
           headers: {
             'Authorization': token
           }
@@ -68,7 +69,7 @@ const AdminInquiryDetail = () => {
   const handleCompleteAnswer = async () => {
     try {
       setIsSubmitting(true);
-      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/complete`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id), {
         method: 'PATCH',
         headers: {
           'Authorization': token,
@@ -97,7 +98,7 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -138,7 +139,7 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/comment/${commentId}`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_EDIT(id, commentId), {
         method: 'PUT',
         headers: {
           'Authorization': token,
@@ -175,7 +176,7 @@ const AdminInquiryDetail = () => {
   const handleDeleteInquiry = async () => {
     if (window.confirm('정말로 이 문의를 삭제하시겠습니까?')) {
       try {
-        const response = await fetch(`https://dev.vivim.co.kr/api/admininquiry/${id}/delete`, {
+        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id), {
           method: 'PATCH',
           headers: {
             'Authorization': token,

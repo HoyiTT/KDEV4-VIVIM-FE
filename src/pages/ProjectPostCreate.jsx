@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 
 
@@ -75,7 +76,7 @@ const handleLinkDelete = (indexToDelete) => {
 
     try {
       // 1. 게시글 생성
-      const postResponse = await fetch(`https://dev.vivim.co.kr/api/projects/${projectId}/posts`, {
+      const postResponse = await fetch(API_ENDPOINTS.PROJECT_POSTS(projectId), {
         method: 'POST',
         headers: {
           'Authorization': token,
@@ -108,7 +109,7 @@ const handleLinkDelete = (indexToDelete) => {
           }
 
           // presigned URL 요청
-          const presignedResponse = await fetch(`https://dev.vivim.co.kr/api/posts/${createdPostId}/file/presigned`, {
+          const presignedResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, createdPostId), {
             method: 'POST',
             headers: {
               'Authorization': token,
@@ -141,6 +142,27 @@ const handleLinkDelete = (indexToDelete) => {
           }
 
          
+        }
+      }
+
+      // 3. 링크 업로드 처리
+      if (links.length > 0) {
+        for (const link of links) {
+          const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, createdPostId), {
+            method: 'POST',
+            headers: {
+              'Authorization': token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              title: link.title,
+              url: link.url
+            })
+          });
+
+          if (!linkResponse.ok) {
+            throw new Error(`링크 업로드 실패: ${link.title}`);
+          }
         }
       }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
@@ -22,38 +23,51 @@ const AdminInquiryList = () => {
   
   const [activeMenuItem, setActiveMenuItem] = useState(isAdmin ? '관리자 문의' : '내 문의 내역');
 
+  const fetchInquiries = async () => {
+    try {
+      const response = await fetch(
+        isAdmin ? API_ENDPOINTS.ADMIN_INQUIRY_LIST : API_ENDPOINTS.USER_INQUIRY_LIST,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch inquiries');
+      const data = await response.json();
+      const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setInquiries(sortedData);
+    } catch (error) {
+      console.error('Error fetching inquiries:', error);
+    }
+  };
+
   // 문의 내역 조회
   useEffect(() => {
-    const fetchInquiries = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const endpoint = isAdmin 
-          ? 'https://dev.vivim.co.kr/api/admininquiry'
-          : 'https://dev.vivim.co.kr/api/user/admininquiry';
-
-        const response = await fetch(endpoint, {
-          headers: {
-            'Authorization': token
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          setInquiries(sortedData);
-        } else {
-          console.error('Failed to fetch inquiries');
-        }
-      } catch (error) {
-        console.error('Error fetching inquiries:', error);
-      }
-    };
-
     fetchInquiries();
-  }, [isAdmin]);
+  }, [isAdmin, token]);
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('정말로 삭제하시겠습니까?')) return;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to delete inquiry');
+      alert('삭제되었습니다.');
+      fetchInquiries();
+    } catch (error) {
+      console.error('Error deleting inquiry:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
   };
 
   return (

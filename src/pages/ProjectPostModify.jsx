@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';  // useEffect 추가
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 
 
 
@@ -35,7 +36,7 @@ const ProjectPostModify = () => {
     const fetchPostDetail = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://dev.vivim.co.kr/api/projects/${projectId}/posts/${postId}`, {
+        const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
           headers: {
             'Authorization': `${token}`
           }
@@ -122,7 +123,7 @@ const ProjectPostModify = () => {
   const fetchFiles = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/files`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
         headers: {
           'Authorization': token
         }
@@ -140,7 +141,7 @@ const ProjectPostModify = () => {
   const fetchLinks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/links`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
         headers: {
           'Authorization': token
         }
@@ -205,7 +206,7 @@ const ProjectPostModify = () => {
         projectPostStatus: postStatus
       };
 
-      const postResponse = await fetch(`https://dev.vivim.co.kr/api/projects/${projectId}/posts/${postId}`, {
+      const postResponse = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `${token}`,
@@ -220,7 +221,7 @@ const ProjectPostModify = () => {
   
       // Delete links that were marked for deletion
       for (const linkId of linksToDelete) {
-        const deleteLinkResponse = await fetch(`https://dev.vivim.co.kr/api/links/${linkId}`, {
+        const deleteLinkResponse = await fetch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {
           method: 'PATCH',
           headers: {
             'Authorization': `${token}`
@@ -232,7 +233,7 @@ const ProjectPostModify = () => {
         }
       }
       for (const fileId of filesToDelete) {
-        const deleteFileResponse = await fetch(`https://dev.vivim.co.kr/api/files/${fileId}`, {
+        const deleteFileResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
           method: 'PATCH',
           headers: {
             'Authorization': `${token}`
@@ -251,7 +252,7 @@ const ProjectPostModify = () => {
           url: link.url
         };
   
-        const linkResponse = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/link`, {
+        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, postId), {
           method: 'POST',
           headers: {
             'Authorization': `${token}`,
@@ -270,7 +271,7 @@ const ProjectPostModify = () => {
       for (const file of newFiles) {
         try {
           // 1. presigned URL 요청
-          const presignedUrlResponse = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/file/presigned`, {
+          const presignedUrlResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, postId), {
             method: 'POST',
             headers: {
               'Authorization': `${token}`,

@@ -1006,6 +1006,103 @@ const StatusCount = styled.div`
   }
 `;
 
+// 파일 관련 스타일 컴포넌트
+const FileInputContainer = styled.div`
+  margin-bottom: 16px;
+
+  &::after {
+    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const FileButton = styled.button`
+  padding: 8px 16px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+
+`;
+
+const FileList = styled.ul`
+  list-style: none;
+  padding: 8px 16px;
+  margin: 8px 0 0 0;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const FileItem = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+
+
+`;
+
+const FileContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+
+  span {
+    pointer-events: none;
+  }
+`;
+
+const LinkList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const LinkItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const LinkIcon = styled.span`
+  font-size: 16px;
+`;
+
+const LinkTitle = styled.span`
+  color: #2563eb;
+  text-decoration: underline;
+  font-size: 14px;
+`;
+
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [approversData, setApproversData] = useState([]);
   const [isInputOpen, setIsInputOpen] = useState(false);
@@ -1015,6 +1112,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [expandedApprovers, setExpandedApprovers] = useState(new Set());
   const [isDeveloper, setIsDeveloper] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [newLink, setNewLink] = useState({ title: '', url: '' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedDecision, setSelectedDecision] = useState(null);
   
   // 승인요청 전송 여부 확인
   const isRequestSent = statusSummary && 
@@ -1142,92 +1245,155 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     );
   };
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const handleFileDelete = (indexToDelete) => {
+    setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    console.log('선택된 파일들:', selectedFiles);
+    
+    // 파일 크기 검증
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    
+    if (oversizedFiles.length > 0) {
+      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n' + 
+        oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
+      e.target.value = ''; // 파일 선택 초기화
+      return;
+    }
+
+    // 기존 파일 목록에 새로 선택된 파일들 추가
+    setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+    e.target.value = ''; // 파일 선택 초기화
+  };
+
+  const handleAddLink = () => {
+    if (!newLink.title.trim() || !newLink.url.trim()) {
+      alert('링크 제목과 URL을 모두 입력해주세요.');
+      return;
+    }
+
+    // URL 형식 검증
+    try {
+      new URL(newLink.url);
+    } catch (e) {
+      alert('올바른 URL 형식이 아닙니다.');
+      return;
+    }
+
+    // 새 링크 추가
+    setLinks(prevLinks => [...prevLinks, { ...newLink }]);
+    
+    // 입력 필드 초기화
+    setNewLink({ title: '', url: '' });
+  };
+
+  const handleLinkDelete = (indexToDelete) => {
+    setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
+  };
+
   const handleCreateDecision = async () => {
-    if (!newDecision.status) {
-      alert('승인 상태를 선택해주세요.');
+    if (!newDecision.content || !newDecision.status) {
+      alert('내용과 상태를 모두 입력해주세요.');
       return;
-    }
-
-    if (!selectedApprover) {
-      alert('승인권자가 선택되지 않았습니다.');
-      return;
-    }
-
-    if (!isCurrentUserApprover(selectedApprover.memberId)) {
-      alert('해당 승인 요청에 대한 결정을 등록할 권한이 없습니다.');
-      return;
-    }
-
-    if (hasExistingDecision(selectedApprover)) {
-      const confirmAdd = window.confirm(
-        '이미 승인 응답이 등록되어 있습니다.\n' +
-        '승인 응답이 있는 경우 추가 응답을 등록하면 혼란을 줄 수 있습니다.\n\n' +
-        '정말로 새로운 응답을 추가하시겠습니까?'
-      );
-      
-      if (!confirmAdd) {
-        return;
-      }
     }
 
     try {
-      setLoading(true);
       const storedToken = localStorage.getItem('token');
       const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
-      const requestBody = {
-        content: newDecision.content || '',
-        decisionStatus: newDecision.status,
-        title: ''
-      };
-      
-      const response = await fetch(API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId), {
+
+      const response = await fetch(API_ENDPOINTS.DECISION.CREATE(approvalId), {
         method: 'POST',
         headers: {
           'Authorization': authToken,
-          'Content-Type': 'application/json',
-          'accept': '*/*'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          content: newDecision.content,
+          decisionStatus: newDecision.status
+        })
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        
-        if (response.status === 403) {
-          throw new Error(`권한이 없습니다. 해당 승인 요청에 대한 결정을 등록할 권한이 없거나, 이미 응답을 등록했을 수 있습니다.`);
-        }
-        
-        if (response.status === 400) {
-          throw new Error(`승인요청이 아직 전송되지 않았습니다. 승인요청을 먼저 전송해주세요.`);
-        }
-        
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error('승인응답 생성 실패');
       }
 
-      try {
-        const data = await response.json();
-        
-        if (data.statusCode === 201 || response.status === 201 || response.status === 200) {
-          alert('승응답이 성공적으로 등록되었습니다.');
-        }
-      } catch (jsonError) {
-        if (response.status === 200 || response.status === 201) {
-          alert('승응답이 성공적으로 등록되었습니다.');
-        } else {
-          throw new Error('서버 응답을 처리할 수 없습니다');
+      // 파일 업로드 처리
+      if (files.length > 0) {
+        for (const file of files) {
+          if (file.size > MAX_FILE_SIZE) {
+            throw new Error(`파일 크기 제한 초과: ${file.name}`);
+          }
+
+          // presigned URL 요청
+          const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_PRESIGNED(approvalId), {
+            method: 'POST',
+            headers: {
+              'Authorization': authToken,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              contentType: file.type
+            })
+          });
+
+          if (!presignedResponse.ok) {
+            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
+          }
+
+          const { preSignedUrl, fileId } = await presignedResponse.json();
+
+          // S3에 파일 업로드
+          const uploadResponse = await fetch(preSignedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type
+            }
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`파일 업로드 실패: ${file.name}`);
+          }
         }
       }
 
-      setIsInputOpen(false);
+      // 링크 업로드 처리
+      if (links.length > 0) {
+        for (const link of links) {
+          const linkResponse = await fetch(API_ENDPOINTS.DECISION.CREATE_LINK(approvalId), {
+            method: 'POST',
+            headers: {
+              'Authorization': authToken,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              title: link.title,
+              url: link.url
+            })
+          });
+
+          if (!linkResponse.ok) {
+            throw new Error(`링크 업로드 실패: ${link.title}`);
+          }
+        }
+      }
+
+      // 성공 시 상태 초기화 및 모달 닫기
       setNewDecision({ content: '', status: '' });
-      setSelectedApprover(null);
-      await fetchDecisions();
+      setFiles([]);
+      setLinks([]);
+      setIsModalOpen(false);
+      fetchDecisions();
+      alert('승인응답이 등록되었습니다.');
     } catch (error) {
-      console.error('Error creating decision:', error);
-      alert(error.message || '승응답 생성에 실패했습니다.');
-    } finally {
-      setLoading(false);
+      console.error('Error:', error);
+      alert('승인응답 등록 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
@@ -1307,6 +1473,76 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       }
       return newSet;
     });
+  };
+
+  const handleDecisionClick = async (decision) => {
+    try {
+      const storedToken = localStorage.getItem('token');
+      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
+
+      // 파일 정보 가져오기
+      const filesResponse = await fetch(API_ENDPOINTS.DECISION.FILES(decision.id), {
+        method: 'GET',
+        headers: {
+          'Authorization': authToken
+        }
+      });
+
+      if (!filesResponse.ok) {
+        throw new Error('파일 정보를 가져오는데 실패했습니다.');
+      }
+
+      const filesData = await filesResponse.json();
+
+      // 링크 정보 가져오기
+      const linksResponse = await fetch(API_ENDPOINTS.DECISION.GET_LINKS(decision.id), {
+        method: 'GET',
+        headers: {
+          'Authorization': authToken
+        }
+      });
+
+      if (!linksResponse.ok) {
+        throw new Error('링크 정보를 가져오는데 실패했습니다.');
+      }
+
+      const linksData = await linksResponse.json();
+
+      // 파일과 링크 정보를 포함하여 상태 업데이트
+      setSelectedDecision({
+        ...decision,
+        files: filesData,
+        links: linksData
+      });
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      console.error('상세 정보 조회 오류:', error);
+      alert('상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleFileDownload = async (fileId, fileName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId), {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (!presignedResponse.ok) {
+        throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
+      }
+
+      const { preSignedUrl, fileName: responseFileName } = await presignedResponse.json();
+      
+      // presigned URL로 직접 파일 다운로드
+      window.location.href = preSignedUrl;
+
+    } catch (error) {
+      console.error('파일 다운로드 중 오류 발생:', error);
+      alert('파일 다운로드에 실패했습니다.');
+    }
   };
 
   return (
@@ -1423,26 +1659,24 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                           {expandedApprovers.has(approver.approverId) && (
                             <ApproverContent>
                               {approver.decisionResponses.map((decision) => (
-                                <ResponseDecision key={decision.id}>
+                                <ResponseDecision 
+                                  key={decision.id}
+                                  onClick={() => handleDecisionClick(decision)}
+                                  style={{ cursor: 'pointer' }}
+                                >
                                   <DecisionHeader>
                                     <DecisionStatus $status={decision.status}>
                                       {getStatusText(decision.status)}
-                                      {decision.status === ApprovalDecisionStatus.APPROVED && (
-                                        <span style={{ 
-                                          marginLeft: '6px',
-                                          background: '#dcfce7',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontSize: '11px'
-                                        }}>
-                                          최종
-                                        </span>
-                                      )}
                                     </DecisionStatus>
                                     <DecisionDate>
                                       {formatDate(decision.decidedAt)}
                                       {decision.status !== ApprovalDecisionStatus.APPROVED && (
-                                        <DeleteAction onClick={() => handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName)}>
+                                        <DeleteAction 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+                                          }}
+                                        >
                                           삭제
                                         </DeleteAction>
                                       )}
@@ -1461,7 +1695,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                           {approver.decisionResponses && approver.decisionResponses.length > 0 ? (
                             <>
                               {approver.decisionResponses.map((decision) => (
-                                <ResponseDecision key={decision.id}>
+                                <ResponseDecision 
+                                  key={decision.id}
+                                  onClick={() => handleDecisionClick(decision)}
+                                  style={{ cursor: 'pointer' }}
+                                >
                                   <DecisionHeader>
                                     <DecisionStatus $status={decision.status}>
                                       {getStatusText(decision.status)}
@@ -1469,7 +1707,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                     <DecisionDate>
                                       {formatDate(decision.decidedAt)}
                                       {decision.status !== ApprovalDecisionStatus.APPROVED && (
-                                        <DeleteAction onClick={() => handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName)}>
+                                        <DeleteAction 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+                                          }}
+                                        >
                                           삭제
                                         </DeleteAction>
                                       )}
@@ -1481,59 +1724,20 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                 </ResponseDecision>
                               ))}
                               
-                              {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
-                                <div style={{ marginTop: '16px', width: '100%' }}>
-                                  <InputGroup>
-                                    <Label>응답 내용</Label>
-                                    <TextArea
-                                      value={newDecision.content}
-                                      onChange={(e) => setNewDecision(prev => ({
-                                        ...prev,
-                                        content: e.target.value
-                                      }))}
-                                      placeholder="응답 내용을 입력하세요"
-                                    />
-                                  </InputGroup>
-                                  <InputGroup>
-                                    <Label>승인 상태</Label>
-                                    <StatusSelect
-                                      value={newDecision.status}
-                                      onChange={(e) => setNewDecision(prev => ({
-                                        ...prev,
-                                        status: e.target.value
-                                      }))}
-                                    >
-                                      <option value="">승인 상태를 선택하세요</option>
-                                      <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                                      <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
-                                    </StatusSelect>
-                                  </InputGroup>
-                                  <DecisionActions>
-                                    <CancelButton onClick={() => {
-                                      setIsInputOpen(false);
-                                      setSelectedApprover(null);
-                                      setNewDecision({ content: '', status: '' });
-                                    }}>취소</CancelButton>
-                                    <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
-                                  </DecisionActions>
-                                </div>
-                              ) : (
-                                !isDeveloper && !isCustomer && (
-                                  <AddResponseButton 
-                                    onClick={() => {
-                                      console.log('Button clicked - isDeveloper:', isDeveloper, 'isCustomer:', isCustomer);
-                                      setIsInputOpen(true);
-                                      setSelectedApprover(approver);
-                                      setNewDecision({ content: '', status: '' });
-                                    }}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    <span>승인응답 추가</span>
-                                  </AddResponseButton>
-                                )
+                              {!isDeveloper && !isCustomer && (
+                                <AddResponseButton 
+                                  onClick={() => {
+                                    setIsModalOpen(true);
+                                    setSelectedApprover(approver);
+                                    setNewDecision({ content: '', status: '' });
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                  </svg>
+                                  <span>승인응답 추가</span>
+                                </AddResponseButton>
                               )}
                             </>
                           ) : (
@@ -1556,59 +1760,20 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                                 아직 등록된 응답이 없습니다. 승인 응답을 추가해주세요.
                               </div>
                               
-                              {isInputOpen && selectedApprover?.approverId === approver.approverId ? (
-                                <div style={{ marginTop: '16px', width: '100%' }}>
-                                  <InputGroup>
-                                    <Label>응답 내용</Label>
-                                    <TextArea
-                                      value={newDecision.content}
-                                      onChange={(e) => setNewDecision(prev => ({
-                                        ...prev,
-                                        content: e.target.value
-                                      }))}
-                                      placeholder="응답 내용을 입력하세요"
-                                    />
-                                  </InputGroup>
-                                  <InputGroup>
-                                    <Label>승인 상태</Label>
-                                    <StatusSelect
-                                      value={newDecision.status}
-                                      onChange={(e) => setNewDecision(prev => ({
-                                        ...prev,
-                                        status: e.target.value
-                                      }))}
-                                    >
-                                      <option value="">승인 상태를 선택하세요</option>
-                                      <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
-                                      <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
-                                    </StatusSelect>
-                                  </InputGroup>
-                                  <DecisionActions>
-                                    <CancelButton onClick={() => {
-                                      setIsInputOpen(false);
-                                      setSelectedApprover(null);
-                                      setNewDecision({ content: '', status: '' });
-                                    }}>취소</CancelButton>
-                                    <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
-                                  </DecisionActions>
-                                </div>
-                              ) : (
-                                !isDeveloper && !isCustomer && (
-                                  <AddResponseButton 
-                                    onClick={() => {
-                                      console.log('Button clicked - isDeveloper:', isDeveloper, 'isCustomer:', isCustomer);
-                                      setIsInputOpen(true);
-                                      setSelectedApprover(approver);
-                                      setNewDecision({ content: '', status: '' });
-                                    }}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                    <span>승인응답 추가</span>
-                                  </AddResponseButton>
-                                )
+                              {!isDeveloper && !isCustomer && (
+                                <AddResponseButton 
+                                  onClick={() => {
+                                    setIsModalOpen(true);
+                                    setSelectedApprover(approver);
+                                    setNewDecision({ content: '', status: '' });
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                  </svg>
+                                  <span>승인응답 추가</span>
+                                </AddResponseButton>
                               )}
                             </>
                           )}
@@ -1622,6 +1787,244 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
           </>
         )}
       </ResponseSection>
+
+      {/* 승인응답 추가 모달 */}
+      {isModalOpen && (
+        <ModalOverlay>
+          <ModalContainer>
+            <ModalHeader>
+              <ModalTitle>승인응답 추가</ModalTitle>
+              <CloseButton onClick={() => {
+                setIsModalOpen(false);
+                setSelectedApprover(null);
+                setNewDecision({ content: '', status: '' });
+                setFiles([]);
+                setLinks([]);
+                setNewLink({ title: '', url: '' });
+              }}>×</CloseButton>
+            </ModalHeader>
+            <ModalContent>
+              <InputGroup>
+                <Label>응답 내용</Label>
+                <TextArea
+                  value={newDecision.content}
+                  onChange={(e) => setNewDecision(prev => ({
+                    ...prev,
+                    content: e.target.value
+                  }))}
+                  placeholder="응답 내용을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>승인 상태</Label>
+                <StatusSelect
+                  value={newDecision.status}
+                  onChange={(e) => setNewDecision(prev => ({
+                    ...prev,
+                    status: e.target.value
+                  }))}
+                >
+                  <option value="">승인 상태를 선택하세요</option>
+                  <option value={ApprovalDecisionStatus.APPROVED}>승인</option>
+                  <option value={ApprovalDecisionStatus.REJECTED}>반려</option>
+                </StatusSelect>
+              </InputGroup>
+              <InputGroup>
+                <Label>파일 첨부 (선택사항)</Label>
+                <FileInputContainer>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <HiddenFileInput
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      accept="*/*"
+                      id="fileInput"
+                    />
+                    <FileButton 
+                      type="button" 
+                      onClick={() => document.getElementById('fileInput').click()}
+                    >
+                      파일 선택
+                    </FileButton>
+                  </div>
+                  {files.length > 0 && (
+                    <FileList>
+                      {Array.from(files).map((file, index) => (
+                        <FileItem 
+                          key={index}
+                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                        >
+                          <FileContent>
+                            <span style={{ fontSize: '16px' }}>📎</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
+                              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                {(file.size / 1024).toFixed(1)} KB
+                              </span>
+                            </div>
+                          </FileContent>
+                          <DeleteButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileDelete(index);
+                            }}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+                    </FileList>
+                  )}
+                </FileInputContainer>
+              </InputGroup>
+              <InputGroup>
+                <Label>링크 추가 (선택사항)</Label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <Input
+                    type="text"
+                    placeholder="링크 제목"
+                    value={newLink.title}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="URL"
+                    value={newLink.url}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
+                    style={{ flex: 2 }}
+                  />
+                  <FileButton 
+                    type="button" 
+                    onClick={handleAddLink}
+                  >
+                    추가
+                  </FileButton>
+                </div>
+                {links.length > 0 && (
+                  <FileList>
+                    {links.map((link, index) => (
+                      <FileItem 
+                        key={index}
+                        onClick={() => window.open(link.url, '_blank')}
+                      >
+                        <LinkItem>
+                          <LinkIcon>🔗</LinkIcon>
+                          <LinkTitle>{link.title}</LinkTitle>
+                        </LinkItem>
+                        <DeleteButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLinkDelete(index);
+                          }}
+                        >
+                          ✕
+                        </DeleteButton>
+                      </FileItem>
+                    ))}
+                  </FileList>
+                )}
+              </InputGroup>
+              <ModalButtonContainer>
+                <CancelButton onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedApprover(null);
+                  setNewDecision({ content: '', status: '' });
+                  setFiles([]);
+                  setLinks([]);
+                  setNewLink({ title: '', url: '' });
+                }}>취소</CancelButton>
+                <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
+              </ModalButtonContainer>
+            </ModalContent>
+          </ModalContainer>
+        </ModalOverlay>
+      )}
+
+      {/* 승인응답 상세보기 모달 */}
+      {isDetailModalOpen && selectedDecision && (
+        <ModalOverlay>
+          <ModalContainer>
+            <ModalHeader>
+              <ModalTitle>승인응답 상세</ModalTitle>
+              <CloseButton onClick={() => {
+                setIsDetailModalOpen(false);
+                setSelectedDecision(null);
+              }}>×</CloseButton>
+            </ModalHeader>
+            <ModalContent>
+              <InputGroup>
+                <Label>승인 상태</Label>
+                <StatusBadge $status={selectedDecision.status}>
+                  {getStatusText(selectedDecision.status)}
+                </StatusBadge>
+              </InputGroup>
+              <InputGroup>
+                <Label>응답 내용</Label>
+                <div style={{ 
+                  padding: '16px', 
+                  background: '#f8fafc', 
+                  borderRadius: '8px', 
+                  border: '1px solid #e2e8f0',
+                  minHeight: '100px'
+                }}>
+                  {selectedDecision.content || '내용 없음'}
+                </div>
+              </InputGroup>
+              <InputGroup>
+                <Label>응답 일시</Label>
+                <div style={{ color: '#64748b' }}>
+                  {formatDate(selectedDecision.decidedAt)}
+                </div>
+              </InputGroup>
+              {selectedDecision.files && selectedDecision.files.length > 0 && (
+                <InputGroup>
+                  <Label>첨부 파일</Label>
+                  <FileList>
+                    {selectedDecision.files.map((file, index) => {
+                      console.log('File object:', file);
+                      console.log('File name:', file.name);
+                      console.log('File fileName:', file.fileName);
+                      return (
+                        <FileItem 
+                          key={index}
+                          onClick={() => handleFileDownload(file.id, file.fileName)}
+                        >
+                          <FileContent>
+                            <span style={{ fontSize: '16px' }}>📎</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.fileName}</span>
+                            </div>
+                          </FileContent>
+                        </FileItem>
+                      );
+                    })}
+                  </FileList>
+                </InputGroup>
+              )}
+              {selectedDecision.links && selectedDecision.links.length > 0 && (
+                <InputGroup>
+                  <Label>첨부 링크</Label>
+                  <LinkList>
+                    {selectedDecision.links.map((link, index) => (
+                      <LinkItem key={index} onClick={() => window.open(link.url, '_blank')}>
+                        <LinkIcon>🔗</LinkIcon>
+                        <LinkTitle>{link.title}</LinkTitle>
+                      </LinkItem>
+                    ))}
+                  </LinkList>
+                </InputGroup>
+              )}
+              <ModalButtonContainer>
+                <CancelButton onClick={() => {
+                  setIsDetailModalOpen(false);
+                  setSelectedDecision(null);
+                }}>닫기</CancelButton>
+              </ModalButtonContainer>
+            </ModalContent>
+          </ModalContainer>
+        </ModalOverlay>
+      )}
     </>
   );
 };

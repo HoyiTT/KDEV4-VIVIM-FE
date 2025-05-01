@@ -1,5 +1,5 @@
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
 // export const API_BASE_URL = 'https://localhost/api';
+export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -52,15 +52,36 @@ export const API_ENDPOINTS = {
     SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
     STATUS_SUMMARY: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/status`,
     RECENT: `${API_BASE_URL}/proposals/recent`,
+    FILES: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/files`,
+    FILE_PRESIGNED: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/file/presigned`,
+    FILE_DELETE: (fileId) => `${API_BASE_URL}/files/${fileId}`,
+    FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
+    LINKS: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/links`,
+    GET_LINKS: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/links`,
+    DELETE_LINK: (linkId) => `${API_BASE_URL}/links/${linkId}`,
   },
   DECISION: {
+    CREATE: (approvalId) => `${API_BASE_URL}/approver/${approvalId}/decision`,
     CREATE_WITH_APPROVER: (approverId) => `${API_BASE_URL}/approver/${approverId}/decision`,
     MODIFY: (decisionId) => `${API_BASE_URL}/decision/${decisionId}`,
     DELETE: (decisionId) => `${API_BASE_URL}/decision/${decisionId}`,
     DETAIL: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/approver/decision`,
     LIST: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/decision`,
     ALL: () => `${API_BASE_URL}/approval/approver/decision`,
-    SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`
+    SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`,
+    FILE_PRESIGNED: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/file/presigned`,
+    FILES: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/files`,
+    FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
+    GET_LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
+    LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
+    DELETE_LINK: (linkId) => `${API_BASE_URL}/links/${linkId}`
   },
   PROJECT_COMPANIES: (projectId) => `${API_BASE_URL}/projects/${projectId}/companies`,
+
+  // Admin Inquiry
+  ADMIN_INQUIRY_LIST: `${API_BASE_URL}/admininquiry`,
+  USER_INQUIRY_LIST: `${API_BASE_URL}/user/admininquiry`,
+  ADMIN_INQUIRY_DETAIL: (id) => `${API_BASE_URL}/admininquiry/${id}`,
+  ADMIN_INQUIRY_EDIT: (id) => `${API_BASE_URL}/admininquiry/${id}`,
+  ADMIN_INQUIRY_CREATE: `${API_BASE_URL}/admininquiry`,
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminInquiry = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const AdminInquiry = () => {
           return;
         }
 
-        const response = await fetch(`https://dev.vivim.co.kr/api/projects?userId=${decodedToken.userId}`, {
+        const response = await fetch(API_ENDPOINTS.USER_PROJECTS(decodedToken.userId), {
           headers: {
             'Authorization': token
           }
@@ -71,7 +72,7 @@ const AdminInquiry = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://dev.vivim.co.kr/api/admininquiry', {
+      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
