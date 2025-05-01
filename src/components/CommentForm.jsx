@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { API_BASE_URL } from '../config/api';
 
 const CommentForm = ({ postId, comment, onCommentSubmit }) => {
   const [content, setComment] = useState('');
@@ -12,7 +13,7 @@ const CommentForm = ({ postId, comment, onCommentSubmit }) => {
       // comment가 없으면 최상위 댓글, 있으면 답글
       const parentId = comment ? (comment.parentId === null ? comment.commentId : comment.parentId) : null;
       
-      const response = await fetch(`https://dev.vivim.co.kr/api/posts/${postId}/comments`, {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
