@@ -462,7 +462,7 @@ const ProjectStageProgress = ({
                 <FaArrowRight />
               </NavButton>
             </StageNavigation>
-            {(isAdmin || isDeveloperManager) && false && (
+            {(isAdmin || isDeveloperManager)  && (
               <ManageButtonContainer ref={menuRef}>
                 <ManageButton onClick={() => setShowMenu(!showMenu)}>
                   <FaEllipsisV /> 단계 관리
