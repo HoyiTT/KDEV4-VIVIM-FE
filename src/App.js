@@ -16,7 +16,6 @@ import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
 import AuditLog from './pages/AuditLog';
 import ApprovalDetail from './pages/ApprovalDetail';
-
 import UserProjectList from './pages/UserProjectList';
 import ProjectPostCreate from './pages/ProjectPostCreate';
 import ProjectPostDetail from './pages/ProjectPostDetail';
@@ -37,35 +36,30 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/*" element={
-        <ProtectedRoute>
-          <Routes>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard-admin" element={<DashboardAdmin />} />
-            <Route path="/admin-inquiry" element={<AdminInquiry />} />
-            <Route path="/admin-inquiry-list" element={<AdminInquiryList />} />
-            <Route path="/admin-inquiry-list/:id" element={<AdminInquiryDetail />} />
-            <Route path="/admin-inquiry-list/:id/edit" element={<AdminInquiryEdit />} />
-            <Route path="/projectCreate" element={<ProjectCreate />} />
-            <Route path="/projectModify/:projectId" element={<ProjectModify />} />
-            <Route path="/company-management" element={<CompanyManagement />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/company-create" element={<CompanyCreate />} />
-            <Route path="/user-create" element={<UserCreate />} />
-            <Route path="/company-edit/:id" element={<CompanyEdit />} />
-            <Route path="/project-list" element={<UserProjectList />} />
-            <Route path="/admin-projects" element={<AdminProjectList />} />
-            <Route path="/project/:id" element={<ProjectDetail />} />
-            <Route path="/project/:projectId/post/:postId" element={<ProjectPostDetail />} />
-            <Route path="/project/:projectId/post/create" element={<ProjectPostCreate />} />
-            <Route path="/project/:projectId/post/:postId/modify" element={<ProjectPostModify />} />
-            <Route path="/approval/:id" element={<ApprovalDetail />} />
-            <Route path="/audit-log" element={<AuditLog />} />
-            <Route path="/user-edit/:userId" element={<UserEdit />} />
-          </Routes>
-        </ProtectedRoute>
-      } />
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard-admin" element={<ProtectedRoute><DashboardAdmin /></ProtectedRoute>} />
+      <Route path="/admin-inquiry" element={<ProtectedRoute><AdminInquiry /></ProtectedRoute>} />
+      <Route path="/admin-inquiry-list" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
+      <Route path="/admin-inquiry-list/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
+      <Route path="/admin-inquiry-list/:id/edit" element={<ProtectedRoute><AdminInquiryEdit /></ProtectedRoute>} />
+      <Route path="/projectCreate" element={<ProtectedRoute><ProjectCreate /></ProtectedRoute>} />
+      <Route path="/projectModify/:projectId" element={<ProtectedRoute><ProjectModify /></ProtectedRoute>} />
+      <Route path="/company-management" element={<ProtectedRoute><CompanyManagement /></ProtectedRoute>} />
+      <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+      <Route path="/company-create" element={<ProtectedRoute><CompanyCreate /></ProtectedRoute>} />
+      <Route path="/user-create" element={<ProtectedRoute><UserCreate /></ProtectedRoute>} />
+      <Route path="/company-edit/:id" element={<ProtectedRoute><CompanyEdit /></ProtectedRoute>} />
+      <Route path="/project-list" element={<ProtectedRoute><UserProjectList /></ProtectedRoute>} />
+      <Route path="/admin-projects" element={<ProtectedRoute><AdminProjectList /></ProtectedRoute>} />
+      <Route path="/project/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+      <Route path="/project/:projectId/post/:postId" element={<ProtectedRoute><ProjectPostDetail /></ProtectedRoute>} />
+      <Route path="/project/:projectId/post/create" element={<ProtectedRoute><ProjectPostCreate /></ProtectedRoute>} />
+      <Route path="/project/:projectId/post/:postId/modify" element={<ProtectedRoute><ProjectPostModify /></ProtectedRoute>} />
+      <Route path="/approval/:id" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
+      <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+      <Route path="/user-edit/:userId" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />
     </Routes>
   );
 };

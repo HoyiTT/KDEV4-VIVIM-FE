@@ -1,9 +1,10 @@
-// export const API_BASE_URL = 'https://localhost/api';
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
  
 export const API_ENDPOINTS = {
   // Auth
   LOGIN: `${API_BASE_URL}/auth/login`,
+  USER_INFO: `${API_BASE_URL}/auth/user`,
   
   // Users
   USERS: `${API_BASE_URL}/users`,

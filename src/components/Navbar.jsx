@@ -3,54 +3,30 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../hooks/useAuth';
+import { getToken, removeToken } from '../utils/tokenUtils';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
+  const { isAdmin, userId, user } = useAuth();
   const [userInfo, setUserInfo] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const fetchUserInfo = async () => {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setIsAdmin(payload.role === 'ADMIN');
-
-        // 사용자 정보 가져오기
-        const fetchUserInfo = async () => {
-          try {
-            const response = await axiosInstance.get(`${API_ENDPOINTS.USERS}/${payload.userId}`);
-            setUserInfo(response.data.data);
-          } catch (error) {
-            console.error('사용자 정보 조회 실패:', error);
-          }
-        };
-
-        fetchUserInfo();
+        const response = await axiosInstance.get(`${API_ENDPOINTS.USERS}/${userId}`);
+        setUserInfo(response.data.data);
       } catch (error) {
-        console.error('Token decode error:', error);
+        console.error('사용자 정보 조회 실패:', error);
       }
+    };
+
+    if (userId) {
+      fetchUserInfo();
     }
-  }, []);
-
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const userId = decodedToken?.userId;
-
-  const userName = decodedToken?.username || '사용자';
-  const companyName = decodedToken?.companyName || '';
-
-  console.log('Decoded token:', decodedToken);
+  }, [userId]);
 
   const menuItems = [
     { name: '대시보드', path: '/dashboard-admin' },
@@ -79,8 +55,8 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
       const refreshToken = localStorage.getItem('refreshToken');
       await axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT, { refreshToken });
 
-      // localStorage에서 토큰 제거
-      localStorage.removeItem('token');
+      // 토큰 제거
+      removeToken();
       localStorage.removeItem('refreshToken');
 
       // 로그인 페이지로 이동
@@ -88,7 +64,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
     } catch (error) {
       console.error('로그아웃 실패:', error);
       // 에러가 발생해도 토큰은 제거하고 로그인 페이지로 이동
-      localStorage.removeItem('token');
+      removeToken();
       localStorage.removeItem('refreshToken');
       navigate('/');
     }

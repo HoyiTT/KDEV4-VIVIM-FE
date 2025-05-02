@@ -6,31 +6,21 @@ import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import { getApprovalStatusText } from '../utils/approvalStatus';
 import { ApprovalProposalStatus } from '../constants/enums';
 import { FaCheck, FaClock, FaEdit, FaTimes } from 'react-icons/fa';
+import { useAuth } from '../hooks/useAuth';
+import { getToken } from '../utils/tokenUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isAdmin, userId: currentUserId } = useAuth();
   const [deadlineProjects, setDeadlineProjects] = useState([]);
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentApprovals, setRecentApprovals] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      console.error('Token decode error:', error);
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-  const currentUserId = decodedToken?.userId;
+  const [userInfo, setUserInfo] = useState(null);
 
   // 디버깅을 위한 로그 추가
-  console.log('User Role:', decodedToken?.role);
+  console.log('User Role:', isAdmin ? 'ADMIN' : 'USER');
   console.log('Is Admin:', isAdmin);
   console.log('Current User ID:', currentUserId);
 
@@ -44,7 +34,7 @@ const Dashboard = () => {
 
   const handleDeleteApproval = async (approvalId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(API_ENDPOINTS.APPROVAL.DELETE(approvalId), {
         method: 'DELETE',
         headers: {
@@ -75,7 +65,7 @@ const Dashboard = () => {
 
   const handleDeleteProgress = async (projectId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
         method: 'DELETE',
         headers: {
@@ -106,7 +96,7 @@ const Dashboard = () => {
 
   const fetchRecentApprovals = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(API_ENDPOINTS.APPROVAL.RECENT, {
         headers: {
           'Authorization': token,
@@ -152,16 +142,14 @@ const Dashboard = () => {
 
   const fetchProjects = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const decodedToken = decodeToken(token);
-      const userId = decodedToken?.userId;
-
-      if (!userId) {
+      const token = getToken();
+      
+      if (!currentUserId) {
         console.error('User ID not found in token');
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/projects?userId=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/projects?userId=${currentUserId}`, {
         headers: {
           'Authorization': token
         }
@@ -195,7 +183,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchRecentPosts = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         const response = await fetch(`${API_BASE_URL}/posts/user/recent`, {
           headers: {
             'Authorization': token
@@ -214,6 +202,31 @@ const Dashboard = () => {
     fetchRecentPosts();
   }, []);
 
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = getToken();
+        const response = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('사용자 정보 조회에 실패했습니다.');
+        }
+
+        const data = await response.json();
+        setUserInfo(data.data);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
   return (
     <PageContainer>
       <Navbar 
@@ -221,6 +234,33 @@ const Dashboard = () => {
         handleMenuClick={handleMenuClick}
       />
       <MainContent>
+        {userInfo && (
+          <UserInfoSection>
+            <UserInfoCard>
+              <UserInfoHeader>
+                <UserAvatar>{userInfo.name[0]}</UserAvatar>
+                <UserInfo>
+                  <UserName>{userInfo.name}</UserName>
+                  <UserCompany>{userInfo.companyName}</UserCompany>
+                </UserInfo>
+              </UserInfoHeader>
+              <UserDetails>
+                <UserDetailItem>
+                  <DetailLabel>이메일</DetailLabel>
+                  <DetailValue>{userInfo.email}</DetailValue>
+                </UserDetailItem>
+                <UserDetailItem>
+                  <DetailLabel>연락처</DetailLabel>
+                  <DetailValue>{userInfo.phone}</DetailValue>
+                </UserDetailItem>
+                <UserDetailItem>
+                  <DetailLabel>직책</DetailLabel>
+                  <DetailValue>{userInfo.companyRole === 'ADMIN' ? '관리자' : '일반 사용자'}</DetailValue>
+                </UserDetailItem>
+              </UserDetails>
+            </UserInfoCard>
+          </UserInfoSection>
+        )}
         <TopSection>
           <Section flex={0.7}>
             <SectionTitle>마감 임박 프로젝트</SectionTitle>
@@ -522,6 +562,79 @@ const ActionButton = styled.button`
   &:hover {
     background: rgba(59, 130, 246, 0.1);
   }
+`;
+
+const UserInfoSection = styled.div`
+  margin-bottom: 24px;
+`;
+
+const UserInfoCard = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const UserInfoHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
+const UserAvatar = styled.div`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #2E7D32;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const UserName = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const UserCompany = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+`;
+
+const UserDetails = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+`;
+
+const UserDetailItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DetailLabel = styled.span`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const DetailValue = styled.span`
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
 `;
 
 export default Dashboard;

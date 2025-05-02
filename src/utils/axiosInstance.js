@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { getToken, setToken, removeToken, isTokenValid } from './tokenUtils';
 
 let globalNavigate = null;
 
@@ -23,12 +24,14 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true  // 쿠키 기반 인증을 위해 추가
 });
 
 // 요청 인터셉터
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // 토큰이 필요한 경우에만 Authorization 헤더 추가
+    const token = getToken();
     if (token) {
       config.headers.Authorization = token;
     }
@@ -61,42 +64,27 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        console.log('리프레시 토큰 존재 여부:', !!refreshToken);
-        
-        if (!refreshToken) {
-          console.log('리프레시 토큰이 없습니다.');
-          throw new Error('리프레시 토큰이 없습니다.');
-        }
-
-        console.log('토큰 갱신 요청 전송...');
         // 리프레시 토큰으로 새로운 액세스 토큰 요청
         const response = await axios.post(
           `${API_BASE_URL}/auth/refresh-token`,
-          { refreshToken: `${refreshToken}` },
+          {},
           {
-            headers: {
-              'Content-Type': 'application/json',
-            }
+            withCredentials: true  // 쿠키 기반 인증을 위해 추가
           }
         );
 
         console.log('토큰 갱신 성공:', response.data);
-        const { access_token, refresh_token } = response.data;
-        
-        // 새로운 토큰 저장
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('refreshToken', refresh_token);
-
-        // 실패한 요청의 헤더에 새로운 토큰 설정
-        originalRequest.headers.Authorization = access_token;
         
         // 실패한 요청 재시도
         console.log('원래 요청 재시도...');
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         console.error('토큰 갱신 실패:', refreshError);
-        // 토큰 갱신 실패 시 원래 에러를 그대로 전파
+        // 토큰 갱신 실패 시 로그아웃 처리
+        if (globalNavigate) {
+          globalNavigate('/login');
+        }
+        // 원래 에러를 그대로 전파
         return Promise.reject(error);
       }
     }

@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV } from 'react-icons/fa';
 import ApprovalProposal from './ApprovalProposal';
+import { useAuth } from '../hooks/useAuth';
+import { getToken } from '../utils/tokenUtils';
+import { API_ENDPOINTS } from '../config/api';
 
 // currentProgress 열거형 값과 단계 이름 매핑
 const PROGRESS_STAGE_MAP = {
@@ -295,10 +298,9 @@ const ProjectStageProgress = ({
   projectId,
   children
 }) => {
+  const { isAdmin, isClient } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
-  const [isClient, setIsClient] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [showMore, setShowMore] = useState(false);
   
@@ -389,33 +391,34 @@ const ProjectStageProgress = ({
   };
 
   const checkUserRole = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const isAdminUser = decodedToken.role === 'ADMIN';
-        const isClientUser = decodedToken.role === 'CUSTOMER';
-        setIsAdmin(isAdminUser);
-        setIsClient(isClientUser);
-        console.log(decodedToken.role);
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        setIsAdmin(false);
-        setIsClient(false);
-      }
-    }
+    // 이 함수는 더 이상 필요하지 않습니다. useAuth 훅에서 제공하는 값들을 사용합니다.
   };
 
   const handleIncreaseProgress = async () => {
-    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
+    if (isIncreasing) return;
     
     try {
-      setIsIncreasing(true); // 진행 중 상태로 설정
-      // ... 기존 코드 ...
+      setIsIncreasing(true);
+      const token = getToken();
+      const response = await fetch(`${API_ENDPOINTS}/projects/${projectId}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to increase progress');
+      }
+
+      const data = await response.json();
+      onIncreaseProgress(data.currentProgress);
     } catch (error) {
-      // ... 에러 처리 ...
+      console.error('Error increasing progress:', error);
+      alert('진행 단계 업데이트에 실패했습니다.');
     } finally {
-      setIsIncreasing(false); // 진행 중 상태 해제
+      setIsIncreasing(false);
     }
   };
 
@@ -645,7 +648,7 @@ const ProjectStageProgress = ({
             {(isAdmin==true || isClient==true) && 
               currentProgress === PROGRESS_STAGE_MAP[progressList[currentStageIndex]?.name] &&
               progressStatus.progressList.find(status => status.progressId === progressList[currentStageIndex]?.id)?.progressRate === 100 && (
-              <IncreaseProgressButton onClick={onIncreaseProgress}>
+              <IncreaseProgressButton onClick={handleIncreaseProgress}>
                 단계 승급
               </IncreaseProgressButton>
             )}

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api'; // Import API_ENDPOINTS
+import { useAuth } from '../hooks/useAuth';
+import { decodeJwt, getTokenFromCookie, validateToken, removeToken } from '../utils/tokenUtils';
 
 const LoginContainer = styled.div`
   display: flex;
@@ -90,7 +92,7 @@ const FeatureItem = styled.li`
   font-size: 16px;
   opacity: 0;
   animation: slideIn 0.5s ease-out forwards;
-  animation-delay: ${props => props.index * 0.2 + 0.5}s;
+  animation-delay: ${props => props.$index * 0.2 + 0.5}s;
   font-family: 'Nanum Gothic', sans-serif;
   letter-spacing: -0.3px;
   line-height: 1.6;
@@ -132,6 +134,7 @@ const FeatureIcon = styled.span`
 const LoginBox = styled.div`
   flex: 0.8;
   max-width: 400px;
+  width: 100%;
   padding: 60px;
   background-color: white;
   display: flex;
@@ -143,6 +146,7 @@ const LoginBox = styled.div`
   @media (max-width: 768px) {
     padding: 40px 20px;
     max-width: 100%;
+    width: 100%;
   }
 `;
 
@@ -196,16 +200,13 @@ const Input = styled.input`
   padding: 12px 16px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 15px;
-  color: #1e293b;
-  transition: all 0.2s;
-  background-color: #f8fafc;
+  font-size: 14px;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
     border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
-    background-color: white;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
   }
   
   &::placeholder {
@@ -420,62 +421,53 @@ const SubmitButton = styled.button`
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      console.error('Token decode error:', error);
-      return null;
-    }
-  };
+  // 컴포넌트 마운트 시 기존 사용자 로그아웃
+  useEffect(() => {
+    const logout = async () => {
+      try {
+        // 토큰이 있는 경우에만 로그아웃 API 호출
+        const token = localStorage.getItem('token');
+        if (token) {
+          await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ refreshToken: '' })
+          });
+        }
+      } catch (error) {
+        console.error('로그아웃 중 오류:', error);
+      } finally {
+        // 로컬 스토리지의 토큰 제거
+        removeToken();
+        localStorage.removeItem('refreshToken');
+      }
+    };
+
+    logout();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await fetch(API_ENDPOINTS.LOGIN, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('로그인 응답:', data);
+    setError('');
+    setIsLoading(true);
 
-        if (data.access_token) {
-          localStorage.setItem('token', data.access_token);
-          localStorage.setItem('refreshToken', data.refresh_token);
-          
-          // JWT 토큰 디코딩
-          const tokenPayload = JSON.parse(atob(data.access_token.split('.')[1]));
-          const userRole = tokenPayload.role;
-          
-          // 권한에 따라 다른 페이지로 이동
-          if (userRole === 'ADMIN') {
-            window.location.href = '/dashboard-admin';
-          } else {
-            window.location.href = '/dashboard';
-          }
-        } else {
-          alert('로그인에 실패했습니다. 다시 시도해주세요.');
-        }
-      } else {
-        alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
-      }
+    try {
+      await login({ email, password });
     } catch (error) {
-      console.error('Login error:', error);
-      alert('로그인 중 오류가 발생했습니다.');
+      setError(error.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -513,13 +505,13 @@ const Login = () => {
         <FeatureContent>
           <h2>비빔, 다채로운 소통의 한 그릇</h2>
           <FeatureList>
-            <FeatureItem index={0}>
+            <FeatureItem $index={0}>
               <div><span>개발사</span>팀과 함께 프로젝트를 계획하고, 추적하고, 완료하세요.</div>
             </FeatureItem>
-            <FeatureItem index={1}>
+            <FeatureItem $index={1}>
               <div><span>고객사</span>계약된 의뢰를 확인하고, 승인하고, 수정요청하세요.</div>
             </FeatureItem>
-            <FeatureItem index={2}>
+            <FeatureItem $index={2}>
               <div><span>관리자</span>프로젝트 진행 상황을 확인하고, 관리하세요.</div>
             </FeatureItem>
           </FeatureList>

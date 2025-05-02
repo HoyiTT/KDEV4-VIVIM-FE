@@ -9,6 +9,7 @@ import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, Fa
 import ProjectStageProgress from '../components/ProjectStage';
 import approvalUtils from '../utils/approvalStatus';
 import { ApprovalProposalStatus } from '../constants/enums';
+import axiosInstance from '../utils/axiosInstance';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -198,14 +199,8 @@ const ProjectDetail = () => {
 
   const fetchProjectProgress = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setProgressList(data.progressList);
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`);
+      setProgressList(response.data.progressList);
     } catch (error) {
       console.error('Error fetching progress:', error);
     }
@@ -213,14 +208,8 @@ const ProjectDetail = () => {
 
   const fetchProjectDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(id), {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setProject(data);
+      const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(id));
+      setProject(response.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching project:', error);
@@ -230,15 +219,8 @@ const ProjectDetail = () => {
 
   const fetchProjectPosts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setPosts(data);
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`);
+      setPosts(response.data);
     } catch (error) {
       console.error('Error fetching posts:', error);
     }

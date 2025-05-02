@@ -5,8 +5,11 @@ import { PieChart } from 'react-minimal-pie-chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
+import { useAuth } from '../hooks/useAuth';
+import { getAuthHeader } from '../utils/tokenUtils';
 
 const DashboardAdmin = () => {
+  const { user } = useAuth();
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
   const [summaryData, setSummaryData] = useState([
@@ -41,14 +44,13 @@ const DashboardAdmin = () => {
     setActiveMenuItem(menuItem);
   };
 
-  // 프로젝트 진행 현황 데이터 API 호출을 위한 useEffect 추가
   useEffect(() => {
     const fetchProjectStatusData = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/projects/dashboard/progress_count`, {
+          credentials: 'include',
           headers: {
-            'Authorization': token
+            'Accept': 'application/json'
           }
         });
         
@@ -71,7 +73,6 @@ const DashboardAdmin = () => {
     fetchProjectStatusData();
   }, []);
 
-  // chartData useMemo는 그대로 유지 (projectStatusData가 변경될 때마다 재계산)
   const chartData = useMemo(() => {
     const total = projectStatusData.reduce((sum, item) => sum + item.count, 0);
     return projectStatusData.map(item => ({
@@ -80,15 +81,13 @@ const DashboardAdmin = () => {
     }));
   }, [projectStatusData]);
 
-  
-
   useEffect(() => {
     const fetchRecentPosts = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/posts/admin/recent`, {
+          credentials: 'include',
           headers: {
-            'Authorization': token
+            'Accept': 'application/json'
           }
         });
         
@@ -105,24 +104,23 @@ const DashboardAdmin = () => {
     fetchRecentPosts();
   }, []);
 
-  // API 호출을 위한 useEffect 추가
   useEffect(() => {
     const fetchSummaryData = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/projects/dashboard/inspection_count`, {
+          credentials: 'include',
           headers: {
-            'Authorization': token
+            'Accept': 'application/json'
           }
         });
         
         if (!response.ok) throw new Error('Failed to fetch summary data');
         const data = await response.json();
-        console.log('Summary data response:', data); // 전체 응답 데이터 로깅
+        console.log('Summary data response:', data);
         console.log('Progress count:', data.progressCount);
         console.log('Inspection count:', data.inspectionCount);
         console.log('Completed count:', data.completedCount);
-        console.log('All keys:', Object.keys(data)); // 응답 데이터의 모든 키 확인
+        console.log('All keys:', Object.keys(data));
         
         setSummaryData([
           { title: '계약중인 프로젝트', value: data.progressCount || 0 },
@@ -142,14 +140,13 @@ const DashboardAdmin = () => {
     fetchSummaryData();
   }, []);
 
-  // 매출 데이터 API 호출을 위한 useEffect 추가
   useEffect(() => {
     const fetchRevenueData = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/projects/dashboard/project_fee`, {
+          credentials: 'include',
           headers: {
-            'Authorization': token
+            'Accept': 'application/json'
           }
         });
         
@@ -174,16 +171,15 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchInquiries = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/admininquiry`, {
+          credentials: 'include',
           headers: {
-            'Authorization': token
+            'Accept': 'application/json'
           }
         });
 
         if (response.ok) {
           const data = await response.json();
-          // 최신순으로 정렬하고 상위 4개만 표시
           const sortedData = data
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
             .slice(0, 4);
@@ -209,29 +205,26 @@ const DashboardAdmin = () => {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/projects/all`, {
+        credentials: 'include',
         headers: {
-          'Authorization': token
+          'Accept': 'application/json'
         }
       });
       
       if (!response.ok) throw new Error('Failed to fetch projects');
       const data = await response.json();
       
-      // 프로젝트 상태 로깅 추가
       console.log('All projects:', data);
       console.log('Project statuses:', data.map(p => p.projectStatus));
       console.log('Completed projects:', data.filter(p => p.projectStatus === 'COMPLETED'));
       
-      // 제목에 따라 프로젝트 필터링
       const filteredProjects = title === '계약중인 프로젝트'
         ? data.filter(project => project.projectStatus === 'PROGRESS')
         : title === '검수중인 프로젝트'
         ? data.filter(project => project.projectStatus === 'INSPECTION')
         : data.filter(project => project.projectStatus === 'COMPLETED');
       
-      // 필터링 결과 로깅
       console.log('Filtered projects for title:', title);
       console.log('Filtered projects:', filteredProjects);
       console.log('Filtered projects count:', filteredProjects.length);
@@ -246,6 +239,10 @@ const DashboardAdmin = () => {
     }
   };
 
+  if (user) {
+    console.log('Current User Role:', user.role);
+  }
+
   return (
     <PageContainer>
       <Navbar 
@@ -256,7 +253,7 @@ const DashboardAdmin = () => {
         <TopSection>
           <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', width: '100%' }}>
             <SummarySection>
-              <ProjectSummaryTitle>프로젝트 진행 현황 요약</ProjectSummaryTitle>
+              <ProjectSummaryTitle>프로젝트 진행현황 요약</ProjectSummaryTitle>
               <SummaryGrid>
                 {summaryData.map((item, index) => (
                   <SummaryCard 
@@ -692,7 +689,6 @@ const InquiryTitle = styled.span`
   flex: 1;
   margin-right: 16px;
   
-  // 길어질 경우 말줄임표 처리
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -747,7 +743,6 @@ const CompanyInfo = styled.span`
   font-weight: 500;
   color: #64748b;
   
-  // 회사명과 작성자 사이의 구분점 스타일
   & > span {
     color: #94a3b8;
     margin: 0 6px;
