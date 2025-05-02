@@ -358,7 +358,7 @@ const ProjectModify = () => {
     .then(data => {
       console.log('Success:', data);
       // Navigate back to dashboard on success
-      navigate('/admin-projects');
+      navigate('/dashboard');
     })
     .catch(error => {
       console.error('Error:', error);
@@ -701,11 +701,12 @@ const ProjectModify = () => {
                     <SelectedCompanyInfo>
                       <CompanyName>{selectedClientCompany.name}</CompanyName>
                       <CompanyDetails>
-                        {/* <DetailItem>
-                          <span>담당자: {clientManagers.length}명</span>
+                        <DetailItem>
+                          {/* <span>담당자: {clientManagers.length}명</span>
                         </DetailItem>
                         <DetailItem>
                           <span>일반 사용자: {clientUsers.length}명</span> */}
+                        </DetailItem>
                       </CompanyDetails>
                       <ButtonGroup>
                         <EditButton 
@@ -1028,15 +1029,13 @@ const MainContent = styled.div`
   padding: 24px;
   overflow-y: auto;
   margin-top: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
-  width: 100%;
-  max-width: 800px;
 `;
 
 const PageTitle = styled.h1`
@@ -1049,10 +1048,8 @@ const PageTitle = styled.h1`
 const FormSection = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 32px;
+  padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  width: 100%;
-  max-width: 800px;
 `;
 
 const Form = styled.form`
@@ -1146,28 +1143,18 @@ const CancelButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: white;
+  padding: 12px 24px;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 8px;
+  background-color: #2E7D32;
+  color: white;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #2563eb;
+    background-color: #1B5E20;
   }
 `;
 
