@@ -63,11 +63,17 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       await logoutRequest();
-    } catch (_) {
-      // ignore
+    } catch (error) {
+      console.error('로그아웃 중 오류 발생:', error);
+    } finally {
+      // API 호출 성공 여부와 관계없이 토큰 제거 및 상태 초기화
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      setIsAuthenticated(false);
+      setUser(null);
+      setIsAdmin(false);
+      navigate('/login', { replace: true });
     }
-    setIsAuthenticated(false);
-    navigate('/login', { replace: true });
   };
 
   useEffect(() => {

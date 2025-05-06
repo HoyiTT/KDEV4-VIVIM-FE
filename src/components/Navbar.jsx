@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
-  const { isAdmin, user, handleLogout } = useAuth();
+  const { isAdmin, user, logout } = useAuth();
   const [userInfo, setUserInfo] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -99,7 +99,7 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
             </UserInfo>
           )}
 
-          <LogoutButton onClick={handleLogout}>
+          <LogoutButton onClick={logout}>
             로그아웃
           </LogoutButton>
         </UserSection>
