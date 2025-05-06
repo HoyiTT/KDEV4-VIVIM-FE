@@ -23,6 +23,58 @@ const PROGRESS_STAGE_MAP = {
   'COMPLETED': '완료'
 };
 
+const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: ${props => {
+    switch (props.$status) {
+      case ApprovalProposalStatus.DRAFT:
+        return 'rgba(75, 85, 99, 0.08)';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return 'rgba(30, 64, 175, 0.08)';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return 'rgba(4, 120, 87, 0.08)';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return 'rgba(185, 28, 28, 0.08)';
+      default:
+        return 'rgba(75, 85, 99, 0.08)';
+    }
+  }};
+  color: ${props => {
+    switch (props.$status) {
+      case ApprovalProposalStatus.DRAFT:
+        return '#4B5563';
+      case ApprovalProposalStatus.UNDER_REVIEW:
+        return '#1E40AF';
+      case ApprovalProposalStatus.FINAL_APPROVED:
+        return '#047857';
+      case ApprovalProposalStatus.FINAL_REJECTED:
+        return '#B91C1C';
+      default:
+        return '#4B5563';
+    }
+  }};
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+`;
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -185,22 +237,19 @@ const ProjectDetail = () => {
         };
     }
   };
-  const RoleTag = styled.span`
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  background-color: ${props => getRoleColor(props.role).background};
-  border: 1px solid ${props => getRoleColor(props.role).border};
-  color: ${props => getRoleColor(props.role).text};
-  display: inline-block;
-  line-height: 1.4;
-`;
 
   const fetchProjectProgress = async () => {
     try {
       const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`);
-      setProgressList(response.data.progressList);
+      console.log('Progress 조회 응답:', response.data);
+      
+      // 새로 추가된 단계의 isCompleted 값을 false로 설정
+      const updatedProgressList = response.data.progressList.map(progress => ({
+        ...progress,
+        isCompleted: progress.isCompleted && progress.id !== response.data.progressList[response.data.progressList.length - 1]?.id
+      }));
+      
+      setProgressList(updatedProgressList);
     } catch (error) {
       console.error('Error fetching progress:', error);
     }
@@ -242,7 +291,6 @@ const ProjectDetail = () => {
           setIsAdmin(isAdminUser);
           setIsClient(isClientUser);
           setIsDeveloperManager(isDeveloperManagerUser);
-          console.log(decodedToken.role);
         } catch (error) {
           console.error('Error decoding token:', error);
           setIsAdmin(false);
@@ -299,35 +347,10 @@ const ProjectDetail = () => {
   // 승인 상태 요약 정보 조회 함수 추가
   const fetchStatusSummary = async (approvalId) => {
     try {
-      const token = localStorage.getItem('token');
-      console.log("승인요청 상태 요약 조회 시작:", approvalId);
-      
-      const response = await fetch(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(approvalId), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 상태 요약 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
-      console.log("승인요청 상태 요약 데이터:", data);
-      
-      // 주요 상태 정보 로그 출력
-      console.log(`총 승인권자: ${data.totalApproverCount}명`);
-      console.log(`승인 완료: ${data.approvedApproverCount}명`);
-      console.log(`반려: ${data.modificationRequestedApproverCount}명`);
-      console.log(`대기중: ${data.waitingApproverCount}명`);
-      console.log(`요청전: ${data.beforeRequestCount}명`);
-      console.log(`최종 상태: ${getApprovalStatusText(data.proposalStatus)}`);
-      
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(approvalId));
       setStatusSummary(data);
     } catch (error) {
       console.error('Error fetching status summary:', error);
-      // 요약 정보는 실패해도 전체 페이지에 영향 없음
     }
   };
 
@@ -360,20 +383,14 @@ const ProjectDetail = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: stageName,
-          position: progressList.length + 1
-        })
+      const response = await axiosInstance.post(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
+        name: stageName,
+        position: progressList.length + 1,
+        isCompleted: false
       });
       
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
+        console.log('Progress 추가 응답:', response.data); // 응답 데이터 로깅
         alert('진행 단계가 추가되었습니다.');
         fetchProjectProgress();
         setShowStageModal(false);
@@ -395,21 +412,13 @@ const ProjectDetail = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: stageName,
-          position: editingStage.position
-        })
+      const response = await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
+        name: stageName,
+        position: editingStage.position
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         // 응답 데이터 확인
         console.log('Progress 수정 응답:', data);
         
@@ -428,9 +437,7 @@ const ProjectDetail = () => {
         setStageName('');
         setEditingStage(null);
       } else {
-        const errorData = await response.json();
-        console.error('Progress 수정 실패:', errorData);
-        alert(errorData.message || '진행 단계 수정에 실패했습니다.');
+        alert(response.data.message || '진행 단계 수정에 실패했습니다.');
       }
     } catch (error) {
       console.error('Error editing stage:', error);
@@ -444,15 +451,9 @@ const ProjectDetail = () => {
     
     if (window.confirm('정말로 이 진행 단계를 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token
-          }
-        });
+        const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`);
         
-        if (response.ok) {
+        if (response.status === 200) {
           alert('진행 단계가 삭제되었습니다.');
           fetchProjectProgress();
           setShowStageModal(false);
@@ -483,19 +484,19 @@ const ProjectDetail = () => {
   // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('승인요청 목록 조회에 실패했습니다.');
+      // 프로젝트 상세 정보가 없으면 조회하지 않음
+      if (!project) {
+        console.log('프로젝트 정보가 없어 승인요청 목록을 조회하지 않습니다.');
+        return;
       }
-      
-      const data = await response.json();
-      console.log('승인요청 목록:', data);
+
+      // 사용자 권한 확인
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('승인요청 목록 조회 권한이 없습니다.');
+        return;
+      }
+
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`);
       setApprovalRequests(data);
       
       // 승인요청 상태가 변경되면 진행률 다시 조회
@@ -503,43 +504,20 @@ const ProjectDetail = () => {
         fetchProjectOverallProgress(),
         fetchProgressStatus()
       ]);
-      
-      // 현재 단계의 승인요청 상태 로그 출력
-      const currentStage = progressList[currentStageIndex];
-      if (currentStage) {
-        const stageStatus = progressStatus.progressList.find(
-          status => status.progressId === currentStage.id
-        );
-        console.log('현재 단계 승인요청 상태:', {
-          stageName: currentStage.name,
-          progressRate: stageStatus?.progressRate,
-          approvedCount: stageStatus?.approvedApprovalCount,
-          totalCount: stageStatus?.totalApprovalCount,
-          isCompleted: stageStatus?.isCompleted
-        });
-      }
     } catch (error) {
       console.error('승인요청 목록 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('승인요청 목록 조회 권한이 없습니다.');
+      }
+      // 에러 발생 시 빈 배열로 설정
+      setApprovalRequests([]);
     }
   };
   
   // 프로젝트 진행률 조회
   const fetchProjectOverallProgress = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('프로젝트 진행률 조회에 실패했습니다.');
-      }
-      
-      const data = await response.json();
-      console.log('프로젝트 진행률 데이터:', data);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`);
       
       // 현재 단계의 승인요청들을 필터링
       const currentStageApprovals = approvalRequests.filter(
@@ -578,20 +556,7 @@ const ProjectDetail = () => {
   // 프로젝트 단계별 승인요청 진척도 조회
   const fetchProgressStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`, {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('단계별 진척도 조회에 실패했습니다.');
-      }
-      
-      const data = await response.json();
-      console.log('단계별 진척도:', data);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`);
 
       // 각 단계의 완료 여부는 단계 승급 버튼을 눌러야만 설정되도록 수정
       const updatedProgressList = data.progressList.map(progress => ({
@@ -636,18 +601,7 @@ const ProjectDetail = () => {
     
     try {
       setIsIncreasing(true); // 진행 중 상태로 설정
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('단계 승급에 실패했습니다.');
-      }
+      await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`);
 
       // 승급 후 데이터 새로고침 순서 변경
       await Promise.all([
@@ -841,7 +795,7 @@ const ProjectDetail = () => {
                                       {post.creatorName}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      <RoleTag role={post.creatorRole}>{translateRole(post.creatorRole)}</RoleTag>
+                                      {translateRole(post.creatorRole)}
                                     </BoardCell>
                                     <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
                                       {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
@@ -886,7 +840,7 @@ const ProjectDetail = () => {
               <InfoItem>
                 <InfoLabel>상태</InfoLabel>
                 <InfoValue>
-                  <StatusBadge status={selectedProposal.approvalProposalStatus}>
+                  <StatusBadge $status={selectedProposal.approvalProposalStatus}>
                     {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && <FaEdit />}
                     {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.UNDER_REVIEW && <FaClock />}
                     {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED && <FaCheck />}
@@ -950,7 +904,7 @@ const ProjectDetail = () => {
           
           <ModalSection>
             <h4>상태</h4>
-            <StatusBadge status={selectedApproval.status}>
+            <StatusBadge $status={selectedApproval.status}>
               {getApprovalStatusText(selectedApproval.status)}
             </StatusBadge>
           </ModalSection>
@@ -1139,58 +1093,6 @@ const InfoValue = styled.span`
   font-size: 16px;
   color: #1e293b;
   font-weight: 500;
-`;
-
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  background-color: ${props => {
-    switch (props.status) {
-      case ApprovalProposalStatus.DRAFT:
-        return 'rgba(75, 85, 99, 0.08)';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return 'rgba(30, 64, 175, 0.08)';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return 'rgba(4, 120, 87, 0.08)';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return 'rgba(185, 28, 28, 0.08)';
-      default:
-        return 'rgba(75, 85, 99, 0.08)';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case ApprovalProposalStatus.DRAFT:
-        return '#4B5563';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return '#1E40AF';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return '#047857';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return '#B91C1C';
-      default:
-        return '#4B5563';
-    }
-  }};
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  svg {
-    font-size: 14px;
-    opacity: 0.9;
-  }
 `;
 
 const ReplyButton = styled.button`

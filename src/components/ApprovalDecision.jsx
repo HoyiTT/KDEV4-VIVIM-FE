@@ -360,7 +360,7 @@ const ResponseStatus = styled.div`
   }
   
   ${props => {
-    const status = props.status;
+    const status = props.$status;
     switch (status) {
       case ApprovalDecisionStatus.APPROVED:
         return `

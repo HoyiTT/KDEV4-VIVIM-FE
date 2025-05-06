@@ -377,16 +377,6 @@ const ProjectStageProgress = ({
       (Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) > 
        Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(Object.keys(REVERSE_PROGRESS_STAGE_MAP).find(key => REVERSE_PROGRESS_STAGE_MAP[key] === stage.name)));
     
-    // 디버깅을 위한 로그 출력
-    console.log('현재 단계 정보:', {
-      stageName: stage.name,
-      currentProgress,
-      currentStageName,
-      isCurrent,
-      isCompleted,
-      stageStatus
-    });
-    
     return { isCurrent, isCompleted };
   };
 
@@ -499,16 +489,6 @@ const ProjectStageProgress = ({
             const { isCurrent, isCompleted } = getCurrentStageStatus(stage, index);
             const isViewing = index === currentStageIndex;
             
-            // 디버깅을 위한 로그 출력
-            console.log('단계 렌더링 정보:', {
-              stageName: stage.name,
-              index,
-              isCurrent,
-              isCompleted,
-              isViewing,
-              currentStageIndex
-            });
-            
             return (
               <StageProgressItem 
                 key={stage.id}
@@ -551,15 +531,6 @@ const ProjectStageProgress = ({
                 {(() => {
                   const currentStage = progressList[currentStageIndex];
                   const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
-                  
-                  // 디버깅을 위한 로그 추가
-                  console.log('현재 단계 상태 정보:', {
-                    stageName: currentStage?.name,
-                    isCompleted,
-                    isCurrent,
-                    currentProgress,
-                    currentStageName: REVERSE_PROGRESS_STAGE_MAP[currentProgress]
-                  });
                   
                   if (isCompleted) {
                     return <small style={{ color: '#16a34a' }}>완료</small>;
@@ -625,14 +596,6 @@ const ProjectStageProgress = ({
                 {Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) + 1}/{Object.keys(REVERSE_PROGRESS_STAGE_MAP).length} 단계
               </small>
             </ProgressInfoValue>
-            {/* 전체 진행률 계산 과정 로그 출력 */}
-            {console.log('전체 진행률 계산 정보:', {
-              currentProgress,
-              totalStages: Object.keys(REVERSE_PROGRESS_STAGE_MAP).length,
-              currentStageIndex: Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress),
-              calculatedProgress: Math.round((Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) / (Object.keys(REVERSE_PROGRESS_STAGE_MAP).length - 1)) * 100),
-              projectProgress
-            })}
             {(isAdmin==true || isClient==true) && 
               currentProgress === PROGRESS_STAGE_MAP[progressList[currentStageIndex]?.name] &&
               progressStatus.progressList.find(status => status.progressId === progressList[currentStageIndex]?.id)?.progressRate === 100 && (
