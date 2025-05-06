@@ -43,11 +43,6 @@ const AuditLog = () => {
 
       const response = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
 
-      if (response.status === 401) {
-        alert('로그인이 필요합니다.');
-        return;
-      }
-
       const data = response.data;
       setLogs(data.content);
       setTotalPages(data.totalPages);
