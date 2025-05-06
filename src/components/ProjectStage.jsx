@@ -3,8 +3,8 @@ import styled from 'styled-components';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV } from 'react-icons/fa';
 import ApprovalProposal from './ApprovalProposal';
 import { useAuth } from '../hooks/useAuth';
-import { getToken } from '../utils/tokenUtils';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 // currentProgress 열거형 값과 단계 이름 매핑
 const PROGRESS_STAGE_MAP = {
@@ -395,32 +395,20 @@ const ProjectStageProgress = ({
   };
 
   const handleIncreaseProgress = async () => {
-    if (isIncreasing) return;
-    
-    try {
-      setIsIncreasing(true);
-      const token = getToken();
-      const response = await fetch(`${API_ENDPOINTS}/projects/${projectId}/progress`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to increase progress');
+      if (isIncreasing) return;
+      try {
+        setIsIncreasing(true);
+        const { data } = await axiosInstance.put(
+           API_ENDPOINTS.PROJECT_PROGRESS(projectId)
+        );
+        onIncreaseProgress(data.currentProgress);
+      } catch (error) {
+          console.error('단계 승급 에러:', error);
+          alert('진행 단계 업데이트에 실패했습니다.');
+      } finally {
+          setIsIncreasing(false);
       }
-
-      const data = await response.json();
-      onIncreaseProgress(data.currentProgress);
-    } catch (error) {
-      console.error('Error increasing progress:', error);
-      alert('진행 단계 업데이트에 실패했습니다.');
-    } finally {
-      setIsIncreasing(false);
-    }
-  };
+      };
 
   // 데이터 로딩 상태 체크
   const isLoading = !progressList || progressList.length === 0 || !progressStatus || !progressStatus.progressList;

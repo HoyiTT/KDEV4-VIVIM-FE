@@ -24,15 +24,9 @@ import AdminInquiry from './pages/AdminInquiry';
 import AdminInquiryList from './pages/AdminInquiryList';
 import AdminInquiryDetail from './pages/AdminInquiryDetail';
 import AdminInquiryEdit from './pages/AdminInquiryEdit';
-import { setNavigate } from './utils/axiosInstance';
 
 const AppContent = () => {
   const navigate = useNavigate();
-
-  // axiosInstance에 navigate 함수 설정
-  React.useEffect(() => {
-    setNavigate(navigate);
-  }, [navigate]);
 
   return (
     <Routes>

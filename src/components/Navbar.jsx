@@ -4,77 +4,47 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
-import { getToken, removeToken } from '../utils/tokenUtils';
 
 const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   const navigate = useNavigate();
-  const { isAdmin, userId, user } = useAuth();
+  const { isAdmin, user, handleLogout } = useAuth();
   const [userInfo, setUserInfo] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // 로그인 한 사용자의 상세 정보 가져오기
   useEffect(() => {
-    const fetchUserInfo = async () => {
+    if (!user?.id) return;
+    (async () => {
       try {
-        const response = await axiosInstance.get(`${API_ENDPOINTS.USERS}/${userId}`);
-        setUserInfo(response.data.data);
-      } catch (error) {
-        console.error('사용자 정보 조회 실패:', error);
+        const { data } = await axiosInstance.get(
+          `${API_ENDPOINTS.USERS}/${user.id}`
+        );
+        setUserInfo(data.data);
+      } catch (e) {
+        console.error('사용자 정보 조회 실패:', e);
       }
-    };
-
-    if (userId) {
-      fetchUserInfo();
-    }
-  }, [userId]);
+    })();
+  }, [user]);
 
   const menuItems = [
-    { name: '대시보드', path: '/dashboard-admin' },
-    {
-      name: '프로젝트 관리',
-      path: isAdmin ? '/admin-projects' : '/project-list',
-      showFor: 'all'
-    },
-    { name: '회사 관리', path: '/company-management', showFor: 'admin' },
-    { name: '사용자 관리', path: '/user-management', showFor: 'admin' },
-    {
-      name: '관리자 문의',
-      path: isAdmin ? '/admin-inquiry-list' : '/admin-inquiry-list',
-      showFor: 'all'
-    },
-    { name: '히스토리', path: '/audit-log', showFor: 'admin' },
+    { name: '대시보드',        path: isAdmin ? '/dashboard-admin' : '/dashboard',  showFor: 'all' },
+    { name: '프로젝트 관리',  path: isAdmin ? '/admin-projects'  : '/project-list', showFor: 'all' },
+    { name: '회사 관리',      path: '/company-management',  showFor: 'admin' },
+    { name: '사용자 관리',    path: '/user-management',     showFor: 'admin' },
+    { name: '관리자 문의',    path: '/admin-inquiry-list',  showFor: 'all' },
+    { name: '히스토리',      path: '/audit-log',           showFor: 'admin' },
   ];
 
-  const filteredMenuItems = menuItems.filter(item =>
-    item.showFor === 'all' ||
-    (isAdmin && item.showFor === 'admin')
+  // isAdmin이거나 showFor==='all'인 메뉴만 노출
+  const filteredMenu = menuItems.filter(
+    item => item.showFor === 'all' || (isAdmin && item.showFor === 'admin')
   );
 
-  const handleLogout = async () => {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      await axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT, { refreshToken });
-
-      // 토큰 제거
-      removeToken();
-      localStorage.removeItem('refreshToken');
-
-      // 로그인 페이지로 이동
-      navigate('/');
-    } catch (error) {
-      console.error('로그아웃 실패:', error);
-      // 에러가 발생해도 토큰은 제거하고 로그인 페이지로 이동
-      removeToken();
-      localStorage.removeItem('refreshToken');
-      navigate('/');
-    }
-  };
-
-  const handleClick = (menuItem) => {
-    if (handleMenuClick) {
-      handleMenuClick(menuItem.name);
-    }
-    navigate(menuItem.path);
+  const onClickItem = item => {
+    handleMenuClick?.(item.name);
+    navigate(item.path);
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -84,20 +54,26 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
           <LogoContainer onClick={() => navigate(isAdmin ? '/dashboard-admin' : '/dashboard')}>
             <LogoImage src="/logo_only.png" alt="Vivim Logo" />
           </LogoContainer>
+
+          <HamburgerMenu onClick={() => setIsMobileMenuOpen(v => !v)}>
+            <span/><span/><span/>
+          </HamburgerMenu>
+
           <NavList isMobile={isMobileMenuOpen}>
-            {filteredMenuItems.map((item) => (
+            {filteredMenu.map(item => (
               <NavItem
                 key={item.name}
                 active={activeMenuItem === item.name}
-                onClick={() => handleClick(item)}
+                onClick={() => onClickItem(item)}
               >
                 {item.name}
               </NavItem>
             ))}
           </NavList>
         </LeftSection>
+
         <UserSection>
-          <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
+          <NotificationIcon onClick={() => setShowNotifications(v => !v)}>
             <BellImage src="/bell.png" alt="notifications" />
           </NotificationIcon>
           {showNotifications && (
@@ -106,20 +82,23 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
               <NotificationEmpty>최근 알림이 없습니다</NotificationEmpty>
             </NotificationPanel>
           )}
+
           {userInfo && (
             <UserInfo>
-              <UserName onClick={() => navigate(`/user-edit/${userId}`)}>
+              <UserName onClick={() => navigate(`/user-edit/${userInfo.id}`)}>
                 {userInfo.name}
               </UserName>
               <CompanyInfo>
-                {userInfo.companyName} · {
-                  userInfo.companyRole === 'CUSTOMER' ? '고객사' : 
-                  userInfo.companyRole === 'DEVELOPER' ? '개발사' : 
-                  userInfo.companyRole === 'ADMIN' ? '관리자' : ''
-                }
+                {userInfo.companyName} ·{' '}
+                {{
+                  CUSTOMER: '고객사',
+                  DEVELOPER: '개발사',
+                  ADMIN: '관리자'
+                }[userInfo.companyRole]}
               </CompanyInfo>
             </UserInfo>
           )}
+
           <LogoutButton onClick={handleLogout}>
             로그아웃
           </LogoutButton>
@@ -129,10 +108,9 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
   );
 };
 
-// Update NavbarContainer
+export default Navbar;
 
 
-// Add HamburgerMenu component
 const HamburgerMenu = styled.div`
   display: none;
   flex-direction: column;
@@ -384,8 +362,6 @@ const LogoutButton = styled.button`
     border-color: #ccc;
   }
 `;
-
-export default Navbar;
 
 // Add these new styled components
 const BellImage = styled.img`

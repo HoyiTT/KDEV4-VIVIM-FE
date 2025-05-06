@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 
 export const useAuth = () => {
@@ -11,7 +12,6 @@ export const useAuth = () => {
   const location = useLocation();
 
   const checkAuthStatus = async () => {
-    // 로그인 페이지에서는 인증 상태 확인을 건너뜁니다
     if (location.pathname === '/login') {
       setIsLoading(false);
       setIsAuthenticated(false);
@@ -140,20 +140,9 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
+      await axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT);
     } catch (error) {
       console.error('로그아웃 중 오류:', error);
-    } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      navigate('/login');
     }
   };
 
