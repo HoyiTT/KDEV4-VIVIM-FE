@@ -23,8 +23,44 @@ const DashboardAdmin = () => {
   const navigate = useNavigate();
 
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
-  const [recentPosts, setRecentPosts] = useState([]);
-  const [recentUsers, setRecentUsers] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([
+    {
+      id: 1,
+      title: '프로젝트 요구사항 정의서 작성',
+      status: 'IN_PROGRESS',
+      createdAt: '2024-03-15',
+      projectId: 1
+    },
+    {
+      id: 2,
+      title: 'UI/UX 디자인 가이드라인',
+      status: 'COMPLETED',
+      createdAt: '2024-03-14',
+      projectId: 2
+    },
+    {
+      id: 3,
+      title: '데이터베이스 스키마 설계',
+      status: 'IN_PROGRESS',
+      createdAt: '2024-03-13',
+      projectId: 3
+    },
+    {
+      id: 4,
+      title: 'API 문서 작성',
+      status: 'ON_HOLD',
+      createdAt: '2024-03-12',
+      projectId: 4
+    },
+    {
+      id: 5,
+      title: '테스트 계획서 검토',
+      status: 'IN_PROGRESS',
+      createdAt: '2024-03-11',
+      projectId: 5
+    }
+  ]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [stats, setStats] = useState({
     totalProjects: 0,
     projectChange: 0,
@@ -47,13 +83,32 @@ const DashboardAdmin = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [revenueData, setRevenueData] = useState({
+    labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
+    datasets: [
+      {
+        label: '프로젝트 금액',
+        data: [15000000, 25000000, 18000000, 30000000, 22000000],
+        borderColor: '#2E7D32',
+        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#2E7D32',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ],
+  });
+  const [recentProposals, setRecentProposals] = useState([]);
 
   // 차트 데이터
   const projectStatusData = {
     labels: ['계약중', '검수중', '완료'],
     datasets: [
       {
-        data: [8, 5, 15],
+        data: [0, 0, 0],
         backgroundColor: [
           '#2E7D32',
           '#FFA000',
@@ -77,25 +132,6 @@ const DashboardAdmin = () => {
         data: [3, 4, 6, 4, 5, 7],
         backgroundColor: '#66BB6A',
       },
-    ],
-  };
-
-  const revenueData = {
-    labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
-    datasets: [
-      {
-        label: '프로젝트 금액',
-        data: [15000000, 25000000, 18000000, 30000000, 22000000],
-        borderColor: '#2E7D32',
-        backgroundColor: 'rgba(46, 125, 50, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#2E7D32',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }
     ],
   };
 
@@ -237,78 +273,82 @@ const DashboardAdmin = () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/progress_count');
         console.log('Project status data:', data);
-      } catch (error) {
-        console.error('Error fetching project status data:', error);
-      }
-    };
-    fetchProjectStatusData();
-  }, []);
-
-  const chartData = useMemo(() => {
-    const total = projectStatusData.datasets[0].data.reduce((sum, value) => sum + value, 0);
-    return projectStatusData.datasets[0].data.map((value, index) => ({
-      label: projectStatusData.labels[index],
-      value: total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0,
-      color: projectStatusData.datasets[0].backgroundColor[index]
-    }));
-  }, [projectStatusData]);
-
-  useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        const { data } = await axiosInstance.get('/posts/admin/recent');
-        setRecentPosts(data);
-      } catch (error) {
-        console.error('Error fetching recent posts:', error);
-        setRecentPosts([]);
-      }
-    };
-    fetchRecentPosts();
-  }, []);
-
-  useEffect(() => {
-    const fetchSummaryData = async () => {
-      try {
-        const { data } = await axiosInstance.get('/projects/dashboard/inspection_count');
+        // 프로젝트 현황 데이터 업데이트
         setSummaryData([
           { title: '계약중인 프로젝트', value: data.progressCount || 0 },
           { title: '검수중인 프로젝트', value: data.inspectionCount || 0 },
           { title: '완료된 프로젝트', value: data.completedCount || 0 }
         ]);
       } catch (error) {
-        console.error('Error fetching summary data:', error);
-        setSummaryData([
-          { title: '계약중인 프로젝트', value: 0 },
-          { title: '검수중인 프로젝트', value: 0 },
-          { title: '완료된 프로젝트', value: 0 }
-        ]);
+        console.error('Error fetching project status data:', error);
       }
     };
-    fetchSummaryData();
-  }, []);
 
-  useEffect(() => {
     const fetchRevenueData = async () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/project_fee');
         console.log('Revenue data:', data);
+        // 수익 데이터 업데이트
+        const revenueData = {
+          labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
+          datasets: [
+            {
+              label: '프로젝트 금액',
+              data: [
+                data.week1 || 0,
+                data.week2 || 0,
+                data.week3 || 0,
+                data.week4 || 0,
+                data.week5 || 0
+              ],
+              borderColor: '#2E7D32',
+              backgroundColor: 'rgba(46, 125, 50, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#2E7D32',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ],
+        };
+        // setRevenueData(revenueData); // API 데이터 대신 더미 데이터 사용
       } catch (error) {
         console.error('Error fetching revenue data:', error);
       }
     };
+
+    fetchProjectStatusData();
     fetchRevenueData();
   }, []);
 
   useEffect(() => {
-    const fetchInquiries = async () => {
+    const fetchRecentPosts = async () => {
       try {
-        const { data } = await axiosInstance.get('/admininquiry');
-        setAdminInquiries(data);
+        const { data } = await axiosInstance.get('/posts/admin/recent');
+        // setRecentPosts(data); // API 데이터 대신 더미 데이터 사용
       } catch (error) {
-        console.error('Error fetching inquiries:', error);
+        console.error('Error fetching recent posts:', error);
+        // setRecentPosts([]); // 에러 시에도 더미 데이터 유지
       }
     };
-    fetchInquiries();
+    fetchRecentPosts();
+  }, []);
+
+  useEffect(() => {
+    const fetchAdminInquiries = async () => {
+      try {
+        const { data } = await axiosInstance.get('/admininquiry');
+        console.log('Admin inquiries data:', data);
+        setAdminInquiries(data);
+      } catch (error) {
+        console.error('Error fetching admin inquiries:', error);
+        setAdminInquiries([]);
+      }
+    };
+
+    fetchAdminInquiries();
   }, []);
 
   useEffect(() => {
@@ -330,15 +370,6 @@ const DashboardAdmin = () => {
       }
     };
 
-    const fetchRecentProjects = async () => {
-      try {
-        const { data } = await axiosInstance.get('/projects/recent');
-        setRecentProjects(data);
-      } catch (error) {
-        console.error('Error fetching recent projects:', error);
-      }
-    };
-
     const fetchRecentInquiries = async () => {
       try {
         const { data } = await axiosInstance.get('/admininquiry/recent', {
@@ -352,22 +383,22 @@ const DashboardAdmin = () => {
     };
 
     fetchStats();
-    fetchRecentProjects();
     fetchRecentInquiries();
   }, []);
 
   useEffect(() => {
-    const fetchRecentUsers = async () => {
+    const fetchRecentProposals = async () => {
       try {
-        const { data } = await axiosInstance.get('/users/recent');
-        setRecentUsers(data);
+        const { data } = await axiosInstance.get('/proposals/recent');
+        console.log('Recent proposals data:', data);
+        setRecentProposals(data.approvalList || []);
       } catch (error) {
-        console.error('Error fetching recent users:', error);
-        setRecentUsers([]);
+        console.error('Error fetching recent proposals:', error);
+        setRecentProposals([]);
       }
     };
 
-    fetchRecentUsers();
+    fetchRecentProposals();
   }, []);
 
   const handlePostClick = (postId, projectId) => {
@@ -473,21 +504,75 @@ const DashboardAdmin = () => {
             </CardHeader>
             <CardContent>
               <InquiryList>
-                {adminInquiries.slice(0, 5).map((inquiry) => (
-                  <NoticeItem key={inquiry.id} onClick={() => handleInquiryClick(inquiry.id)}>
-                    <NoticeInfo>
-                      <NoticeTitle>{inquiry.title}</NoticeTitle>
-                      <NoticeMeta>
-                        <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
-                        <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
-                      </NoticeMeta>
+                {adminInquiries.length > 0 ? (
+                  adminInquiries.slice(0, 5).map((inquiry) => (
+                    <NoticeItem key={inquiry.id} onClick={() => handleInquiryClick(inquiry.id)}>
+                      <NoticeInfo>
+                        <NoticeTitle>{inquiry.title}</NoticeTitle>
+                        <NoticeMeta>
+                          <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
+                          <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
+                        </NoticeMeta>
+                      </NoticeInfo>
                       <NoticeStatus status={inquiry.inquiryStatus}>
                         {getInquiryStatusText(inquiry.inquiryStatus)}
                       </NoticeStatus>
-                    </NoticeInfo>
-                  </NoticeItem>
-                ))}
+                    </NoticeItem>
+                  ))
+                ) : (
+                  <EmptyMessage>관리자 문의가 없습니다.</EmptyMessage>
+                )}
               </InquiryList>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Card>
+            <CardTitle>최근 게시물</CardTitle>
+            <CardContent>
+              <PostList>
+                {recentPosts.length > 0 ? (
+                  recentPosts.map((post) => (
+                    <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
+                      <PostInfo>
+                        <PostTitle>{post.title}</PostTitle>
+                        <PostMeta>
+                          <PostDate>{formatDate(post.createdAt)}</PostDate>
+                        </PostMeta>
+                      </PostInfo>
+                      <PostStatus status={post.status}>
+                        {getStatusText(post.status)}
+                      </PostStatus>
+                    </PostItem>
+                  ))
+                ) : (
+                  <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
+                )}
+              </PostList>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardTitle>최근 승인요청</CardTitle>
+            <CardContent>
+              <ProjectList>
+                {recentProposals.length > 0 ? (
+                  recentProposals.map((proposal) => (
+                    <ProjectItem key={proposal.id} onClick={() => handleInquiryClick(proposal.id)}>
+                      <ProjectInfo>
+                        <ProjectName>{proposal.title}</ProjectName>
+                        <ProjectDate>{formatDate(proposal.createdAt)}</ProjectDate>
+                      </ProjectInfo>
+                      <ProjectStatus status={proposal.approvalProposalStatus}>
+                        {getInquiryStatusText(proposal.approvalProposalStatus)}
+                      </ProjectStatus>
+                    </ProjectItem>
+                  ))
+                ) : (
+                  <EmptyMessage>최근 승인요청이 없습니다.</EmptyMessage>
+                )}
+              </ProjectList>
             </CardContent>
           </Card>
         </div>
@@ -507,48 +592,6 @@ const DashboardAdmin = () => {
             </ProjectStatsGrid>
           </ProjectStatsContent>
         </ProjectStatsCard>
-
-        <Card>
-          <CardTitle>최근 게시물</CardTitle>
-          <CardContent>
-            <PostList>
-              {recentPosts.length > 0 ? (
-                recentPosts.map((post) => (
-                  <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
-                    <PostInfo>
-                      <PostTitle>{post.title}</PostTitle>
-                      <PostStatus status={post.status}>
-                        {getStatusText(post.status)}
-                      </PostStatus>
-                    </PostInfo>
-                    <PostDate>{formatDate(post.createdAt)}</PostDate>
-                  </PostItem>
-                ))
-              ) : (
-                <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
-              )}
-            </PostList>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitle>최근 승인요청</CardTitle>
-          <CardContent>
-            <ProjectList>
-              {recentProjects.map((project) => (
-                <ProjectItem key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
-                  <ProjectInfo>
-                    <ProjectName>{project.name}</ProjectName>
-                    <ProjectStatus status={project.status}>
-                      {getStatusText(project.status)}
-                    </ProjectStatus>
-                  </ProjectInfo>
-                  <ProjectDate>{formatDate(project.createdAt)}</ProjectDate>
-                </ProjectItem>
-              ))}
-            </ProjectList>
-          </CardContent>
-        </Card>
       </ContentWrapper>
 
       {showModal && (
@@ -768,113 +811,57 @@ const InquirySection = styled.div`
 const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0 8px 0 0;
-  flex: 1;
-  justify-content: flex-start;
-`;
-
-const ProjectList = styled.div`
-  display: flex;
-  flex-direction: column;
   gap: 16px;
 `;
 
-const InquiryItem = styled.div`
+const NoticeItem = styled.div`
   display: flex;
-  flex-direction: column;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
 
   &:hover {
-    background: #ffffff;
-    border-color: #cbd5e1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    background-color: #f8fafc;
   }
 `;
 
-const ProjectItem = styled.div`
+const NoticeInfo = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #ffffff;
-    border-color: #cbd5e1;
-    transform: translateY(-1px);
-  }
+  gap: 4px;
 `;
 
-const InquiryInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const ProjectInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const InquiryItemTitle = styled.div`
-  font-size: 16px;
-  font-weight: 600;
+const NoticeTitle = styled.div`
+  font-size: 13px;
+  font-weight: 500;
   color: #1e293b;
   line-height: 1.4;
 `;
 
-const ProjectName = styled.div`
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const InquiryMeta = styled.div`
+const NoticeMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 11px;
   color: #64748b;
 `;
 
-const ProjectMeta = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #64748b;
-`;
-
-const InquiryCreator = styled.div`
+const NoticeCreator = styled.div`
   font-weight: 500;
   color: #475569;
 `;
 
-const ProjectCompany = styled.div`
-  font-weight: 500;
-  color: #475569;
-`;
-
-const ProjectDeadline = styled.div`
+const NoticeDate = styled.div`
   color: #94a3b8;
 `;
 
-const InquiryDate = styled.div``;
-
-const InquiryStatus = styled.div`
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 20px;
+const NoticeStatus = styled.div`
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
   display: inline-block;
   font-weight: 500;
   background: ${props => {
@@ -897,14 +884,48 @@ const InquiryStatus = styled.div`
   }};
 `;
 
-const ProjectStatus = styled.div`
+const ProjectList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const ProjectItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const ProjectInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ProjectName = styled.div`
   font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 20px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+`;
+
+const ProjectStatus = styled.div`
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
   display: inline-block;
   font-weight: 500;
   background: ${props => {
     switch (props.status) {
+      case 'PENDING': return '#fff7ed';
       case 'IN_PROGRESS': return '#e8f5e9';
       case 'COMPLETED': return '#f1f5f9';
       case 'ON_HOLD': return '#fff7ed';
@@ -913,12 +934,18 @@ const ProjectStatus = styled.div`
   }};
   color: ${props => {
     switch (props.status) {
+      case 'PENDING': return '#c2410c';
       case 'IN_PROGRESS': return '#2E7D32';
       case 'COMPLETED': return '#64748b';
       case 'ON_HOLD': return '#c2410c';
       default: return '#64748b';
     }
   }};
+`;
+
+const ProjectDate = styled.div`
+  font-size: 11px;
+  color: #94a3b8;
 `;
 
 const ModalOverlay = styled.div`
@@ -968,11 +995,6 @@ const ModalBody = styled.div`
   padding: 16px;
   overflow-y: auto;
   flex: 1;
-`;
-
-const ProjectDate = styled.div`
-  font-size: 13px;
-  color: #94a3b8;
 `;
 
 const ChartGrid = styled.div`
@@ -1035,15 +1057,30 @@ const PostInfo = styled.div`
 `;
 
 const PostTitle = styled.div`
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: #1e293b;
+  line-height: 1.4;
+`;
+
+const PostMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #64748b;
+`;
+
+const PostDate = styled.div`
+  color: #94a3b8;
 `;
 
 const PostStatus = styled.div`
-  font-size: 13px;
-  padding: 4px 12px;
+  font-size: 11px;
+  padding: 4px 8px;
   border-radius: 12px;
+  display: inline-block;
+  font-weight: 500;
   background: ${props => {
     switch (props.status) {
       case 'IN_PROGRESS': return '#e8f5e9';
@@ -1060,11 +1097,6 @@ const PostStatus = styled.div`
       default: return '#64748b';
     }
   }};
-`;
-
-const PostDate = styled.div`
-  font-size: 13px;
-  color: #94a3b8;
 `;
 
 const NoticeInquiryGrid = styled.div`
@@ -1083,77 +1115,6 @@ const NoticeList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-`;
-
-const NoticeItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-
-  &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-  }
-`;
-
-const NoticeInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const NoticeTitle = styled.div`
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-  line-height: 1.4;
-`;
-
-const NoticeMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: #64748b;
-`;
-
-const NoticeCreator = styled.div`
-  font-weight: 500;
-  color: #475569;
-`;
-
-const NoticeDate = styled.div`
-  color: #94a3b8;
-`;
-
-const NoticeStatus = styled.div`
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: inline-block;
-  font-weight: 500;
-  background: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#fff7ed';
-      case 'IN_PROGRESS': return '#e8f5e9';
-      case 'COMPLETED': return '#f1f5f9';
-      case 'ON_HOLD': return '#fff7ed';
-      default: return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#c2410c';
-      case 'IN_PROGRESS': return '#2E7D32';
-      case 'COMPLETED': return '#64748b';
-      case 'ON_HOLD': return '#c2410c';
-      default: return '#64748b';
-    }
-  }};
 `;
 
 const ViewAllButton = styled.button`
