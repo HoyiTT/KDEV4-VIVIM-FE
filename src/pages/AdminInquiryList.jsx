@@ -4,30 +4,20 @@ import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [inquiries, setInquiries] = useState([]);
-  
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      console.error('Token decode error:', error);
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-  
+  const isAdmin = user?.companyRole === 'ADMIN';
   const [activeMenuItem, setActiveMenuItem] = useState(isAdmin ? '관리자 문의' : '내 문의 내역');
 
   const fetchInquiries = async () => {
     try {
       const { data } = await axiosInstance.get(
-        isAdmin ? API_ENDPOINTS.ADMIN_INQUIRY_LIST : API_ENDPOINTS.USER_INQUIRY_LIST
+        isAdmin ? API_ENDPOINTS.ADMIN_INQUIRY_LIST : API_ENDPOINTS.USER_INQUIRY_LIST,
+        { withCredentials: true }
       );
       const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setInquiries(sortedData);
@@ -40,7 +30,7 @@ const AdminInquiryList = () => {
   // 문의 내역 조회
   useEffect(() => {
     fetchInquiries();
-  }, [isAdmin, token]);
+  }, [isAdmin]);
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -50,7 +40,7 @@ const AdminInquiryList = () => {
     if (!window.confirm('정말로 삭제하시겠습니까?')) return;
 
     try {
-      await axiosInstance.delete(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
+      await axiosInstance.delete(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), { withCredentials: true });
       alert('삭제되었습니다.');
       fetchInquiries();
     } catch (error) {

@@ -12,6 +12,7 @@ const UserProjectList = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('프로젝트 관리');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -21,16 +22,23 @@ const UserProjectList = () => {
 
   const fetchProjects = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const { data } = await axiosInstance.get(
-        `${API_ENDPOINTS.PROJECTS}?userId=${user.id}`,
+        API_ENDPOINTS.USER_PROJECTS(user.id),
         {
-          withCredentials: true
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
       );
       setProjects(data);
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching projects:', error);
+      setError('프로젝트 목록을 불러오는데 실패했습니다.');
+      setProjects([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -54,54 +62,66 @@ const UserProjectList = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <PageContainer>
+        <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+        <MainContent>
+          <LoadingMessage>프로젝트 목록을 불러오는 중...</LoadingMessage>
+        </MainContent>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+        <MainContent>
+          <ErrorMessage>{error}</ErrorMessage>
+          <RetryButton onClick={fetchProjects}>다시 시도</RetryButton>
+        </MainContent>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
+      <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
       <MainContent>
         <Header>
-          <PageTitle>내 프로젝트</PageTitle>
+          <PageTitle>프로젝트 목록</PageTitle>
         </Header>
-
-        {loading ? (
-          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-        ) : (
-          <ProjectTable>
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>프로젝트명</TableHeaderCell>
-                <TableHeaderCell>내 역할</TableHeaderCell>
-                <TableHeaderCell>관리</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project.projectId}>
-                  <TableCell 
-                    onClick={() => navigate(`/project/${project.projectId}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {project.name}
-                  </TableCell>
-                  <TableCell>
-                    <RoleBadge>
-                      {getRoleBadgeText(project.myRole)}
-                    </RoleBadge>
-                  </TableCell>
-                  <TableCell>
-                    <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/project/${project.projectId}`)}>
-                        상세보기
-                      </ActionButton>
-                    </ActionButtonContainer>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </ProjectTable>
-        )}
+        <ProjectGrid>
+          {projects.map((project) => (
+            <ProjectCard key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
+              <ProjectTitle>{project.title}</ProjectTitle>
+              <ProjectInfo>
+                <InfoLabel>상태:</InfoLabel>
+                <StatusBadge status={project.status}>
+                  {project.status === 'IN_PROGRESS' ? '진행중' :
+                   project.status === 'COMPLETED' ? '완료' : '대기중'}
+                </StatusBadge>
+              </ProjectInfo>
+              <ProjectInfo>
+                <InfoLabel>역할:</InfoLabel>
+                <RoleBadge>{getRoleBadgeText(project.role)}</RoleBadge>
+              </ProjectInfo>
+              <ProjectInfo>
+                <InfoLabel>시작일:</InfoLabel>
+                <InfoValue>
+                  {new Date(project.startDate).toLocaleDateString('ko-KR')}
+                </InfoValue>
+              </ProjectInfo>
+              <ProjectInfo>
+                <InfoLabel>종료일:</InfoLabel>
+                <InfoValue>
+                  {new Date(project.endDate).toLocaleDateString('ko-KR')}
+                </InfoValue>
+              </ProjectInfo>
+            </ProjectCard>
+          ))}
+        </ProjectGrid>
       </MainContent>
     </PageContainer>
   );
@@ -111,112 +131,140 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f8fafc;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
+const MainContent = styled.main`
+  padding: 32px;
   margin-top: 60px;
-  max-width: 1280px;
+  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
 `;
 
 const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 `;
 
 const PageTitle = styled.h1`
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
   color: #1e293b;
   margin: 0;
 `;
 
-const ProjectTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+const ProjectGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+`;
+
+const ProjectCard = styled.div`
   background: white;
   border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const TableHeader = styled.thead`
-  background: #f8fafc;
-`;
-
-const TableRow = styled.tr`
-  transition: background 0.2s;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 `;
 
-const TableHeaderCell = styled.th`
-  padding: 16px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
+const ProjectTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
 `;
 
-const TableBody = styled.tbody``;
+const ProjectInfo = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+`;
 
-const TableCell = styled.td`
-  padding: 16px;
+const InfoLabel = styled.span`
+  font-size: 14px;
+  color: #64748b;
+  width: 60px;
+`;
+
+const InfoValue = styled.span`
   font-size: 14px;
   color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
 `;
 
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const ActionButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #4F6AFF;
-  border: 1px solid #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(79, 106, 255, 0.1);
-  }
+const StatusBadge = styled.span`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  ${props => {
+    switch (props.status) {
+      case 'IN_PROGRESS':
+        return `
+          background: #EFF6FF;
+          color: #2563EB;
+        `;
+      case 'COMPLETED':
+        return `
+          background: #F0FDF4;
+          color: #15803D;
+        `;
+      default:
+        return `
+          background: #F3F4F6;
+          color: #4B5563;
+        `;
+    }
+  }}
 `;
 
 const RoleBadge = styled.span`
   display: inline-block;
-  padding: 6px 10px;
-  background: rgba(79, 106, 255, 0.1);
-  color: #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 500;
+  background: #F5F3FF;
+  color: #7C3AED;
 `;
 
 const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
+  text-align: center;
+  padding: 40px;
   color: #64748b;
+  font-size: 16px;
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #ef4444;
+  font-size: 16px;
+`;
+
+const RetryButton = styled.button`
+  display: block;
+  margin: 16px auto;
+  padding: 8px 16px;
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1b5e20;
+  }
 `;
 
 export default UserProjectList;
