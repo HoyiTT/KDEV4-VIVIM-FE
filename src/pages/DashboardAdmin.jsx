@@ -1,20 +1,22 @@
 // src/pages/DashboardAdmin.jsx
 import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
-import Navbar from '../components/Navbar';
-import { PieChart } from 'react-minimal-pie-chart';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
+import { Doughnut, Bar, Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title
+} from 'chart.js';
 
 const DashboardAdmin = () => {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ const DashboardAdmin = () => {
 
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
   const [stats, setStats] = useState({
     totalProjects: 0,
     projectChange: 0,
@@ -39,26 +42,161 @@ const DashboardAdmin = () => {
     { title: '검수중인 프로젝트', value: 0 },
     { title: '완료된 프로젝트', value: 0 }
   ]);
-  const [revenueData, setRevenueData] = useState([
-    { name: '1주차', amount: 0 },
-    { name: '2주차', amount: 0 },
-    { name: '3주차', amount: 0 },
-    { name: '4주차', amount: 0 },
-    { name: '5주차', amount: 0 }
-  ]);
-  const [projectStatusData, setProjectStatusData] = useState([
-    { title: '요구사항정의', count: 0, color: '#FFD572' },
-    { title: '화면설계', count: 0, color: '#B785DB' },
-    { title: '디자인', count: 0, color: '#647ACB' },
-    { title: '개발', count: 0, color: '#7BC86C' },
-    { title: '배포', count: 0, color: '#8E6DA6' },
-    { title: '검수', count: 0, color: '#FF8A65' }
-  ]);
   const [adminInquiries, setAdminInquiries] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // 차트 데이터
+  const projectStatusData = {
+    labels: ['계약중', '검수중', '완료'],
+    datasets: [
+      {
+        data: [8, 5, 15],
+        backgroundColor: [
+          '#2E7D32',
+          '#FFA000',
+          '#43A047'
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const monthlyStatsData = {
+    labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
+    datasets: [
+      {
+        label: '신규 프로젝트',
+        data: [4, 6, 8, 5, 7, 9],
+        backgroundColor: '#2E7D32',
+      },
+      {
+        label: '완료 프로젝트',
+        data: [3, 4, 6, 4, 5, 7],
+        backgroundColor: '#66BB6A',
+      },
+    ],
+  };
+
+  const revenueData = {
+    labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
+    datasets: [
+      {
+        label: '프로젝트 금액',
+        data: [15000000, 25000000, 18000000, 30000000, 22000000],
+        borderColor: '#2E7D32',
+        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#2E7D32',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ],
+  };
+
+  // 차트 옵션
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        align: 'start',
+        labels: {
+          boxWidth: 10,
+          padding: 10,
+          font: {
+            size: 11
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value}개 (${percentage}%)`;
+          }
+        }
+      }
+    },
+    cutout: '70%',
+  };
+
+  const formatCurrency = (value) => {
+    if (value >= 100000000) {
+      return `${(value / 100000000).toFixed(1)}억원`;
+    } else if (value >= 10000) {
+      return `${(value / 10000).toFixed(0)}만원`;
+    } else {
+      return `${value.toLocaleString()}원`;
+    }
+  };
+
+  const barOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return formatCurrency(value);
+          }
+        }
+      },
+    },
+  };
+
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return formatCurrency(value);
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        }
+      }
+    },
+    elements: {
+      line: {
+        tension: 0.4
+      }
+    }
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ko-KR').replace(/\. /g, '.').slice(0, -1);
@@ -98,14 +236,7 @@ const DashboardAdmin = () => {
     const fetchProjectStatusData = async () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/progress_count');
-        setProjectStatusData([
-          { title: '요구사항정의', count: data.requirementCount, color: '#FFD572' },
-          { title: '화면설계', count: data.wireframeCount, color: '#B785DB' },
-          { title: '디자인', count: data.designCount, color: '#647ACB' },
-          { title: '개발', count: data.developCount, color: '#7BC86C' },
-          { title: '배포', count: data.publishCount, color: '#8E6DA6' },
-          { title: '검수', count: data.inspectionCount, color: '#FF8A65' }
-        ]);
+        console.log('Project status data:', data);
       } catch (error) {
         console.error('Error fetching project status data:', error);
       }
@@ -114,10 +245,11 @@ const DashboardAdmin = () => {
   }, []);
 
   const chartData = useMemo(() => {
-    const total = projectStatusData.reduce((sum, item) => sum + item.count, 0);
-    return projectStatusData.map(item => ({
-      ...item,
-      value: total > 0 ? Number(((item.count / total) * 100).toFixed(1)) : 0
+    const total = projectStatusData.datasets[0].data.reduce((sum, value) => sum + value, 0);
+    return projectStatusData.datasets[0].data.map((value, index) => ({
+      label: projectStatusData.labels[index],
+      value: total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0,
+      color: projectStatusData.datasets[0].backgroundColor[index]
     }));
   }, [projectStatusData]);
 
@@ -159,13 +291,7 @@ const DashboardAdmin = () => {
     const fetchRevenueData = async () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/project_fee');
-        setRevenueData([
-          { name: '1주차', amount: data.week1 },
-          { name: '2주차', amount: data.week2 },
-          { name: '3주차', amount: data.week3 },
-          { name: '4주차', amount: data.week4 },
-          { name: '5주차', amount: data.week5 }
-        ]);
+        console.log('Revenue data:', data);
       } catch (error) {
         console.error('Error fetching revenue data:', error);
       }
@@ -177,10 +303,7 @@ const DashboardAdmin = () => {
     const fetchInquiries = async () => {
       try {
         const { data } = await axiosInstance.get('/admininquiry');
-        const sorted = data
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 4);
-        setAdminInquiries(sorted);
+        setAdminInquiries(data);
       } catch (error) {
         console.error('Error fetching inquiries:', error);
       }
@@ -224,12 +347,27 @@ const DashboardAdmin = () => {
         setRecentInquiries(data);
       } catch (error) {
         console.error('Error fetching recent inquiries:', error);
+        setRecentInquiries([]);
       }
     };
 
     fetchStats();
     fetchRecentProjects();
     fetchRecentInquiries();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecentUsers = async () => {
+      try {
+        const { data } = await axiosInstance.get('/users/recent');
+        setRecentUsers(data);
+      } catch (error) {
+        console.error('Error fetching recent users:', error);
+        setRecentUsers([]);
+      }
+    };
+
+    fetchRecentUsers();
   }, []);
 
   const handlePostClick = (postId, projectId) => {
@@ -258,102 +396,185 @@ const DashboardAdmin = () => {
 
   return (
     <PageContainer>
-      <Navbar />
-      <MainContent>
-        <TopSection>
-          <StatCard>
-            <StatTitle>총 프로젝트</StatTitle>
-            <StatValue>{stats.totalProjects}</StatValue>
-            <StatChange isPositive={stats.projectChange > 0}>
-              {stats.projectChange > 0 ? '↑' : '↓'} {Math.abs(stats.projectChange)}%
-            </StatChange>
-          </StatCard>
-          <StatCard>
-            <StatTitle>진행 중인 프로젝트</StatTitle>
-            <StatValue>{stats.activeProjects}</StatValue>
-            <StatChange isPositive={stats.activeChange > 0}>
-              {stats.activeChange > 0 ? '↑' : '↓'} {Math.abs(stats.activeChange)}%
-            </StatChange>
-          </StatCard>
-          <StatCard>
-            <StatTitle>완료된 프로젝트</StatTitle>
-            <StatValue>{stats.completedProjects}</StatValue>
-            <StatChange isPositive={stats.completedChange > 0}>
-              {stats.completedChange > 0 ? '↑' : '↓'} {Math.abs(stats.completedChange)}%
-            </StatChange>
-          </StatCard>
-          <StatCard>
-            <StatTitle>대기 중인 문의</StatTitle>
-            <StatValue>{stats.pendingInquiries}</StatValue>
-            <StatChange isPositive={stats.inquiryChange > 0}>
-              {stats.inquiryChange > 0 ? '↑' : '↓'} {Math.abs(stats.inquiryChange)}%
-            </StatChange>
-          </StatCard>
-        </TopSection>
+      <ContentWrapper>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Card>
+              <CardTitle>시스템 현황</CardTitle>
+              <CardContent>
+                <StatsGrid>
+                  <StatItem>
+                    <StatLabel>계약한 프로젝트</StatLabel>
+                    <StatValue>20</StatValue>
+                  </StatItem>
+                  <StatItem>
+                    <StatLabel>검수한 프로젝트</StatLabel>
+                    <StatValue>1</StatValue>
+                  </StatItem>
+                  <StatItem>
+                    <StatLabel>검수중인 프로젝트</StatLabel>
+                    <StatValue>1</StatValue>
+                  </StatItem>
+                </StatsGrid>
+              </CardContent>
+            </Card>
 
-        <ProjectSummaryCard>
-          <ProjectSummaryTitle>프로젝트 진행 현황</ProjectSummaryTitle>
-          <ProjectList>
-            {recentProjects.map(project => (
-              <ProjectCard key={project.id}>
-                <ProjectHeader>
-                  <ProjectTitle>{project.name}</ProjectTitle>
-                  <ProjectStatus status={project.status}>
-                    {getStatusText(project.status)}
-                  </ProjectStatus>
-                </ProjectHeader>
-                <ProjectInfo>
-                  <InfoRow>
-                    <InfoLabel>고객사</InfoLabel>
-                    <InfoValue>{project.customerName}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>시작일</InfoLabel>
-                    <InfoValue>{formatDate(project.startDate)}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>종료일</InfoLabel>
-                    <InfoValue>{formatDate(project.endDate)}</InfoValue>
-                  </InfoRow>
-                  <InfoRow>
-                    <InfoLabel>진행률</InfoLabel>
-                    <InfoValue>{project.progress}%</InfoValue>
-                  </InfoRow>
-                  <ProgressBar>
-                    <Progress style={{ width: `${project.progress}%` }} />
-                  </ProgressBar>
-                </ProjectInfo>
-              </ProjectCard>
-            ))}
-          </ProjectList>
-        </ProjectSummaryCard>
+            <Card>
+              <CardTitle>프로젝트 현황</CardTitle>
+              <CardContent>
+                <DoughnutChartSection>
+                  <Doughnut 
+                    data={{
+                      labels: [
+                        '요구사항정의',
+                        '화면설계',
+                        '디자인',
+                        '개발',
+                        '배포',
+                        '검수',
+                        '완료'
+                      ],
+                      datasets: [{
+                        data: [8, 5, 12, 15, 7, 10, 20],
+                        backgroundColor: [
+                          '#FFD572',  // 요구사항정의
+                          '#B785DB',  // 화면설계
+                          '#647ACB',  // 디자인
+                          '#7BC86C',  // 개발
+                          '#8E6DA6',  // 배포
+                          '#FF8A65',  // 검수
+                          '#43A047'   // 완료
+                        ],
+                        borderWidth: 0,
+                      }]
+                    }} 
+                    options={doughnutOptions}
+                  />
+                </DoughnutChartSection>
+              </CardContent>
+            </Card>
+          </div>
 
-        <RecentInquiriesCard>
-          <SectionTitle>최근 문의사항</SectionTitle>
-          <InquiryList>
-            {recentInquiries.map(inquiry => (
-              <InquiryItem key={inquiry.id}>
-                <InquiryInfo>
-                  <InquiryTitle>{inquiry.title}</InquiryTitle>
-                  <InquiryMeta>
-                    <span>{inquiry.customerName}</span>
-                    <span>•</span>
-                    <span>{formatDate(inquiry.createdAt)}</span>
-                  </InquiryMeta>
-                </InquiryInfo>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <InquiryStatus status={inquiry.status}>
-                    {getInquiryStatusText(inquiry.status)}
-                  </InquiryStatus>
-                  <ViewButton onClick={() => navigate(`/admin-inquiry-detail/${inquiry.id}`)}>
-                    상세보기
-                  </ViewButton>
-                </div>
-              </InquiryItem>
-            ))}
-          </InquiryList>
-        </RecentInquiriesCard>
-      </MainContent>
+          <Card>
+            <CardTitle>관리자 문의 목록</CardTitle>
+            <CardContent>
+              <InquiryList>
+                {adminInquiries.map((inquiry) => (
+                  <NoticeItem key={inquiry.id}>
+                    <NoticeInfo>
+                      <NoticeTitle>{inquiry.title}</NoticeTitle>
+                      <NoticeMeta>
+                        <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
+                        <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
+                      </NoticeMeta>
+                      <NoticeStatus status={inquiry.inquiryStatus}>
+                        {getInquiryStatusText(inquiry.inquiryStatus)}
+                      </NoticeStatus>
+                    </NoticeInfo>
+                  </NoticeItem>
+                ))}
+              </InquiryList>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardTitle>프로젝트 통계</CardTitle>
+          <CardContent noPadding>
+            <ChartGrid>
+              <ChartSection>
+                <ChartTitle>월별 프로젝트 통계</ChartTitle>
+                <Bar data={monthlyStatsData} options={barOptions} />
+              </ChartSection>
+              <ChartSection>
+                <ChartTitle>프로젝트 금액 통계</ChartTitle>
+                <Line data={revenueData} options={lineOptions} />
+              </ChartSection>
+            </ChartGrid>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardTitle>공지사항 및 관리자 문의</CardTitle>
+          <CardContent>
+            <NoticeInquiryGrid>
+              <NoticeSection>
+                <NoticeList>
+                  {recentPosts.slice(0, 5).map((post) => (
+                    <NoticeItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
+                      <NoticeInfo>
+                        <NoticeTitle>{post.title}</NoticeTitle>
+                        <NoticeMeta>
+                          <NoticeDate>{formatDate(post.createdAt)}</NoticeDate>
+                        </NoticeMeta>
+                        <NoticeStatus status={post.status}>
+                          {getStatusText(post.status)}
+                        </NoticeStatus>
+                      </NoticeInfo>
+                    </NoticeItem>
+                  ))}
+                </NoticeList>
+              </NoticeSection>
+              <InquirySection>
+                <InquiryList>
+                  {adminInquiries.map((inquiry) => (
+                    <NoticeItem key={inquiry.id}>
+                      <NoticeInfo>
+                        <NoticeTitle>{inquiry.title}</NoticeTitle>
+                        <NoticeMeta>
+                          <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
+                          <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
+                        </NoticeMeta>
+                        <NoticeStatus status={inquiry.inquiryStatus}>
+                          {getInquiryStatusText(inquiry.inquiryStatus)}
+                        </NoticeStatus>
+                      </NoticeInfo>
+                    </NoticeItem>
+                  ))}
+                </InquiryList>
+              </InquirySection>
+            </NoticeInquiryGrid>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardTitle>최근 게시물</CardTitle>
+          <CardContent>
+            <PostList>
+              {recentPosts.map((post) => (
+                <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
+                  <PostInfo>
+                    <PostTitle>{post.title}</PostTitle>
+                    <PostStatus status={post.status}>
+                      {getStatusText(post.status)}
+                    </PostStatus>
+                  </PostInfo>
+                  <PostDate>{formatDate(post.createdAt)}</PostDate>
+                </PostItem>
+              ))}
+            </PostList>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardTitle>최근 승인요청</CardTitle>
+          <CardContent>
+            <ProjectList>
+              {recentProjects.map((project) => (
+                <ProjectItem key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
+                  <ProjectInfo>
+                    <ProjectName>{project.name}</ProjectName>
+                    <ProjectStatus status={project.status}>
+                      {getStatusText(project.status)}
+                    </ProjectStatus>
+                  </ProjectInfo>
+                  <ProjectDate>{formatDate(project.createdAt)}</ProjectDate>
+                </ProjectItem>
+              ))}
+            </ProjectList>
+          </CardContent>
+        </Card>
+      </ContentWrapper>
 
       {showModal && (
         <ModalOverlay onClick={() => setShowModal(false)}>
@@ -372,13 +593,13 @@ const DashboardAdmin = () => {
                     onClick={() => navigate(`/project/${proj.projectId}`)}
                   >
                     <ProjectName>{proj.name}</ProjectName>
-                    <ProjectItemInfo>
+                    <ProjectInfo>
                       <CompanyName>{proj.companyName}</CompanyName>
                       <ProjectDate>
                         {new Date(proj.startDate).toLocaleDateString('ko-KR')} ~{' '}
                         {new Date(proj.endDate).toLocaleDateString('ko-KR')}
                       </ProjectDate>
-                    </ProjectItemInfo>
+                    </ProjectInfo>
                   </ProjectItem>
                 ))
               ) : (
@@ -392,176 +613,340 @@ const DashboardAdmin = () => {
   );
 };
 
-// Styled components definitions
-
 const PageContainer = styled.div`
-  min-height: 100vh;
-  background: #f8fafc;
-  padding: 120px 32px 32px 272px;
-
-  @media (max-width: 1200px) {
-    padding: 120px 32px 32px 272px;
-  }
-
-  @media (max-width: 850px) {
-    padding: 100px 32px 32px 32px;
-  }
+  flex: 1;
 `;
 
-const MainContent = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 16px;
-  box-sizing: border-box;
-
-  @media (max-width: 600px) {
-    padding: 0 8px;
-  }
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 100%;
 `;
 
-const TopSection = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 32px;
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-`;
-
-const StatCard = styled.div`
+const Card = styled.div`
   background: white;
-  padding: 24px;
+  padding: 20px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+`;
+
+const CardTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+`;
+
+const CardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: ${props => props.noPadding ? '0' : '20px'};
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     border-color: #cbd5e1;
   }
 `;
 
-const StatTitle = styled.div`
-  font-size: 14px;
+const StatLabel = styled.div`
+  font-size: 12px;
   color: #64748b;
-  margin-bottom: 8px;
   font-weight: 500;
 `;
 
 const StatValue = styled.div`
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 4px;
+  line-height: 1.2;
 `;
 
-const StatChange = styled.div`
+const SystemStatusGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+  height: 320px;
+`;
+
+const StatsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const AdminInquirySection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+`;
+
+const AdminInquiryTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+`;
+
+const DoughnutChartSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 350px;
+  height: 320px;
+  margin: 0 auto;
+  position: relative;
+`;
+
+const ChartSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+`;
+
+const ChartTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 16px;
+  text-align: center;
+`;
+
+const UserList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const UserItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const UserName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+`;
+
+const UserEmail = styled.div`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const UserDate = styled.div`
   font-size: 13px;
-  color: ${props => props.isPositive ? '#2E7D32' : '#dc2626'};
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  color: #94a3b8;
 `;
 
-const SectionTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 24px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+const InquiryProjectGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 32px;
+`;
 
-  &::before {
-    content: '';
-    display: block;
+const InquirySection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ProjectSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+`;
+
+const InquiryList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+
+  &::-webkit-scrollbar {
     width: 4px;
-    height: 18px;
-    background: #2E7D32;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
     border-radius: 2px;
   }
-`;
 
-const ProjectSummaryCard = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  margin-bottom: 32px;
-`;
-
-const ProjectSummaryTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 24px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &::before {
-    content: '';
-    display: block;
-    width: 4px;
-    height: 18px;
-    background: #2E7D32;
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
     border-radius: 2px;
   }
 `;
 
 const ProjectList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
 
-  @media (max-width: 1200px) {
-    grid-template-columns: 1fr;
+const InquiryItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   }
 `;
 
-const ProjectCard = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+const ProjectItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
     border-color: #cbd5e1;
+    transform: translateY(-1px);
   }
 `;
 
-const ProjectHeader = styled.div`
+const InquiryInfo = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 12px;
 `;
 
-const ProjectTitle = styled.h4`
+const ProjectInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const InquiryItemTitle = styled.div`
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0;
+  line-height: 1.4;
+`;
+
+const ProjectName = styled.div`
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+`;
+
+const InquiryMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+`;
+
+const ProjectMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #64748b;
+`;
+
+const InquiryCreator = styled.div`
+  font-weight: 500;
+  color: #475569;
+`;
+
+const ProjectCompany = styled.div`
+  font-weight: 500;
+  color: #475569;
+`;
+
+const ProjectDeadline = styled.div`
+  color: #94a3b8;
+`;
+
+const InquiryDate = styled.div``;
+
+const InquiryStatus = styled.div`
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  display: inline-block;
+  font-weight: 500;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#fff7ed';
+      case 'IN_PROGRESS': return '#e8f5e9';
+      case 'COMPLETED': return '#f1f5f9';
+      case 'ON_HOLD': return '#fff7ed';
+      default: return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#c2410c';
+      case 'IN_PROGRESS': return '#2E7D32';
+      case 'COMPLETED': return '#64748b';
+      case 'ON_HOLD': return '#c2410c';
+      default: return '#64748b';
+    }
+  }};
 `;
 
 const ProjectStatus = styled.div`
   font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  display: inline-block;
   font-weight: 500;
   background: ${props => {
     switch (props.status) {
@@ -579,138 +964,6 @@ const ProjectStatus = styled.div`
       default: return '#64748b';
     }
   }};
-`;
-
-const ProjectInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const InfoRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-`;
-
-const InfoLabel = styled.span`
-  color: #64748b;
-`;
-
-const InfoValue = styled.span`
-  color: #1e293b;
-  font-weight: 500;
-`;
-
-const ProgressBar = styled.div`
-  height: 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 16px;
-`;
-
-const Progress = styled.div`
-  height: 100%;
-  background: #2E7D32;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-`;
-
-const RecentInquiriesCard = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-`;
-
-const InquiryList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const InquiryItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  &:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
-  }
-`;
-
-const InquiryInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const InquiryTitle = styled.div`
-  font-size: 15px;
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const InquiryMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  color: #64748b;
-`;
-
-const InquiryStatus = styled.div`
-  font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-weight: 500;
-  background: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#fff7ed';
-      case 'IN_PROGRESS': return '#e8f5e9';
-      case 'COMPLETED': return '#f1f5f9';
-      default: return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#c2410c';
-      case 'IN_PROGRESS': return '#2E7D32';
-      case 'COMPLETED': return '#64748b';
-      default: return '#64748b';
-    }
-  }};
-`;
-
-const ViewButton = styled.button`
-  background: none;
-  border: none;
-  color: #2E7D32;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #e8f5e9;
-  }
 `;
 
 const ModalOverlay = styled.div`
@@ -762,36 +1015,32 @@ const ModalBody = styled.div`
   flex: 1;
 `;
 
-const ProjectItem = styled.div`
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 8px;
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const ProjectName = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const ProjectItemInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
+const ProjectDate = styled.div`
   font-size: 13px;
-  color: #64748b;
-`;
-
-const CompanyName = styled.span`
-  font-weight: 500;
-`;
-
-const ProjectDate = styled.span`
   color: #94a3b8;
+`;
+
+const ChartGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+  height: 450px;
+`;
+
+const ChartContainer = styled.div`
+  width: 100%;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 24px;
+  color: #64748b;
 `;
 
 const LoadingMessage = styled.div`
@@ -800,10 +1049,158 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 24px;
+const CompanyName = styled.span`
+  font-weight: 500;
+`;
+
+const PostList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const PostItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const PostInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const PostTitle = styled.div`
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const PostStatus = styled.div`
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: ${props => {
+    switch (props.status) {
+      case 'IN_PROGRESS': return '#e8f5e9';
+      case 'COMPLETED': return '#f1f5f9';
+      case 'ON_HOLD': return '#fff7ed';
+      default: return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'IN_PROGRESS': return '#2E7D32';
+      case 'COMPLETED': return '#64748b';
+      case 'ON_HOLD': return '#c2410c';
+      default: return '#64748b';
+    }
+  }};
+`;
+
+const PostDate = styled.div`
+  font-size: 13px;
+  color: #94a3b8;
+`;
+
+const NoticeInquiryGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+`;
+
+const NoticeSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const NoticeList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const NoticeItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+  }
+`;
+
+const NoticeInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const NoticeTitle = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+`;
+
+const NoticeMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
   color: #64748b;
+`;
+
+const NoticeCreator = styled.div`
+  font-weight: 500;
+  color: #475569;
+`;
+
+const NoticeDate = styled.div`
+  color: #94a3b8;
+`;
+
+const NoticeStatus = styled.div`
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: 500;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#fff7ed';
+      case 'IN_PROGRESS': return '#e8f5e9';
+      case 'COMPLETED': return '#f1f5f9';
+      case 'ON_HOLD': return '#fff7ed';
+      default: return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#c2410c';
+      case 'IN_PROGRESS': return '#2E7D32';
+      case 'COMPLETED': return '#64748b';
+      case 'ON_HOLD': return '#c2410c';
+      default: return '#64748b';
+    }
+  }};
 `;
 
 export default DashboardAdmin;

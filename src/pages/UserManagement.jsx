@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const UserManagement = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(0);
@@ -120,10 +118,6 @@ const UserManagement = () => {
     }
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
   // 회사별 직원 수 계산
   const getCompanyUserDistribution = () => {
     const companyUserCount = {};
@@ -163,426 +157,138 @@ const UserManagement = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
-
-      <MainContent>
-        <Header>
-          <PageTitle>유저 관리</PageTitle>
-          <AddButton onClick={() => navigate('/user-create')}>
-            새 유저 등록
-          </AddButton>
-        </Header>
-
-        <SearchSection>
-          <SearchInput
-            type="text"
-            name="name"
-            placeholder="이름 검색"
-            value={filters.name}
-            onChange={handleFilterChange}
-          />
-          <SearchInput
-            type="text"
-            name="email"
-            placeholder="이메일 검색"
-            value={filters.email}
-            onChange={handleFilterChange}
-          />
-          <SearchInput
-            type="text"
-            name="phone"
-            placeholder="전화번호 검색"
-            value={filters.phone}
-            onChange={handleFilterChange}
-          />
-          <SearchSelect
-            name="companyId"
-            value={filters.companyId}
-            onChange={handleFilterChange}
-          >
-            <option value="">전체 회사</option>
-            {companies && companies.length > 0 ? (
-              companies.map(company => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))
-            ) : null}
-          </SearchSelect>
-          <SearchSelect
-            name="companyRole"
-            value={filters.companyRole}
-            onChange={handleFilterChange}
-          >
-            <option value="">전체</option>
-            <option value="ADMIN">관리자</option>
-            <option value="DEVELOPER">개발사</option>
-            <option value="CUSTOMER">고객사</option>
-          </SearchSelect>
-          <SearchCheckbox>
-            <input
-              type="checkbox"
-              name="isDeleted"
-              checked={filters.isDeleted}
-              onChange={handleFilterChange}
-            />
-            <span>삭제된 유저 포함</span>
-          </SearchCheckbox>
-          <SearchButton onClick={handleSearch}>
-            검색
-          </SearchButton>
-        </SearchSection>
-
-        {loading ? (
-          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-        ) : (
-          <>
-            <UserTable>
-              <TableHeader>
-                <TableRow>
-                  <TableHeaderCell>이름</TableHeaderCell>
-                  <TableHeaderCell>이메일</TableHeaderCell>
-                  <TableHeaderCell>전화번호</TableHeaderCell>
-                  <TableHeaderCell>소속 회사</TableHeaderCell>
-                  <TableHeaderCell>역할</TableHeaderCell>
-                  <TableHeaderCell>관리</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow 
-                    key={user.id}
-                    onClick={() => navigate(`/user-edit/${user.id}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
-                    <TableCell>{user.companyName}</TableCell>
-                    <TableCell>
-                      <RoleBadge role={user.companyRole}>
-                        {user.companyRole === 'ADMIN' ? '관리자' :
-                         user.companyRole === 'DEVELOPER' ? '개발사' :
-                         user.companyRole === 'CUSTOMER' ? '고객사' : ''}
-                      </RoleBadge>
-                    </TableCell>
-                    <TableCell>
-                      <ActionButtonContainer>
-                        <EditButton onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/user-edit/${user.id}`);
-                        }}>
-                          수정
-                        </EditButton>
-                        <DeleteButton onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteUser(user.id, user.name);
-                        }}>
-                          삭제
-                        </DeleteButton>
-                      </ActionButtonContainer>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </UserTable>
-            <PaginationContainer>
-              <PaginationButton 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
-                disabled={currentPage === 0}
-              >
-                이전
-              </PaginationButton>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <PaginationButton
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  active={currentPage === i}
-                >
-                  {i + 1}
-                </PaginationButton>
+      <ContentWrapper>
+        <Card>
+          <CardTitle>사용자 관리</CardTitle>
+          <CardContent>
+            <UserList>
+              {users.map((user) => (
+                <UserItem key={user.id}>
+                  <UserInfo>
+                    <UserName>{user.name}</UserName>
+                    <UserEmail>{user.email}</UserEmail>
+                  </UserInfo>
+                  <UserActions>
+                    <EditButton onClick={() => navigate(`/user-edit/${user.id}`)}>
+                      수정
+                    </EditButton>
+                    <DeleteButton onClick={() => handleDeleteUser(user.id, user.name)}>
+                      삭제
+                    </DeleteButton>
+                  </UserActions>
+                </UserItem>
               ))}
-              <PaginationButton
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
-                disabled={currentPage === totalPages - 1}
-              >
-                다음
-              </PaginationButton>
-            </PaginationContainer>
-          </>
-        )}
-      </MainContent>
+            </UserList>
+          </CardContent>
+        </Card>
+      </ContentWrapper>
     </PageContainer>
   );
 };
 
-// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
-// 스타일 컴포넌트들을 상단으로 이동
 const PageContainer = styled.div`
+  flex: 1;
+`;
+
+const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  gap: 24px;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
+const Card = styled.div`
+  background: white;
   padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 `;
 
-const Header = styled.div`
+const CardTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 24px 0;
+`;
+
+const CardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const UserList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const UserItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
 `;
 
-const PageTitle = styled.h1`
-  font-size: 24px;
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const UserName = styled.div`
+  font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0;
 `;
 
-const AddButton = styled.button`
-  padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-  
-  &:before {
-    content: '+';
-    font-size: 20px;
-    font-weight: 400;
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #2563eb;
-  }
-`;
-
-const UserTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  margin: 0 auto;
-`;
-
-const TableHeader = styled.thead`
-  background: #f8fafc;
-`;
-
-const TableRow = styled.tr`
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const TableHeaderCell = styled.th`
-  padding: 16px 24px;
-  text-align: left;
+const UserEmail = styled.div`
   font-size: 14px;
-  font-weight: 500;
   color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
 `;
 
-const TableBody = styled.tbody``;
-
-const TableCell = styled.td`
-  padding: 16px 24px;
-  font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const CompanyBadge = styled.span`
-  display: inline-block;
-  padding: 6px 10px;
-  background: rgba(46, 125, 50, 0.1);
-  color: #2E7D32;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-`;
-
-const NoCompanyBadge = styled.span`
-  display: inline-block;
-  padding: 6px 10px;
-  background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-`;
-
-const ActionButtonContainer = styled.div`
+const UserActions = styled.div`
   display: flex;
   gap: 8px;
 `;
 
 const EditButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #4F6AFF;
-  border: 1px solid #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #e8f5e9;
+  color: #2E7D32;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(79, 106, 255, 0.1);
+    background: #c8e6c9;
   }
 `;
 
 const DeleteButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(220, 38, 38, 0.1);
-  }
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const SearchSection = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-`;
-
-const SearchInput = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 200px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-  }
-`;
-
-const SearchSelect = styled.select`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 150px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-  }
-`;
-
-const SearchCheckbox = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  
-  input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-  }
-`;
-
-const SearchButton = styled.button`
   padding: 8px 16px;
-  background: #3b82f6;
-  color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #dc2626;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: #2563eb;
-  }
-`;
+  transition: all 0.2s ease;
 
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PaginationButton = styled.button`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background-color: ${props => props.active ? '#3b82f6' : 'white'};
-  color: ${props => props.active ? 'white' : '#64748b'};
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-  min-width: 36px;
-  
   &:hover {
-    background-color: ${props => props.active ? '#3b82f6' : '#f8fafc'};
-    border-color: ${props => props.active ? '#3b82f6' : '#cbd5e1'};
-  }
-  
-  &:disabled {
-    background-color: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
+    background: #fecaca;
   }
 `;
 

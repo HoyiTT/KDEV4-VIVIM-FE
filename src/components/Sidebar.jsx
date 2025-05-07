@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -7,6 +7,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
 
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: '📊' },
@@ -29,10 +30,22 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const handleLogoClick = () => {
+    if (user?.companyRole === 'ADMIN') {
+      navigate('/dashboard-admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   return (
     <SidebarContainer>
-      <LogoSection>
-        <Logo onClick={() => navigate('/')}>비빔</Logo>
+      <LogoSection onClick={handleLogoClick}>
+        <Logo>비빔</Logo>
+        <NotificationButton onClick={() => navigate('/notifications')}>
+          알림
+          <NotificationBadge>3</NotificationBadge>
+        </NotificationButton>
       </LogoSection>
 
       <ProfileSection>
@@ -87,7 +100,7 @@ const SidebarContainer = styled.div`
   position: fixed;
   left: 0;
   top: 0;
-  width: 240px;
+  width: 300px;
   height: 100vh;
   background: white;
   border-right: 1px solid #e2e8f0;
@@ -97,8 +110,12 @@ const SidebarContainer = styled.div`
 `;
 
 const LogoSection = styled.div`
-  padding: 24px;
+  padding: 24px 32px;
   border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
 `;
 
 const Logo = styled.h1`
@@ -106,11 +123,42 @@ const Logo = styled.h1`
   font-weight: 700;
   color: #2E7D32;
   margin: 0;
+`;
+
+const NotificationButton = styled.button`
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const NotificationBadge = styled.span`
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 `;
 
 const ProfileSection = styled.div`
-  padding: 24px;
+  padding: 24px 32px;
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -118,8 +166,8 @@ const ProfileSection = styled.div`
 `;
 
 const ProfileImage = styled.div`
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #2E7D32;
   color: white;
@@ -128,6 +176,8 @@ const ProfileImage = styled.div`
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
 `;
 
 const ProfileInfo = styled.div`
@@ -168,19 +218,19 @@ const UserPhone = styled.div`
 `;
 
 const MenuSection = styled.div`
-  padding: 24px;
+  padding: 24px 32px;
   flex: 1;
   overflow-y: auto;
 `;
 
 const MenuItem = styled.div`
-  padding: 10px 12px;
+  padding: 12px 16px;
   border-radius: 8px;
   cursor: pointer;
   color: ${props => props.active ? '#2E7D32' : '#1e293b'};
   background: ${props => props.active ? '#e8f5e9' : 'transparent'};
   font-weight: ${props => props.active ? '500' : '400'};
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.2s ease;
 
   &:hover {
@@ -193,7 +243,7 @@ const MenuItem = styled.div`
 `;
 
 const LogoutSection = styled.div`
-  padding: 24px;
+  padding: 24px 32px;
   border-top: 1px solid #e2e8f0;
 `;
 
@@ -203,14 +253,14 @@ const LogoutButton = styled.button`
   border: none;
   border-radius: 8px;
   background: #f8fafc;
-  color: #64748b;
+  color: #1e293b;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
     background: #f1f5f9;
-    color: #1e293b;
   }
 `;
 
