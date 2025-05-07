@@ -19,8 +19,8 @@ const Sidebar = () => {
 
   const adminMenuItems = [
     { path: '/dashboard-admin', label: '관리자 대시보드', icon: '👑' },
-    { path: '/admin/projects', label: '프로젝트 관리', icon: '📁' },
-    { path: '/admin/users', label: '사용자 관리', icon: '👥' },
+    { path: '/admin/projects', label: '프로젝트 관리', icon: '��' },
+    { path: '/user-management', label: '사용자 관리', icon: '👥' },
     { path: '/admin/inquiries', label: '문의사항 관리', icon: '💬' },
     { path: '/admin/settings', label: '시스템 설정', icon: '⚙️' },
   ];
