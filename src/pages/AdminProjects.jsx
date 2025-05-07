@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -28,12 +28,23 @@ const AdminProjects = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState({
+    name: '',
+    isDeleted: false
+  });
   const itemsPerPage = 10;
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(`/projects/all?page=${currentPage - 1}&size=${itemsPerPage}`);
+      const queryParams = new URLSearchParams({
+        page: currentPage - 1,
+        size: itemsPerPage,
+        ...(filters.name && { name: filters.name }),
+        ...(filters.isDeleted && { isDeleted: true })
+      }).toString();
+
+      const response = await axiosInstance.get(`/projects/all?${queryParams}`);
       setProjects(response.data);
       setTotalPages(Math.ceil(response.data.length / itemsPerPage));
     } catch (error) {
@@ -43,6 +54,19 @@ const AdminProjects = () => {
     } finally {
       setLoading(false);
     }
+  }, [currentPage, filters, itemsPerPage]);
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchProjects();
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleDeleteProject = async (projectId) => {
@@ -60,7 +84,7 @@ const AdminProjects = () => {
 
   useEffect(() => {
     fetchProjects();
-  }, [currentPage]);
+  }, [fetchProjects]);
 
   // 현재 페이지의 프로젝트만 표시
   const getCurrentPageProjects = () => {
@@ -108,8 +132,8 @@ const AdminProjects = () => {
     text-align: left;
     font-size: 14px;
     font-weight: 600;
-    color: #64748b;
-    background: #f8fafc;
+    color: #1e293b;
+    background: white;
     border-bottom: 1px solid #e2e8f0;
   `;
 
@@ -230,14 +254,203 @@ const AdminProjects = () => {
     }
   `;
 
+  const SearchCard = styled.div`
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+  `;
+
+  const SearchSection = styled.div`
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+  `;
+
+  const SearchInput = styled.input`
+    padding: 10px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 240px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    
+    &::placeholder {
+      color: #94a3b8;
+    }
+    
+    &:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    &:focus {
+      outline: none;
+      border-color: #2E7D32;
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    }
+  `;
+
+  const SearchCheckbox = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #475569;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #f8fafc;
+    }
+    
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #2E7D32;
+    }
+  `;
+
+  const SearchButton = styled.button`
+    padding: 10px 20px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    
+    &:hover {
+      background: #1B5E20;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    }
+  `;
+
+  const Header = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    gap: 24px;
+  `;
+
+  const PageTitle = styled.h1`
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+
+    &::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 20px;
+      background: #2E7D32;
+      border-radius: 1.5px;
+    }
+  `;
+
+  const CreateButton = styled.button`
+    padding: 10px 20px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+
+    &:hover {
+      background: #1B5E20;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  `;
+
+  const LoadingMessage = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    font-size: 16px;
+    color: #64748b;
+  `;
+
+  const ProjectsTable = styled.table`
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-top: 24px;
+  `;
+
   return (
     <PageContainer>
       <Sidebar />
       <MainContent>
         <Header>
           <PageTitle>프로젝트 관리</PageTitle>
+          <SearchSection>
+            <SearchInput
+              type="text"
+              name="name"
+              placeholder="프로젝트명 검색"
+              value={filters.name}
+              onChange={handleFilterChange}
+            />
+            <SearchCheckbox>
+              <input
+                type="checkbox"
+                name="isDeleted"
+                checked={filters.isDeleted}
+                onChange={handleFilterChange}
+              />
+              <span>삭제된 프로젝트만 검색</span>
+            </SearchCheckbox>
+            <SearchButton onClick={handleSearch}>
+              검색
+            </SearchButton>
+          </SearchSection>
           <CreateButton onClick={() => navigate('/project-create')}>
-            새 프로젝트
+            + 새 프로젝트 등록
           </CreateButton>
         </Header>
 
@@ -342,81 +555,6 @@ const MainContent = styled.div`
   padding: 24px;
   margin-left: 15px;
   overflow-y: auto;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  background: white;
-  padding: 32px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-`;
-
-const PageTitle = styled.h1`
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  &::before {
-    content: '';
-    display: block;
-    width: 4px;
-    height: 24px;
-    background: #2E7D32;
-    border-radius: 2px;
-  }
-`;
-
-const CreateButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const ProjectsTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  margin-top: 24px;
 `;
 
 export default AdminProjects;
