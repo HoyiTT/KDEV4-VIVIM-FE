@@ -20,7 +20,7 @@ const LoadingMessage = styled.div`
 const ProposalContainer = styled.div`
   width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 45px auto;
   padding: 0;
   box-sizing: border-box;
 `;
@@ -45,18 +45,18 @@ const EmptyState = styled.div`
 `;
 
 const ProposalItem = styled.div`
-  width: 100%;
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: all 0.2s;
-  box-sizing: border-box;
-
+  border: 1px solid #e2e8f0;
+  
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
   }
 `;
 
@@ -935,7 +935,7 @@ const ApprovalProposal = ({
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    console.log('선택된 파일들:', selectedFiles);
+    console.log('▶ 파일 선택됨:', selectedFiles);
     
     // 파일 크기 검증
     const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
@@ -948,7 +948,11 @@ const ApprovalProposal = ({
     }
 
     // 기존 파일 목록에 새로 선택된 파일들 추가
-    setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+    setFiles(prevFiles => {
+      const newFiles = [...prevFiles, ...selectedFiles];
+      console.log('▶ 현재 파일 목록:', newFiles);
+      return newFiles;
+    });
     e.target.value = ''; // 파일 선택 초기화
   };
 
@@ -1053,7 +1057,9 @@ const ApprovalProposal = ({
 
   const fetchProposals = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(progressId));
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(progressId), {
+        withCredentials: true
+      });
       setProposals(data.approvalList || []);
       setLoading(false);
     } catch (error) {
@@ -1078,17 +1084,35 @@ const ApprovalProposal = ({
       const { data } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         title: newProposal.title,
         content: newProposal.content
+      }, {
+        withCredentials: true
       });
 
       const approvalId = data.data;
+      console.log('▶ 승인요청 생성됨, ID:', approvalId);
 
       // 2. 파일 업로드 처리
       for (const file of files) {
+        console.log('▶ 파일 업로드 시도:', file.name, file.size, file.type);
+        
         const formData = new FormData();
         formData.append('file', file);
-        await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
-          withCredentials: true
-        });
+        
+        // FormData 내용 확인
+        console.log('▶ FormData 내용:');
+        for (const [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+
+        try {
+          const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
+            withCredentials: true
+          });
+          console.log('▶ 파일 업로드 성공:', response.data);
+        } catch (uploadError) {
+          console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
+          throw uploadError;
+        }
       }
 
       // 3. 링크 저장
@@ -1096,6 +1120,8 @@ const ApprovalProposal = ({
         await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(approvalId), {
           title: link.title,
           url: link.url
+        }, {
+          withCredentials: true
         });
       }
 
@@ -1103,6 +1129,8 @@ const ApprovalProposal = ({
       if (selectedApprovers.length > 0) {
         await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
           approverIds: selectedApprovers.map(approver => approver.userId)
+        }, {
+          withCredentials: true
         });
       }
 
@@ -1142,12 +1170,43 @@ const ApprovalProposal = ({
 
       const { data } = await axiosInstance.patch(
         API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id),
-        requestBody
+        requestBody,
+        {
+          withCredentials: true
+        }
       );
       
       if (data.statusCode === 201) {
+        // 파일 업로드 처리
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(editingProposal.id), formData, {
+              withCredentials: true
+            });
+          } catch (uploadError) {
+            console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
+            throw uploadError;
+          }
+        }
+
+        // 링크 저장
+        for (const link of links) {
+          await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(editingProposal.id), {
+            title: link.title,
+            url: link.url
+          }, {
+            withCredentials: true
+          });
+        }
+
         setIsEditModalOpen(false);
         setEditingProposal(null);
+        setFiles([]);
+        setLinks([]);
+        setNewLink({ title: '', url: '' });
         fetchProposals();
       } else {
         throw new Error(data.statusMessage || '승인요청 수정에 실패했습니다.');
@@ -1158,9 +1217,26 @@ const ApprovalProposal = ({
     }
   };
 
-  const handleEditClick = (proposal) => {
-    setEditingProposal({ ...proposal });
-    setIsEditModalOpen(true);
+  const handleEditClick = async (proposal) => {
+    try {
+      // 승인요청 상세 정보 조회
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id));
+      
+      // 파일 목록 조회
+      const { data: filesData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILES(proposal.id));
+      
+      // 링크 목록 조회
+      const { data: linksData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LINKS(proposal.id));
+      
+      setEditingProposal({ ...proposal });
+      setFiles(filesData || []);
+      setLinks(linksData || []);
+      setNewLink({ title: '', url: '' });
+      setIsEditModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching proposal details:', error);
+      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
   };
 
   const handleDeleteProposal = async (approvalId) => {
@@ -1169,7 +1245,9 @@ const ApprovalProposal = ({
     }
 
     try {
-      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(approvalId));
+      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(approvalId), {
+        withCredentials: true
+      });
       fetchProposals();
     } catch (error) {
       console.error('Error deleting proposal:', error);
@@ -1180,7 +1258,9 @@ const ApprovalProposal = ({
   const handleSendProposal = async (approvalId) => {
     try {
       // 전송 전 승인권자 수 확인
-      const { data: approversData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId));
+      const { data: approversData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        withCredentials: true
+      });
       
       if (!approversData || approversData.length === 0) {
         window.alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
@@ -1271,6 +1351,15 @@ const ApprovalProposal = ({
 
   const handleLinkDelete = (indexToDelete) => {
     setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
+  };
+
+  // 모달이 닫힐 때 상태 초기화
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProposal(null);
+    setFiles([]);
+    setLinks([]);
+    setNewLink({ title: '', url: '' });
   };
 
   if (loading) {
@@ -1548,11 +1637,11 @@ const ApprovalProposal = ({
       )}
 
       {isEditModalOpen && editingProposal && (
-        <ModalOverlay onClick={() => setIsEditModalOpen(false)}>
+        <ModalOverlay onClick={handleCloseModal}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>승인요청 수정</ModalTitle>
-              <CloseButton onClick={() => setIsEditModalOpen(false)}>×</CloseButton>
+              <CloseButton onClick={handleCloseModal}>×</CloseButton>
             </ModalHeader>
             <ModalBody>
               <InputGroup>
@@ -1574,9 +1663,104 @@ const ApprovalProposal = ({
                   placeholder="내용을 입력하세요"
                 />
               </InputGroup>
+              <InputGroup>
+                <Label>파일 첨부 (선택사항)</Label>
+                <FileInputContainer>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <HiddenFileInput
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      accept="*/*"
+                      id="editFileInput"
+                    />
+                    <FileButton 
+                      type="button" 
+                      onClick={() => document.getElementById('editFileInput').click()}
+                    >
+                      파일 선택
+                    </FileButton>
+                  </div>
+                  {files.length > 0 && (
+                    <FileList>
+                      {Array.from(files).map((file, index) => (
+                        <FileItem 
+                          key={index}
+                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                        >
+                          <FileContent>
+                            <span style={{ fontSize: '16px' }}>📎</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
+                              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                {(file.size / 1024).toFixed(1)} KB
+                              </span>
+                            </div>
+                          </FileContent>
+                          <DeleteButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileDelete(index);
+                            }}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </FileItem>
+                      ))}
+                    </FileList>
+                  )}
+                </FileInputContainer>
+              </InputGroup>
+              <InputGroup>
+                <Label>링크 추가 (선택사항)</Label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <Input
+                    type="text"
+                    placeholder="링크 제목"
+                    value={newLink.title}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="URL"
+                    value={newLink.url}
+                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
+                    style={{ flex: 2 }}
+                  />
+                  <FileButton 
+                    type="button" 
+                    onClick={handleAddLink}
+                  >
+                    추가
+                  </FileButton>
+                </div>
+                {links.length > 0 && (
+                  <FileList>
+                    {links.map((link, index) => (
+                      <FileItem 
+                        key={index}
+                        onClick={() => window.open(link.url, '_blank')}
+                      >
+                        <LinkContent>
+                          🔗 {link.title}
+                        </LinkContent>
+                        <DeleteButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLinkDelete(index);
+                          }}
+                        >
+                          ✕
+                        </DeleteButton>
+                      </FileItem>
+                    ))}
+                  </FileList>
+                )}
+              </InputGroup>
             </ModalBody>
             <ModalFooter>
-              <ModalButton onClick={() => setIsEditModalOpen(false)}>취소</ModalButton>
+              <ModalButton onClick={handleCloseModal}>취소</ModalButton>
               <ModalButton primary onClick={handleModifyProposal}>저장</ModalButton>
             </ModalFooter>
           </ModalContent>

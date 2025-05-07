@@ -5,11 +5,15 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes, FaGripVertical } from 'react-icons/fa';
 import ProjectStageProgress from '../components/ProjectStage';
 import approvalUtils from '../utils/approvalStatus';
 import { ApprovalProposalStatus } from '../constants/enums';
 import axiosInstance from '../utils/axiosInstance';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -97,6 +101,7 @@ const ProjectDetail = () => {
   const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
+  const [showPositionModal, setShowPositionModal] = useState(false);
   const [statusSummary, setStatusSummary] = useState(null);
   const [approvalRequests, setApprovalRequests] = useState([]);
   const [projectProgress, setProjectProgress] = useState({
@@ -116,6 +121,53 @@ const ProjectDetail = () => {
   const [isDeveloperManager, setIsDeveloperManager] = useState(null);
 
   const [isIncreasing, setIsIncreasing] = useState(false);
+
+  const [stages, setStages] = useState([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  useEffect(() => {
+    if (progressList) {
+      setStages(progressList.map(stage => ({
+        id: stage.id,
+        name: stage.name,
+        position: stage.position,
+        isCompleted: stage.isCompleted
+      })));
+    }
+  }, [progressList]);
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      setStages((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
+        
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        const updatedItems = newItems.map((item, index) => ({
+          ...item,
+          position: index + 1
+        }));
+
+        // progressList도 함께 업데이트
+        setProgressList(prev => 
+          prev.map(item => {
+            const updatedItem = updatedItems.find(updated => updated.id === item.id);
+            return updatedItem ? { ...item, position: updatedItem.position } : item;
+          }).sort((a, b) => a.position - b.position)
+        );
+
+        return updatedItems;
+      });
+    }
+  };
 
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -475,6 +527,10 @@ const ProjectDetail = () => {
 
   // 진행단계 모달 열기
   const openStageModal = (action, stage = null) => {
+    if (action === 'editPosition') {
+      setShowPositionModal(true);
+      return;
+    }
     setStageAction(action);
     setEditingStage(stage);
     setStageName(stage ? stage.name : '');
@@ -620,6 +676,41 @@ const ProjectDetail = () => {
       alert('단계 승급 중 오류가 발생했습니다.');
     } finally {
       setIsIncreasing(false); // 진행 중 상태 해제
+    }
+  };
+
+  // 단계 순서 변경 저장
+  const handleSavePositions = async () => {
+    try {
+      // 위치 값 검증
+      const invalidStage = stages.find(stage => !stage.position || stage.position < 0);
+      if (invalidStage) {
+        alert('단계 위치 값이 유효하지 않습니다. 모든 단계는 0 이상의 위치 값을 가져야 합니다.');
+        return;
+      }
+
+      console.log('현재 stages 상태:', stages);
+
+      // 모든 단계의 위치를 순차적으로 업데이트
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        console.log(`단계 ID: ${stage.id}, 이름: ${stage.name}, 위치: ${i}`);
+        await axiosInstance.put(
+          `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}/positioning`,
+          { targetIndex: i }
+        );
+      }
+      
+      alert('단계 순서가 성공적으로 변경되었습니다.');
+      setShowPositionModal(false);
+      fetchProjectProgress(); // 단계 목록 새로고침
+    } catch (error) {
+      console.error('단계 순서 변경 중 오류 발생:', error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('단계 순서 변경에 실패했습니다.');
+      }
     }
   };
 
@@ -997,6 +1088,48 @@ const ProjectDetail = () => {
               <ActionButton className="delete" onClick={handleDeleteStage}>삭제</ActionButton>
             )}
             <CancelButton onClick={() => setShowStageModal(false)}>취소</CancelButton>
+          </ModalFooter>
+        </StageModalContent>
+      </ModalOverlay>
+    )}
+    {showPositionModal && (
+      <ModalOverlay onClick={() => setShowPositionModal(false)}>
+        <StageModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>단계 순서 변경</ModalTitle>
+            <CloseButton onClick={() => setShowPositionModal(false)}>×</CloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <DragInstructions>
+              단계를 드래그하여 순서를 변경할 수 있습니다.
+            </DragInstructions>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={progressList.map(stage => stage.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <StageList>
+                  {progressList.map((stage) => (
+                    <SortableItem
+                      key={stage.id}
+                      id={stage.id}
+                      name={stage.name}
+                      position={stage.position}
+                    />
+                  ))}
+                </StageList>
+              </SortableContext>
+            </DndContext>
+          </ModalBody>
+          <ModalFooter>
+            <ActionButton onClick={() => handleSavePositions()}>
+              순서 저장
+            </ActionButton>
+            <CancelButton onClick={() => setShowPositionModal(false)}>취소</CancelButton>
           </ModalFooter>
         </StageModalContent>
       </ModalOverlay>
@@ -1924,4 +2057,86 @@ const ManageDropdown = styled.div`
   z-index: 100;
 `;
 
+const DragInstructions = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 16px;
+`;
 
+const StageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const SortableItem = ({ id, name, position }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <SortableStageItem ref={setNodeRef} style={style}>
+      <DragHandle {...attributes} {...listeners}>
+        <FaGripVertical />
+      </DragHandle>
+      <StageItemContent>
+        <StageItemName>{name}</StageItemName>
+        <StageItemPosition>{position}번째</StageItemPosition>
+      </StageItemContent>
+    </SortableStageItem>
+  );
+};
+
+const SortableStageItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const DragHandle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 8px;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const StageItemContent = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StageItemName = styled.div`
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const StageItemPosition = styled.div`
+  color: #64748b;
+  font-size: 14px;
+`;

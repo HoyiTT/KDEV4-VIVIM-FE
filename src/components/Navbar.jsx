@@ -59,11 +59,11 @@ const Navbar = ({ activeMenuItem, handleMenuClick }) => {
             <span/><span/><span/>
           </HamburgerMenu>
 
-          <NavList isMobile={isMobileMenuOpen}>
+          <NavList $isMobile={isMobileMenuOpen}>
             {filteredMenu.map(item => (
               <NavItem
                 key={item.name}
-                active={activeMenuItem === item.name}
+                $active={activeMenuItem === item.name}
                 onClick={() => onClickItem(item)}
               >
                 {item.name}
@@ -142,7 +142,7 @@ const NavList = styled.div`
   @media (max-width: 768px) {
     position: fixed;
     top: 64px;
-    left: ${props => props.isMobile ? '0' : '-100%'};
+    left: ${props => props.$isMobile ? '0' : '-100%'};
     transform: none;
     flex-direction: column;
     width: 100%;
@@ -168,7 +168,7 @@ const UserSection = styled.div`
 const NavItem = styled.div`
   font-size: 15px;
   font-weight: 500;
-  color: ${props => props.active ? '#000' : '#666'};
+  color: ${props => props.$active ? '#000' : '#666'};
   cursor: pointer;
   padding: 8px 0;
   position: relative;
@@ -181,7 +181,7 @@ const NavItem = styled.div`
     width: 100%;
     height: 2px;
     background-color: #000;
-    opacity: ${props => props.active ? '1' : '0'};
+    opacity: ${props => props.$active ? '1' : '0'};
     transition: opacity 0.2s ease;
   }
 

@@ -3,29 +3,30 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../hooks/useAuth';
+import axiosInstance from '../utils/axiosInstance';
 
 const UserProjectList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeMenuItem, setActiveMenuItem] = useState('프로젝트 관리');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (user?.id) {
+      fetchProjects();
+    }
+  }, [user]);
 
   const fetchProjects = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const decodedToken = JSON.parse(atob(token.split('.')[1]));
-      const userId = decodedToken.userId;  // 'id' 대신 'userId' 사용
-
-      const response = await fetch(`${API_ENDPOINTS.PROJECTS}?userId=${userId}`, {
-        headers: {
-          'Authorization': token
+      const { data } = await axiosInstance.get(
+        `${API_ENDPOINTS.PROJECTS}?userId=${user.id}`,
+        {
+          withCredentials: true
         }
-      });
-      const data = await response.json();
+      );
       setProjects(data);
       setLoading(false);
     } catch (error) {

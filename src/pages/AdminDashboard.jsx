@@ -81,26 +81,43 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const fetchData = async (endpoint, type) => {
+    try {
+      const { data } = await axiosInstance.get(endpoint);
+      switch (type) {
+        case 'approvals':
+          setStats(prevStats => ({ ...prevStats, pendingApprovals: data.length }));
+          break;
+        case 'posts':
+          // Assuming setPosts is called elsewhere in the code
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+      switch (type) {
+        case 'approvals':
+          setStats(prevStats => ({ ...prevStats, pendingApprovals: 0 }));
+          break;
+        case 'posts':
+          // Assuming setPosts is called elsewhere in the code
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const fetchData = async (endpoint, key) => {
-          try {
-            const res = await axiosInstance.get(endpoint);
-            const payload = res.data?.data ?? res.data ?? [];
-            console.log(`${key} 응답 데이터:`, payload);
-            return { key, data: payload };
-          } catch (e) {
-            console.error(`${key} 데이터 로딩 실패:`, e);
-            return { key, data: [] };
-          }
-        };
-
         const results = await Promise.all([
           fetchData(API_ENDPOINTS.USERS, 'users'),
           fetchData(API_ENDPOINTS.ADMIN_PROJECTS, 'projects'),
           fetchData(API_ENDPOINTS.COMPANIES, 'companies'),
-          fetchData(API_ENDPOINTS.APPROVAL.RECENT, 'approvals')
+          fetchData(API_ENDPOINTS.APPROVAL.LIST(progressId), 'approvals'),
+          fetchData(API_ENDPOINTS.POST.LIST, 'posts')
         ]);
 
         const ensureArray = x => Array.isArray(x) ? x : [];

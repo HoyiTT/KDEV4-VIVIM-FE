@@ -10,7 +10,9 @@ export const loginRequest = ({ email, password }) =>
   axiosInstance.post(API_ENDPOINTS.LOGIN, { email, password });
 
 export const fetchCurrentUser = () =>
-  axiosInstance.get(API_ENDPOINTS.USER_INFO).then(res => res.data.data);
+  axiosInstance.get(API_ENDPOINTS.USER_INFO, {
+    withCredentials: true
+  }).then(res => res.data.data);
 
 export const logoutRequest = () =>
   axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT);
@@ -80,5 +82,5 @@ export const useAuth = () => {
     checkAuthStatus();
   }, [location.pathname]);
 
-  return { user, isAuthenticated, isLoading, isAdmin, login, logout };
+  return { user, isAuthenticated, isLoading, isAdmin, login, logout, userId: user?.id };
 };

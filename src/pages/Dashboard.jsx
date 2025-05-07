@@ -11,7 +11,7 @@ import axiosInstance from '../utils/axiosInstance';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { isAdmin, userId: currentUserId } = useAuth();
+  const { isAdmin, userId: currentUserId, user } = useAuth();
   const [deadlineProjects, setDeadlineProjects] = useState([]);
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentApprovals, setRecentApprovals] = useState([]);
@@ -58,19 +58,46 @@ const Dashboard = () => {
 
   const fetchRecentApprovals = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.RECENT);
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.RECENT, {
+        withCredentials: true
+      });
       setRecentApprovals(data.approvalList || []);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching recent approvals:', error);
+      if (error.response?.status === 403) {
+        console.log('승인 목록 조회 권한이 없습니다.');
+      }
+      setRecentApprovals([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchRecentPosts = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.POST.RECENT, {
+        withCredentials: true
+      });
+      console.log('게시글 목록 응답:', data);
+      setRecentPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching recent posts:', error);
+      if (error.response?.status === 403) {
+        console.log('게시글 목록 조회 권한이 없습니다.');
+      }
+      setRecentPosts([]);
+    }
+  };
+
   const fetchProjects = async () => {
-    if (!currentUserId) return;
+    if (!user?.id) return;
+    
     try {
       const { data: projects } = await axiosInstance.get(
-        `${API_ENDPOINTS.PROJECTS}?userId=${currentUserId}`
+        `${API_ENDPOINTS.PROJECTS}?userId=${user.id}`,
+        {
+          withCredentials: true
+        }
       );
       const processed = projects
         .filter(p => !p.deleted)
@@ -80,21 +107,35 @@ const Dashboard = () => {
         }))
         .sort((a, b) => Math.abs(a.remainingDays) - Math.abs(b.remainingDays));
       setDeadlineProjects(processed);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setDeadlineProjects([]);
     }
   };
 
-  useEffect(fetchRecentApprovals, []);
-  useEffect(fetchProjects, [currentUserId]);
   useEffect(() => {
-    axiosInstance.get(API_ENDPOINTS.POST.RECENT)
-      .then(({ data }) => setRecentPosts(data))
-      .catch(() => setRecentPosts([]));
+    fetchRecentApprovals();
+    fetchRecentPosts();
   }, []);
+
   useEffect(() => {
-    axiosInstance.get('/users/me')
-      .then(({ data }) => setUserInfo(data.data))
-      .catch(() => {});
+    if (user?.id) {
+      fetchProjects();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const { data } = await axiosInstance.get(API_ENDPOINTS.USER_INFO, {
+          withCredentials: true
+        });
+        setUserInfo(data.data);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+    fetchUserInfo();
   }, []);
 
   return (
