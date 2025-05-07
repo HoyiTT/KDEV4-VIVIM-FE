@@ -13,6 +13,7 @@ import CompanyCreate from './pages/CompanyCreate';
 import UserCreate from './pages/UserCreate';
 import CompanyEdit from './pages/CompanyEdit';
 import AdminProjectList from './pages/AdminProjectList';
+import AdminProjects from './pages/AdminProjects';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
 import AuditLog from './pages/AuditLog';
@@ -53,6 +54,7 @@ const AppContent = () => {
           <Route path="/user-create" element={<ProtectedRoute><UserCreate /></ProtectedRoute>} />
           <Route path="/company-edit/:id" element={<ProtectedRoute><CompanyEdit /></ProtectedRoute>} />
           <Route path="/project-list" element={<ProtectedRoute><UserProjectList /></ProtectedRoute>} />
+          <Route path="/admin/projects" element={<ProtectedRoute><AdminProjects /></ProtectedRoute>} />
           <Route path="/admin-projects" element={<ProtectedRoute><AdminProjectList /></ProtectedRoute>} />
           <Route path="/project/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
           <Route path="/user-edit/:id" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />
