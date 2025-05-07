@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://localhost/api';
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -86,4 +86,11 @@ export const API_ENDPOINTS = {
     MODIFY: (id) => `${API_BASE_URL}/posts/${id}`,
     DELETE: (id) => `${API_BASE_URL}/posts/${id}`,
   },
+
+  NOTIFICATIONS: {
+    LIST: `${API_BASE_URL}/notifications`,
+    SUBSCRIBE: `${API_BASE_URL}/notifications/subscribe`,
+    READ: `${API_BASE_URL}/notifications/read`,
+    READ_ALL: `${API_BASE_URL}/notifications/read-all`
+  }
 };
