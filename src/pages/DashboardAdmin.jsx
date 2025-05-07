@@ -20,13 +20,6 @@ const DashboardAdmin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // 관리자가 아닌 경우 대시보드로 리다이렉트
-    if (user?.companyRole !== 'ADMIN') {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
-
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
   const [stats, setStats] = useState({
@@ -225,7 +218,9 @@ const DashboardAdmin = () => {
 
     const fetchRecentInquiries = async () => {
       try {
-        const { data } = await axiosInstance.get('/admininquiry/recent');
+        const { data } = await axiosInstance.get('/admininquiry/recent', {
+          withCredentials: true
+        });
         setRecentInquiries(data);
       } catch (error) {
         console.error('Error fetching recent inquiries:', error);
@@ -403,11 +398,25 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background: #f8fafc;
   padding: 120px 32px 32px 272px;
+
+  @media (max-width: 1200px) {
+    padding: 120px 32px 32px 272px;
+  }
+
+  @media (max-width: 850px) {
+    padding: 100px 32px 32px 32px;
+  }
 `;
 
 const MainContent = styled.div`
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+
+  @media (max-width: 600px) {
+    padding: 0 8px;
+  }
 `;
 
 const TopSection = styled.div`
@@ -415,6 +424,15 @@ const TopSection = styled.div`
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   margin-bottom: 32px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 `;
 
 const StatCard = styled.div`
@@ -505,6 +523,10 @@ const ProjectList = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const ProjectCard = styled.div`
@@ -620,6 +642,12 @@ const InquiryItem = styled.div`
   border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
 
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
   &:hover {
     background: #f1f5f9;
     border-color: #cbd5e1;
@@ -702,6 +730,10 @@ const ModalContent = styled.div`
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 600px) {
+    width: 95%;
+  }
 `;
 
 const ModalHeader = styled.div`

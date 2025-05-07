@@ -33,9 +33,12 @@ export const useAuth = () => {
     }
     try {
       const u = await fetchCurrentUser();
+      console.log('Current User Info:', u);
+      console.log('Company Role:', u.companyRole);
       setUser(u);
       setIsAuthenticated(true);
       setIsAdmin(u.companyRole === 'ADMIN');
+      console.log('Is Admin:', u.companyRole === 'ADMIN');
     } catch (err) {
       console.error('인증 확인 오류', err);
       setIsAuthenticated(false);
@@ -49,12 +52,21 @@ export const useAuth = () => {
     try {
       await loginRequest({ email, password });
       const u = await fetchCurrentUser();
+      console.log('Login User Info:', u);
+      console.log('Company Role:', u.companyRole);
       setUser(u);
       setIsAuthenticated(true);
-      setIsAdmin(u.companyRole === 'ADMIN');
-      navigate(u.companyRole === 'ADMIN' ? '/dashboard-admin' : '/dashboard', {
-        replace: true,
-      });
+      const adminStatus = u.companyRole === 'ADMIN';
+      setIsAdmin(adminStatus);
+      console.log('Is Admin:', adminStatus);
+      
+      if (adminStatus) {
+        console.log('Redirecting to dashboard-admin');
+        navigate('/dashboard-admin', { replace: true });
+      } else {
+        console.log('Redirecting to dashboard');
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error('로그인 오류', err);
       setIsAuthenticated(false);
