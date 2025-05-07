@@ -492,80 +492,41 @@ const DashboardAdmin = () => {
           </Card>
         </div>
 
-        <Card>
-          <CardTitle>프로젝트 통계</CardTitle>
-          <CardContent>
-            <ChartGrid>
-              <ChartSection>
-                <ChartTitle>월별 프로젝트 통계</ChartTitle>
+        <ProjectStatsCard>
+          <ProjectStatsTitle>프로젝트 통계</ProjectStatsTitle>
+          <ProjectStatsContent>
+            <ProjectStatsGrid>
+              <ProjectStatsSection>
+                <ProjectStatsChartTitle>월별 프로젝트 통계</ProjectStatsChartTitle>
                 <Bar data={monthlyStatsData} options={barOptions} />
-              </ChartSection>
-              <ChartSection>
-                <ChartTitle>프로젝트 금액 통계</ChartTitle>
+              </ProjectStatsSection>
+              <ProjectStatsSection>
+                <ProjectStatsChartTitle>프로젝트 금액 통계</ProjectStatsChartTitle>
                 <Line data={revenueData} options={lineOptions} />
-              </ChartSection>
-            </ChartGrid>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitle>공지사항 및 관리자 문의</CardTitle>
-          <CardContent>
-            <NoticeInquiryGrid>
-              <NoticeSection>
-                <NoticeList>
-                  {recentPosts.slice(0, 5).map((post) => (
-                    <NoticeItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
-                      <NoticeInfo>
-                        <NoticeTitle>{post.title}</NoticeTitle>
-                        <NoticeMeta>
-                          <NoticeDate>{formatDate(post.createdAt)}</NoticeDate>
-                        </NoticeMeta>
-                        <NoticeStatus status={post.status}>
-                          {getStatusText(post.status)}
-                        </NoticeStatus>
-                      </NoticeInfo>
-                    </NoticeItem>
-                  ))}
-                </NoticeList>
-              </NoticeSection>
-              <InquirySection>
-                <InquiryList>
-                  {adminInquiries.map((inquiry) => (
-                    <NoticeItem key={inquiry.id}>
-                      <NoticeInfo>
-                        <NoticeTitle>{inquiry.title}</NoticeTitle>
-                        <NoticeMeta>
-                          <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
-                          <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
-                        </NoticeMeta>
-                        <NoticeStatus status={inquiry.inquiryStatus}>
-                          {getInquiryStatusText(inquiry.inquiryStatus)}
-                        </NoticeStatus>
-                      </NoticeInfo>
-                    </NoticeItem>
-                  ))}
-                </InquiryList>
-              </InquirySection>
-            </NoticeInquiryGrid>
-          </CardContent>
-        </Card>
+              </ProjectStatsSection>
+            </ProjectStatsGrid>
+          </ProjectStatsContent>
+        </ProjectStatsCard>
 
         <Card>
           <CardTitle>최근 게시물</CardTitle>
           <CardContent>
             <PostList>
-              {recentPosts.map((post) => (
-                <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
-                  <PostInfo>
-                    <PostTitle>{post.title}</PostTitle>
-                    <PostStatus status={post.status}>
-                      {getStatusText(post.status)}
-                    </PostStatus>
-                  </PostInfo>
-                  <PostDate>{formatDate(post.createdAt)}</PostDate>
-                </PostItem>
-              ))}
+              {recentPosts.length > 0 ? (
+                recentPosts.map((post) => (
+                  <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
+                    <PostInfo>
+                      <PostTitle>{post.title}</PostTitle>
+                      <PostStatus status={post.status}>
+                        {getStatusText(post.status)}
+                      </PostStatus>
+                    </PostInfo>
+                    <PostDate>{formatDate(post.createdAt)}</PostDate>
+                  </PostItem>
+                ))
+              ) : (
+                <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
+              )}
             </PostList>
           </CardContent>
         </Card>
@@ -658,7 +619,6 @@ const CardContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: 0;
   min-height: 0;
   flex: 1;
 `;
@@ -750,6 +710,7 @@ const ChartSection = styled.div`
   width: 100%;
   height: 100%;
   padding: 0;
+  margin-bottom: 0;
 `;
 
 const ChartTitle = styled.div`
@@ -1229,6 +1190,52 @@ const CardHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+`;
+
+const ProjectStatsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const ProjectStatsCard = styled(Card)`
+  margin-bottom: 0;
+`;
+
+const ProjectStatsTitle = styled(CardTitle)`
+  margin-bottom: 16px;
+`;
+
+const ProjectStatsContent = styled(CardContent)`
+  height: 100%;
+  padding: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ProjectStatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+  height: 300px;
+`;
+
+const ProjectStatsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+`;
+
+const ProjectStatsChartTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 12px;
+  text-align: center;
 `;
 
 export default DashboardAdmin;
