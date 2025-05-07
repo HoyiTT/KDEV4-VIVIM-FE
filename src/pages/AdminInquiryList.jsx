@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
@@ -25,20 +26,14 @@ const AdminInquiryList = () => {
 
   const fetchInquiries = async () => {
     try {
-      const response = await fetch(
-        isAdmin ? API_ENDPOINTS.ADMIN_INQUIRY_LIST : API_ENDPOINTS.USER_INQUIRY_LIST,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
+      const { data } = await axiosInstance.get(
+        isAdmin ? API_ENDPOINTS.ADMIN_INQUIRY_LIST : API_ENDPOINTS.USER_INQUIRY_LIST
       );
-      if (!response.ok) throw new Error('Failed to fetch inquiries');
-      const data = await response.json();
       const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setInquiries(sortedData);
     } catch (error) {
       console.error('Error fetching inquiries:', error);
+      setInquiries([]);
     }
   };
 
@@ -55,13 +50,7 @@ const AdminInquiryList = () => {
     if (!window.confirm('정말로 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to delete inquiry');
+      await axiosInstance.delete(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
       alert('삭제되었습니다.');
       fetchInquiries();
     } catch (error) {

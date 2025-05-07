@@ -41,14 +41,7 @@ const AuditLog = () => {
       if (filters.endDate) queryParams.append('endDate', filters.endDate);
       if (filters.userId) queryParams.append('userId', filters.userId);
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
-
-      if (response.status === 401) {
-        alert('로그인이 필요합니다.');
-        return;
-      }
-
-      const data = response.data;
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
       setLogs(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
