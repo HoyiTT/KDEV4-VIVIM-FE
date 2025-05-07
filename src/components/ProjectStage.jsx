@@ -1,7 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV } from 'react-icons/fa';
+import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaArrowUp, FaArrowDown, FaGripVertical } from 'react-icons/fa';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import ApprovalProposal from './ApprovalProposal';
+import { useAuth } from '../hooks/useAuth';
+import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 // currentProgress 열거형 값과 단계 이름 매핑
 const PROGRESS_STAGE_MAP = {
@@ -263,6 +269,33 @@ const ProgressFill = styled.div`
   border-radius: 2px;
 `;
 
+const SortableItem = ({ id, name, targetIndex }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <SortableStageItem ref={setNodeRef} style={style}>
+      <DragHandle {...attributes} {...listeners}>
+        <FaGripVertical />
+      </DragHandle>
+      <StageItemContent>
+        <StageItemName>{name}</StageItemName>
+        <StageItemPosition>{targetIndex}번째</StageItemPosition>
+      </StageItemContent>
+    </SortableStageItem>
+  );
+};
+
 /**
  * 프로젝트 단계별 진행 상황을 타임라인으로 표시하는 컴포넌트
  * @param {Array} progressList - 프로젝트 단계 목록
@@ -295,13 +328,86 @@ const ProjectStageProgress = ({
   projectId,
   children
 }) => {
+  const { isAdmin, isClient } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
-  const [isClient, setIsClient] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  
+  const [isModifyingPosition, setIsModifyingPosition] = useState(false);
+  const [showPositionModal, setShowPositionModal] = useState(false);
+  const [stages, setStages] = useState([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  useEffect(() => {
+    if (progressList) {
+      setStages(progressList.map(stage => ({
+        id: stage.id,
+        name: stage.name,
+        position: stage.position
+      })));
+    }
+  }, [progressList]);
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      const oldIndex = stages.findIndex(item => item.id === active.id);
+      const newIndex = stages.findIndex(item => item.id === over.id);
+      
+      // 드래그된 아이템의 새로운 위치로 API 호출
+      try {
+        await axiosInstance.put(
+          API_ENDPOINTS.PROJECT_PROGRESS_POSITION(projectId, active.id),
+          { targetIndex: newIndex }
+        );
+        
+        // 성공적으로 위치가 변경되면 로컬 상태 업데이트
+        setStages((items) => {
+          const newItems = arrayMove(items, oldIndex, newIndex);
+          return newItems.map((item, index) => ({
+            ...item,
+            position: index + 1
+          }));
+        });
+      } catch (error) {
+        console.error('단계 순서 변경 중 오류 발생:', error);
+        alert('단계 순서 변경에 실패했습니다.');
+      }
+    }
+  };
+
+  const handleSavePositions = async () => {
+    if (isModifyingPosition) return;
+    
+    try {
+      setIsModifyingPosition(true);
+      
+      // 각 단계의 새로운 위치를 순차적으로 업데이트
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        await axiosInstance.put(
+          API_ENDPOINTS.PROJECT_PROGRESS_POSITION(projectId, stage.id),
+          { targetIndex: i }
+        );
+      }
+      
+      alert('단계 순서가 성공적으로 변경되었습니다.');
+      setShowPositionModal(false);
+    } catch (error) {
+      console.error('단계 순서 변경 중 오류 발생:', error);
+      alert('단계 순서 변경에 실패했습니다.');
+    } finally {
+      setIsModifyingPosition(false);
+    }
+  };
+
   // 메뉴 외부 클릭 시 메뉴 닫기
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -316,7 +422,7 @@ const ProjectStageProgress = ({
 
   // 컴포넌트 마운트 시 사용자 역할 확인
   useEffect(() => {
-    checkUserRole();
+    // checkUserRole 함수 호출 제거
   }, []);
 
   // 초기 로딩 시 isCurrent 단계 찾아서 선택
@@ -375,49 +481,24 @@ const ProjectStageProgress = ({
       (Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) > 
        Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(Object.keys(REVERSE_PROGRESS_STAGE_MAP).find(key => REVERSE_PROGRESS_STAGE_MAP[key] === stage.name)));
     
-    // 디버깅을 위한 로그 출력
-    console.log('현재 단계 정보:', {
-      stageName: stage.name,
-      currentProgress,
-      currentStageName,
-      isCurrent,
-      isCompleted,
-      stageStatus
-    });
-    
     return { isCurrent, isCompleted };
   };
 
-  const checkUserRole = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const isAdminUser = decodedToken.role === 'ADMIN';
-        const isClientUser = decodedToken.role === 'CUSTOMER';
-        setIsAdmin(isAdminUser);
-        setIsClient(isClientUser);
-        console.log(decodedToken.role);
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        setIsAdmin(false);
-        setIsClient(false);
-      }
-    }
-  };
-
   const handleIncreaseProgress = async () => {
-    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
-    
-    try {
-      setIsIncreasing(true); // 진행 중 상태로 설정
-      // ... 기존 코드 ...
-    } catch (error) {
-      // ... 에러 처리 ...
-    } finally {
-      setIsIncreasing(false); // 진행 중 상태 해제
-    }
-  };
+      if (isIncreasing) return;
+      try {
+        setIsIncreasing(true);
+        const { data } = await axiosInstance.put(
+           API_ENDPOINTS.PROJECT_PROGRESS(projectId)
+        );
+        onIncreaseProgress(data.currentProgress);
+      } catch (error) {
+          console.error('단계 승급 에러:', error);
+          alert('진행 단계 업데이트에 실패했습니다.');
+      } finally {  
+          setIsIncreasing(false);
+      }
+      };
 
   // 데이터 로딩 상태 체크
   const isLoading = !progressList || progressList.length === 0 || !progressStatus || !progressStatus.progressList;
@@ -475,13 +556,19 @@ const ProjectStageProgress = ({
                     }}>
                       <FaPlus /> 단계 추가
                     </DropdownItem>
+                    <DropdownItem onClick={() => {
+                      openStageModal('editPosition');
+                      setShowMenu(false);
+                    }}>
+                      <FaPlus /> 단계 순서 변경
+                    </DropdownItem>
                     {currentStage && (
                       <>
                         <DropdownItem onClick={() => {
                           openStageModal('edit', currentStage);
                           setShowMenu(false);
                         }}>
-                          <FaEdit /> 현재 단계 수정
+                          <FaEdit /> 현재 단계명 수정
                         </DropdownItem>
                         <DropdownItem onClick={() => {
                           openStageModal('delete', currentStage);
@@ -507,16 +594,6 @@ const ProjectStageProgress = ({
           {progressList.map((stage, index) => {
             const { isCurrent, isCompleted } = getCurrentStageStatus(stage, index);
             const isViewing = index === currentStageIndex;
-            
-            // 디버깅을 위한 로그 출력
-            console.log('단계 렌더링 정보:', {
-              stageName: stage.name,
-              index,
-              isCurrent,
-              isCompleted,
-              isViewing,
-              currentStageIndex
-            });
             
             return (
               <StageProgressItem 
@@ -560,15 +637,6 @@ const ProjectStageProgress = ({
                 {(() => {
                   const currentStage = progressList[currentStageIndex];
                   const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
-                  
-                  // 디버깅을 위한 로그 추가
-                  console.log('현재 단계 상태 정보:', {
-                    stageName: currentStage?.name,
-                    isCompleted,
-                    isCurrent,
-                    currentProgress,
-                    currentStageName: REVERSE_PROGRESS_STAGE_MAP[currentProgress]
-                  });
                   
                   if (isCompleted) {
                     return <small style={{ color: '#16a34a' }}>완료</small>;
@@ -634,18 +702,10 @@ const ProjectStageProgress = ({
                 {Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) + 1}/{Object.keys(REVERSE_PROGRESS_STAGE_MAP).length} 단계
               </small>
             </ProgressInfoValue>
-            {/* 전체 진행률 계산 과정 로그 출력 */}
-            {console.log('전체 진행률 계산 정보:', {
-              currentProgress,
-              totalStages: Object.keys(REVERSE_PROGRESS_STAGE_MAP).length,
-              currentStageIndex: Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress),
-              calculatedProgress: Math.round((Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) / (Object.keys(REVERSE_PROGRESS_STAGE_MAP).length - 1)) * 100),
-              projectProgress
-            })}
             {(isAdmin==true || isClient==true) && 
               currentProgress === PROGRESS_STAGE_MAP[progressList[currentStageIndex]?.name] &&
               progressStatus.progressList.find(status => status.progressId === progressList[currentStageIndex]?.id)?.progressRate === 100 && (
-              <IncreaseProgressButton onClick={onIncreaseProgress}>
+              <IncreaseProgressButton onClick={handleIncreaseProgress}>
                 단계 승급
               </IncreaseProgressButton>
             )}
@@ -659,6 +719,51 @@ const ProjectStageProgress = ({
           progressStatus={progressStatus}
         />
       </ApprovalRequestContainer>
+      {showPositionModal && (
+        <ModalOverlay onClick={() => setShowPositionModal(false)}>
+          <StageModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>단계 순서 변경</ModalTitle>
+              <CloseButton onClick={() => setShowPositionModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <DragInstructions>
+                단계를 드래그하여 순서를 변경할 수 있습니다.
+              </DragInstructions>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={stages.map(stage => stage.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <StageList>
+                    {stages.map((stage) => (
+                      <SortableItem
+                        key={stage.id}
+                        id={stage.id}
+                        name={stage.name}
+                        targetIndex={stage.position}
+                      />
+                    ))}
+                  </StageList>
+                </SortableContext>
+              </DndContext>
+            </ModalBody>
+            <ModalFooter>
+              <ActionButton 
+                onClick={handleSavePositions}
+                disabled={isModifyingPosition}
+              >
+                {isModifyingPosition ? '저장 중...' : '순서 저장'}
+              </ActionButton>
+              <CancelButton onClick={() => setShowPositionModal(false)}>취소</CancelButton>
+            </ModalFooter>
+          </StageModalContent>
+        </ModalOverlay>
+      )}
     </StageProgressColumn>
   );
 };
@@ -848,3 +953,183 @@ const LoadingMessage = styled.div`
 
 // 모듈의 마지막에 export 구문 배치
 export default ProjectStageProgress; 
+
+const FormSelect = styled.select`
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 100%;
+  
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+  }
+  
+  &:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const StageModalContent = styled.div`
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 600px;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+`;
+
+const ModalBody = styled.div`
+  margin-bottom: 20px;
+`;
+
+const FormField = styled.div`
+  margin-bottom: 16px;
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #334155;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const ActionButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+
+  &:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: #64748b;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+`;
+
+const ModalForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const DragInstructions = styled.div`
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+`;
+
+const StageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const SortableStageItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const DragHandle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 8px;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const StageItemContent = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StageItemName = styled.div`
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const StageItemPosition = styled.div`
+  color: #64748b;
+  font-size: 14px;
+`; 

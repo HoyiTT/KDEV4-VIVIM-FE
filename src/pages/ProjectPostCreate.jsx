@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 
 
@@ -71,37 +72,22 @@ const handleLinkDelete = (indexToDelete) => {
 };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-    setLoading(true); // 로딩 상태 시작
+    setLoading(true);
 
     try {
       // 1. 게시글 생성
-      const postResponse = await fetch(API_ENDPOINTS.PROJECT_POSTS(projectId), {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          projectPostStatus: postStatus,
-          parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null,
-          links: links.map(link => ({
-            title: link.title,
-            url: link.url
-          }))
-        })
+      const { data: createdPostId } = await axiosInstance.post(API_ENDPOINTS.PROJECT_POSTS(projectId), {
+        title,
+        content,
+        projectPostStatus: postStatus,
+        parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null,
+        links: links.map(link => ({
+          title: link.title,
+          url: link.url
+        }))
       });
 
-      if (!postResponse.ok) {
-        throw new Error('게시글 생성 실패');
-      }
-
-      const postData = await postResponse.json();
-      const createdPostId = postData;
-
-      // 2. 파일 업로드 처리 (동기적으로)
+      // 2. 파일 업로드 처리
       if (files.length > 0) {
         for (const file of files) {
           if (file.size > MAX_FILE_SIZE) {
@@ -109,70 +95,29 @@ const handleLinkDelete = (indexToDelete) => {
           }
 
           // presigned URL 요청
-          const presignedResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, createdPostId), {
-            method: 'POST',
-            headers: {
-              'Authorization': token,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileSize: file.size,
-              contentType: file.type
-            })
+          const { data: { preSignedUrl, fileId } } = await axiosInstance.post(API_ENDPOINTS.PROJECT_POST_FILE(projectId, createdPostId), {
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: file.type
           });
 
-          if (!presignedResponse.ok) {
-            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
-          }
-
-          const { preSignedUrl, fileId } = await presignedResponse.json();
-
           // S3에 파일 업로드
-          const uploadResponse = await fetch(preSignedUrl, {
+          await fetch(preSignedUrl, {
             method: 'PUT',
             body: file,
             headers: {
               'Content-Type': file.type
             }
           });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${file.name}`);
-          }
-
-         
         }
       }
 
-      // 3. 링크 업로드 처리
-      if (links.length > 0) {
-        for (const link of links) {
-          const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, createdPostId), {
-            method: 'POST',
-            headers: {
-              'Authorization': token,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              title: link.title,
-              url: link.url
-            })
-          });
-
-          if (!linkResponse.ok) {
-            throw new Error(`링크 업로드 실패: ${link.title}`);
-          }
-        }
-      }
-
-      setLoading(false); // 로딩 상태 종료
-      navigate(`/project/${projectId}`); // 성공 시 이동
-      
+      setLoading(false);
+      navigate(`/project/${projectId}`);
     } catch (error) {
-      setLoading(false); // 에러 발생 시에도 로딩 상태 종료
+      setLoading(false);
       console.error('Error:', error);
-      alert('게시글 작성 중 오류가 발생했습니다: ' + error.message);
+      alert('게시글 작성 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
     }
   };
 

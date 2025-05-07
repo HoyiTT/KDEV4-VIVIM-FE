@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const UserManagement = () => {
@@ -29,15 +30,11 @@ const UserManagement = () => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.COMPANIES, {
-        headers: {
-          'Authorization': `${localStorage.getItem('token')?.trim()}`
-        }
-      });
-      const data = await response.json();
-      setCompanies(data);
+      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+      setCompanies(data || []);
     } catch (error) {
       console.error('Error fetching companies:', error);
+      setCompanies([]);
     }
   };
 
@@ -51,51 +48,44 @@ const UserManagement = () => {
         size: 10
       }).toString();
 
-      const response = await fetch(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
-        headers: {
-          'Authorization': `${localStorage.getItem('token')?.trim()}`
-        }
-      });
-      const data = await response.json();
-      setUsers(data.content);
-      setTotalPages(data.totalPages);
-      setLoading(false);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`);
+      setUsers(data.content || []);
+      setTotalPages(data.totalPages || 0);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+      setTotalPages(0);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    setCurrentPage(0);
-    
-    // 입력된 값만 필터링
-    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-      if (value !== '' && value !== false) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
+  const handleSearch = async () => {
+    try {
+      setCurrentPage(0);
+      
+      // 입력된 값만 필터링
+      const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== '' && value !== false) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
 
-    const queryParams = new URLSearchParams({
-      ...activeFilters,
-      page: 0,
-      size: 10
-    }).toString();
+      const queryParams = new URLSearchParams({
+        ...activeFilters,
+        page: 0,
+        size: 10
+      }).toString();
 
-    fetch(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
-      headers: {
-        'Authorization': `${localStorage.getItem('token')?.trim()}`
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        setUsers(data.content);
-        setTotalPages(data.totalPages);
-      })
-      .catch(error => {
-        console.error('Error searching users:', error);
-      });
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`);
+      setUsers(data.content || []);
+      setTotalPages(data.totalPages || 0);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setUsers([]);
+      setTotalPages(0);
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -214,11 +204,13 @@ const UserManagement = () => {
             onChange={handleFilterChange}
           >
             <option value="">전체 회사</option>
-            {companies.map(company => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
+            {companies && companies.length > 0 ? (
+              companies.map(company => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))
+            ) : null}
           </SearchSelect>
           <SearchSelect
             name="companyRole"

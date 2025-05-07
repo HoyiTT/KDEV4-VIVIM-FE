@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import approvalUtils from '../utils/approvalStatus';
+import axiosInstance from '../utils/axiosInstance';
 
 const { getApproverStatusText } = approvalUtils;
 
@@ -359,7 +360,7 @@ const ResponseStatus = styled.div`
   }
   
   ${props => {
-    const status = props.status;
+    const status = props.$status;
     switch (status) {
       case ApprovalDecisionStatus.APPROVED:
         return `
@@ -1181,43 +1182,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
   const fetchDecisions = async () => {
     try {
-      const storedToken = localStorage.getItem('token');
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
-      const apiUrl = API_ENDPOINTS.DECISION.LIST(approvalId);
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': authToken,
-          'accept': '*/*'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const responseText = await response.text();
-      
-      if (!responseText.trim()) {
-        setApproversData([]);
-        return;
-      }
-      
-      try {
-        const data = JSON.parse(responseText);
-        const approvers = data.decisionResponses || data.approvers || [];
-        setApproversData(approvers);
-      } catch (parseError) {
-        console.error('JSON 파싱 오류:', parseError);
-        alert('서버 응답을 처리할 수 없습니다. 관리자에게 문의하세요.');
-        setApproversData([]);
-      }
+      const response = await axiosInstance.get(API_ENDPOINTS.DECISION.LIST(approvalId));
+      const approvers = response.data.decisionResponses || response.data.approvers || [];
+      setApproversData(approvers);
     } catch (error) {
       console.error('Error fetching decisions:', error);
-      alert(error.message || '승응답 목록을 불러오는데 실패했습니다.');
+      alert(error.message || '승인응답 목록을 불러오는데 실패했습니다.');
       setApproversData([]);
     }
   };
@@ -1302,98 +1272,18 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     }
 
     try {
-      const storedToken = localStorage.getItem('token');
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-
-      const response = await fetch(API_ENDPOINTS.DECISION.CREATE(approvalId), {
-        method: 'POST',
-        headers: {
-          'Authorization': authToken,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: newDecision.content,
-          decisionStatus: newDecision.status
-        })
+      const response = await axiosInstance.post(API_ENDPOINTS.DECISION.CREATE(approvalId), {
+        content: newDecision.content,
+        decisionStatus: newDecision.status
       });
 
-      if (!response.ok) {
-        throw new Error('승인응답 생성 실패');
+      if (response.status === 200) {
+        fetchDecisions();
+        setNewDecision({ content: '', status: '' });
       }
-
-      // 파일 업로드 처리
-      if (files.length > 0) {
-        for (const file of files) {
-          if (file.size > MAX_FILE_SIZE) {
-            throw new Error(`파일 크기 제한 초과: ${file.name}`);
-          }
-
-          // presigned URL 요청
-          const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_PRESIGNED(approvalId), {
-            method: 'POST',
-            headers: {
-              'Authorization': authToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileSize: file.size,
-              contentType: file.type
-            })
-          });
-
-          if (!presignedResponse.ok) {
-            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
-          }
-
-          const { preSignedUrl, fileId } = await presignedResponse.json();
-
-          // S3에 파일 업로드
-          const uploadResponse = await fetch(preSignedUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'Content-Type': file.type
-            }
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${file.name}`);
-          }
-        }
-      }
-
-      // 링크 업로드 처리
-      if (links.length > 0) {
-        for (const link of links) {
-          const linkResponse = await fetch(API_ENDPOINTS.DECISION.CREATE_LINK(approvalId), {
-            method: 'POST',
-            headers: {
-              'Authorization': authToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              title: link.title,
-              url: link.url
-            })
-          });
-
-          if (!linkResponse.ok) {
-            throw new Error(`링크 업로드 실패: ${link.title}`);
-          }
-        }
-      }
-
-      // 성공 시 상태 초기화 및 모달 닫기
-      setNewDecision({ content: '', status: '' });
-      setFiles([]);
-      setLinks([]);
-      setIsModalOpen(false);
-      fetchDecisions();
-      alert('승인응답이 등록되었습니다.');
     } catch (error) {
-      console.error('Error:', error);
-      alert('승인응답 등록 중 오류가 발생했습니다: ' + error.message);
+      console.error('Error creating decision:', error);
+      alert('승인응답 생성에 실패했습니다.');
     }
   };
 
@@ -1414,28 +1304,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
     try {
       setLoading(true);
-      const storedToken = localStorage.getItem('token');
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-      
-      const response = await fetch(API_ENDPOINTS.DECISION.DELETE(decisionId), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': authToken,
-          'accept': '*/*'
-        }
-      });
+      const response = await axiosInstance.delete(API_ENDPOINTS.DECISION.DELETE(decisionId));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`응답 삭제 실패: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.statusCode === 200 || response.status === 200) {
+      if (response.status === 200) {
         alert('승응답이 성공적으로 삭제되었습니다.');
+        await fetchDecisions();
       }
-
-      await fetchDecisions();
     } catch (error) {
       console.error('승응답 삭제 오류:', error);
       alert(`승응답 삭제에 실패했습니다: ${error.message}`);
@@ -1477,36 +1351,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
   const handleDecisionClick = async (decision) => {
     try {
-      const storedToken = localStorage.getItem('token');
-      const authToken = storedToken?.startsWith('Bearer ') ? storedToken : `Bearer ${storedToken}`;
-
-      // 파일 정보 가져오기
-      const filesResponse = await fetch(API_ENDPOINTS.DECISION.FILES(decision.id), {
-        method: 'GET',
-        headers: {
-          'Authorization': authToken
-        }
-      });
-
-      if (!filesResponse.ok) {
-        throw new Error('파일 정보를 가져오는데 실패했습니다.');
-      }
-
-      const filesData = await filesResponse.json();
+      const response = await axiosInstance.get(API_ENDPOINTS.DECISION.FILES(decision.id));
+      const filesData = response.data;
 
       // 링크 정보 가져오기
-      const linksResponse = await fetch(API_ENDPOINTS.DECISION.GET_LINKS(decision.id), {
-        method: 'GET',
-        headers: {
-          'Authorization': authToken
-        }
-      });
-
-      if (!linksResponse.ok) {
-        throw new Error('링크 정보를 가져오는데 실패했습니다.');
-      }
-
-      const linksData = await linksResponse.json();
+      const linksResponse = await axiosInstance.get(API_ENDPOINTS.DECISION.GET_LINKS(decision.id));
+      const linksData = linksResponse.data;
 
       // 파일과 링크 정보를 포함하여 상태 업데이트
       setSelectedDecision({
@@ -1523,22 +1373,17 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
   const handleFileDownload = async (fileId, fileName) => {
     try {
-      const token = localStorage.getItem('token');
-      const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId), {
-        headers: {
-          'Authorization': token
-        }
+      const response = await axiosInstance.get(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId), {
+        responseType: 'blob'
       });
       
-      if (!presignedResponse.ok) {
-        throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
-      }
-
-      const { preSignedUrl, fileName: responseFileName } = await presignedResponse.json();
-      
-      // presigned URL로 직접 파일 다운로드
-      window.location.href = preSignedUrl;
-
+      const blob = new Blob([response.data]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('파일 다운로드 중 오류 발생:', error);
       alert('파일 다운로드에 실패했습니다.');

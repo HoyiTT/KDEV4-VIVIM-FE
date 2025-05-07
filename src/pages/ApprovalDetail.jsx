@@ -9,6 +9,7 @@ import ProjectStageProgress from '../components/ProjectStage';
 import { FaEdit, FaTrashAlt, FaSave, FaTimes, FaCheck, FaClock } from 'react-icons/fa';
 import approvalUtils from '../utils/approvalStatus';
 import ApprovalProposal from '../components/ApprovalProposal';
+import axiosInstance from '../utils/axiosInstance';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -667,21 +668,9 @@ const ApprovalDetail = () => {
 
   const fetchProposalDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
       console.log("승인요청 상세 조회 시작:", id);
       
-      const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 상세 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(id));
       console.log("승인요청 데이터:", data);
       
       // 백엔드 응답 필드 확인 (proposalStatus 또는 approvalProposalStatus)
@@ -738,14 +727,7 @@ const ApprovalDetail = () => {
       }
       
       setProposal(data);
-      
-      // 프로젝트 ID 설정
-      if (data.projectId) {
-        console.log("프로젝트 ID 설정:", data.projectId);
-        setProjectId(data.projectId);
-      } else {
-        console.error("승인요청에 프로젝트 ID가 없습니다");
-      }
+      setProjectId(data.projectId);
       
       // 승인 상태 요약 정보 조회
       fetchStatusSummary();
@@ -762,20 +744,9 @@ const ApprovalDetail = () => {
   const fetchProjectProgress = async () => {
     try {
       setProgressLoading(true);
-      const token = localStorage.getItem('token');
       console.log("프로젝트 진행 단계 조회 시작:", projectId);
       
-      const response = await fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('프로젝트 진행 상태 조회에 실패했습니다.');
-      }
-      
-      const data = await response.json();
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`);
       console.log("프로젝트 진행 단계 데이터:", data);
       
       if (data.progressList && data.progressList.length > 0) {
@@ -806,21 +777,9 @@ const ApprovalDetail = () => {
   // 승인 상태 요약 정보 조회
   const fetchStatusSummary = async () => {
     try {
-      const token = localStorage.getItem('token');
       console.log("승인요청 상태 요약 조회 시작:", id);
       
-      const response = await fetch(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 상태 요약 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(id));
       console.log("승인요청 상태 요약 데이터:", data);
       
       // 주요 상태 정보 로그 출력
@@ -1049,11 +1008,6 @@ const ApprovalDetail = () => {
 
     try {
       setSaving(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('로그인이 필요합니다.');
-        return;
-      }
       
       console.log('수정 요청 시작:', proposal.id);
       
@@ -1063,52 +1017,16 @@ const ApprovalDetail = () => {
         content: editContent
       };
       
-      const response = await fetch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), {
-        method: 'PATCH', 
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 403) {
-          alert('이 승인요청을 수정할 권한이 없습니다. 작성자 또는 관리자만 수정할 수 있습니다.');
-          return;
-        }
-        throw new Error(`승인요청 수정 실패 (${response.status}): ${errorText}`);
-      }
+      await axiosInstance.patch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), requestData);
 
       // 2. 삭제된 파일 처리
       for (const fileId of deletedFileIds) {
-        const deleteResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
-          method: 'PATCH',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!deleteResponse.ok) {
-          throw new Error(`파일 삭제 실패: ${fileId}`);
-        }
+        await axiosInstance.patch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId));
       }
 
       // 3. 삭제된 링크 처리
       for (const linkId of deletedLinkIds) {
-        const deleteResponse = await fetch(API_ENDPOINTS.APPROVAL.DELETE_LINK(linkId), {
-          method: 'PATCH',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!deleteResponse.ok) {
-          throw new Error(`링크 삭제 실패: ${linkId}`);
-        }
+        await axiosInstance.patch(API_ENDPOINTS.APPROVAL.DELETE_LINK(linkId));
       }
 
       // 4. 새 파일 업로드 처리
@@ -1117,37 +1035,23 @@ const ApprovalDetail = () => {
         if (file.id) continue;
 
         // 새 파일인 경우에만 업로드
-        const presignedResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(proposal.id), {
-          method: 'POST',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+        const { data: { preSignedUrl, fileId } } = await axiosInstance.post(
+          API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(proposal.id),
+          {
             fileName: file.name,
             fileSize: file.size,
             contentType: file.type
-          })
-        });
-
-        if (!presignedResponse.ok) {
-          throw new Error(`Presigned URL 요청 실패: ${file.name}`);
-        }
-
-        const { preSignedUrl, fileId } = await presignedResponse.json();
+          }
+        );
 
         // S3에 파일 업로드
-        const uploadResponse = await fetch(preSignedUrl, {
+        await fetch(preSignedUrl, {
           method: 'PUT',
           body: file,
           headers: {
             'Content-Type': file.type
           }
         });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`파일 업로드 실패: ${file.name}`);
-        }
       }
 
       // 5. 새 링크 저장 처리
@@ -1155,18 +1059,7 @@ const ApprovalDetail = () => {
         // 기존 링크인 경우 건너뛰기
         if (link.id) continue;
 
-        const linkResponse = await fetch(API_ENDPOINTS.APPROVAL.LINKS(proposal.id), {
-          method: 'POST',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(link)
-        });
-
-        if (!linkResponse.ok) {
-          throw new Error(`링크 저장 실패: ${link.title}`);
-        }
+        await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(proposal.id), link);
       }
 
       // 6. 파일 목록 새로고침
@@ -1189,7 +1082,11 @@ const ApprovalDetail = () => {
       alert('승인요청이 성공적으로 수정되었습니다.');
     } catch (error) {
       console.error('승인요청 수정 중 오류:', error);
-      alert(`승인요청 수정에 실패했습니다: ${error.message}`);
+      if (error.response?.status === 403) {
+        alert('이 승인요청을 수정할 권한이 없습니다. 작성자 또는 관리자만 수정할 수 있습니다.');
+      } else {
+        alert(`승인요청 수정에 실패했습니다: ${error.message}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -1203,19 +1100,7 @@ const ApprovalDetail = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.DELETE(proposal.id), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 삭제에 실패했습니다.');
-      }
-
+      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(proposal.id));
       alert('승인요청이 성공적으로 삭제되었습니다.');
       navigate(-1); // 이전 페이지로 이동
     } catch (error) {
@@ -1226,13 +1111,7 @@ const ApprovalDetail = () => {
 
   const fetchFiles = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.FILES(id), {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILES(id));
       setFiles(data);
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -1241,13 +1120,7 @@ const ApprovalDetail = () => {
 
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.GET_LINKS(id), {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.GET_LINKS(id));
       setLinks(data);
     } catch (error) {
       console.error('Error fetching links:', error);
@@ -1256,18 +1129,7 @@ const ApprovalDetail = () => {
 
   const handleFileDownload = async (fileId, fileName) => {
     try {
-      const token = localStorage.getItem('token');
-      const presignedResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DOWNLOAD(fileId), {
-        headers: {
-          'Authorization': token
-        }
-      });
-      
-      if (!presignedResponse.ok) {
-        throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
-      }
-
-      const { preSignedUrl } = await presignedResponse.json();
+      const { data: { preSignedUrl } } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILE_DOWNLOAD(fileId));
       window.location.href = preSignedUrl;
     } catch (error) {
       console.error('파일 다운로드 중 오류 발생:', error);
@@ -1546,18 +1408,20 @@ const ApprovalDetail = () => {
                         
                         {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
                         <ApprovalButtonContainer>
-                          <ApprovalActionButton 
-                            secondary
-                            onClick={handleOpenEditApprovers}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                              <circle cx="9" cy="7" r="4"></circle>
-                              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                            승인권자 수정
-                          </ApprovalActionButton>
+                          {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
+                            <ApprovalActionButton 
+                              secondary
+                              onClick={handleOpenEditApprovers}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                              </svg>
+                              승인권자 수정
+                            </ApprovalActionButton>
+                          )}
                           <ApprovalActionButton 
                             onClick={handleSendApproval} 
                             disabled={
