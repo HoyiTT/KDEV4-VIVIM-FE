@@ -859,29 +859,42 @@ const NoticeDate = styled.div`
 `;
 
 const NoticeStatus = styled.div`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
   font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: inline-block;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
   background: ${props => {
     switch (props.status) {
-      case 'PENDING': return '#fff7ed';
-      case 'IN_PROGRESS': return '#e8f5e9';
-      case 'COMPLETED': return '#f1f5f9';
-      case 'ON_HOLD': return '#fff7ed';
-      default: return '#f1f5f9';
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
     }
   }};
   color: ${props => {
     switch (props.status) {
-      case 'PENDING': return '#c2410c';
-      case 'IN_PROGRESS': return '#2E7D32';
-      case 'COMPLETED': return '#64748b';
-      case 'ON_HOLD': return '#c2410c';
-      default: return '#64748b';
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
     }
   }};
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
+  }
 `;
 
 const ProjectList = styled.div`
@@ -917,31 +930,7 @@ const ProjectName = styled.div`
   line-height: 1.4;
 `;
 
-const ProjectStatus = styled.div`
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: inline-block;
-  font-weight: 500;
-  background: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#fff7ed';
-      case 'IN_PROGRESS': return '#e8f5e9';
-      case 'COMPLETED': return '#f1f5f9';
-      case 'ON_HOLD': return '#fff7ed';
-      default: return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#c2410c';
-      case 'IN_PROGRESS': return '#2E7D32';
-      case 'COMPLETED': return '#64748b';
-      case 'ON_HOLD': return '#c2410c';
-      default: return '#64748b';
-    }
-  }};
-`;
+const ProjectStatus = styled(NoticeStatus)``;
 
 const ProjectDate = styled.div`
   font-size: 11px;
@@ -1075,29 +1064,7 @@ const PostDate = styled.div`
   color: #94a3b8;
 `;
 
-const PostStatus = styled.div`
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: inline-block;
-  font-weight: 500;
-  background: ${props => {
-    switch (props.status) {
-      case 'IN_PROGRESS': return '#e8f5e9';
-      case 'COMPLETED': return '#f1f5f9';
-      case 'ON_HOLD': return '#fff7ed';
-      default: return '#f1f5f9';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'IN_PROGRESS': return '#2E7D32';
-      case 'COMPLETED': return '#64748b';
-      case 'ON_HOLD': return '#c2410c';
-      default: return '#64748b';
-    }
-  }};
-`;
+const PostStatus = styled(NoticeStatus)``;
 
 const NoticeInquiryGrid = styled.div`
   display: grid;
@@ -1120,11 +1087,11 @@ const NoticeList = styled.div`
 const ViewAllButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: #f8fafc;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
   color: #64748b;
   font-size: 13px;
   font-weight: 500;
@@ -1132,9 +1099,16 @@ const ViewAllButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
     border-color: #cbd5e1;
     color: #475569;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 `;
 
@@ -1142,7 +1116,7 @@ const ArrowIcon = styled.span`
   font-size: 14px;
   transition: transform 0.2s ease;
   ${ViewAllButton}:hover & {
-    transform: translateX(2px);
+    transform: translateX(4px);
   }
 `;
 

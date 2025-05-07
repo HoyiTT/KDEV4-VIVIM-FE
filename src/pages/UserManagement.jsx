@@ -15,6 +15,14 @@ const StatusBadge = styled.span`
   font-weight: 500;
   letter-spacing: -0.01em;
   transition: all 0.2s ease;
+  color: ${props => props.color};
+  background-color: rgba(241, 245, 249, 0.8);
+  border: 1px solid ${props => props.color};
+
+  &:hover {
+    background-color: ${props => props.color};
+    color: white;
+  }
 `;
 
 const TableCell = styled.td`
@@ -144,13 +152,13 @@ const UserManagement = () => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'ADMIN':
-        return { text: '관리자', bg: 'rgba(46, 125, 50, 0.08)', color: '#2E7D32' };
+        return { text: '관리자', color: '#0F172A' };  // 진한 슬레이트
       case 'DEVELOPER':
-        return { text: '개발사', bg: 'rgba(27, 94, 32, 0.08)', color: '#1B5E20' };
+        return { text: '개발사', color: '#16A34A' };  // 에메랄드
       case 'CUSTOMER':
-        return { text: '고객사', bg: 'rgba(76, 175, 80, 0.08)', color: '#4CAF50' };
+        return { text: '고객사', color: '#7C3AED' };  // 바이올렛
       default:
-        return { text: '일반', bg: 'rgba(129, 199, 132, 0.08)', color: '#81C784' };
+        return { text: '일반', color: '#64748B' };  // 슬레이트
     }
   };
 
@@ -563,10 +571,7 @@ const UserManagement = () => {
                       <TableCell>{user.companyName}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          style={{ 
-                            background: roleBadge.bg,
-                            color: roleBadge.color
-                          }}
+                          color={roleBadge.color}
                         >
                           {roleBadge.text}
                         </StatusBadge>

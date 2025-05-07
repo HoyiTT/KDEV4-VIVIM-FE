@@ -19,10 +19,10 @@ const Sidebar = () => {
 
   const adminMenuItems = [
     { path: '/dashboard-admin', label: '관리자 대시보드', icon: '👑' },
-    { path: '/admin/projects', label: '프로젝트 관리', icon: '��' },
+    { path: '/admin/projects', label: '프로젝트 관리', icon: '' },
     { path: '/user-management', label: '사용자 관리', icon: '👥' },
     { path: '/admin/inquiries', label: '문의사항 관리', icon: '💬' },
-    { path: '/admin/settings', label: '시스템 설정', icon: '⚙️' },
+    { path: '/audit-log', label: '로그 기록', icon: '📜' },
   ];
 
   const handleLogout = () => {
@@ -249,18 +249,45 @@ const LogoutSection = styled.div`
 
 const LogoutButton = styled.button`
   width: 100%;
-  padding: 10px 12px;
-  border: none;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background: #f8fafc;
-  color: #1e293b;
+  background: white;
+  color: #475569;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  &::before {
+    content: '↪';
+    font-size: 14px;
+    font-weight: 400;
+    transition: transform 0.2s ease;
+  }
 
   &:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    &::before {
+      transform: translateX(4px);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 `;
 

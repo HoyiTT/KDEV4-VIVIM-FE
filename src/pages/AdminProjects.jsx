@@ -12,6 +12,14 @@ const StatusBadge = styled.span`
   font-weight: 500;
   letter-spacing: -0.01em;
   transition: all 0.2s ease;
+  color: ${props => props.color};
+  background-color: rgba(241, 245, 249, 0.8);
+  border: 1px solid ${props => props.color};
+
+  &:hover {
+    background-color: ${props => props.color};
+    color: white;
+  }
 `;
 
 const TableCell = styled.td`
@@ -114,16 +122,16 @@ const AdminProjects = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PROGRESS':
-        return { bg: '#f1f5f9', text: '#334155' };
-      case 'INSPECTION':
-        return { bg: '#e2e8f0', text: '#475569' };
+      case 'PENDING':
+        return { text: '대기중', color: '#DC2626' };
+      case 'IN_PROGRESS':
+        return { text: '진행중', color: '#2E7D32' };
       case 'COMPLETED':
-        return { bg: '#cbd5e1', text: '#64748b' };
-      case 'DELETED':
-        return { bg: '#94a3b8', text: '#f8fafc' };
+        return { text: '완료', color: '#64748B' };
+      case 'ON_HOLD':
+        return { text: '보류', color: '#F59E0B' };
       default:
-        return { bg: '#f8fafc', text: '#94a3b8' };
+        return { text: '대기중', color: '#64748B' };
     }
   };
 
@@ -483,12 +491,9 @@ const AdminProjects = () => {
                       <TableCell>{formatDate(project.endDate)}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          style={{ 
-                            background: statusColor.bg,
-                            color: statusColor.text
-                          }}
+                          color={statusColor.color}
                         >
-                          {getProjectStatus(project.projectStatus)}
+                          {statusColor.text}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>

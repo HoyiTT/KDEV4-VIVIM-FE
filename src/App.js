@@ -42,10 +42,9 @@ const AppContent = () => {
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard-admin" element={<ProtectedRoute><DashboardAdmin /></ProtectedRoute>} />
-          <Route path="/admin-inquiry" element={<ProtectedRoute><AdminInquiry /></ProtectedRoute>} />
-          <Route path="/admin-inquiry-list" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
-          <Route path="/admin-inquiry-list/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
-          <Route path="/admin-inquiry-list/:id/edit" element={<ProtectedRoute><AdminInquiryEdit /></ProtectedRoute>} />
+          <Route path="/admin/inquiries" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
+          <Route path="/admin/inquiries/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
+          <Route path="/admin/inquiries/:id/edit" element={<ProtectedRoute><AdminInquiryEdit /></ProtectedRoute>} />
           <Route path="/projectCreate" element={<ProtectedRoute><ProjectCreate /></ProtectedRoute>} />
           <Route path="/projectModify/:projectId" element={<ProtectedRoute><ProjectModify /></ProtectedRoute>} />
           <Route path="/company-management" element={<ProtectedRoute><CompanyManagement /></ProtectedRoute>} />

@@ -90,7 +90,7 @@ const StatusBadge = styled.span`
   }
 `;
 
-const AdminDashboard = () => {
+const AdminBasicDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -239,4 +239,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminBasicDashboard; 
