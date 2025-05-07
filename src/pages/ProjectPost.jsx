@@ -14,26 +14,6 @@ const ProjectPost = () => {
 
   return (
     <DashboardContainer>
-      <Sidebar>
-        <Logo src="/logo.svg" alt="Logo" />
-        <SidebarCreateButton onClick={() => navigate('/projectCreate')}>
-          + 프로젝트 생성
-        </SidebarCreateButton>
-        <MenuList>
-          <MenuItem>진행중인 프로젝트</MenuItem>
-          <MenuItem active>
-            할 일 목록
-            <Badge>신규</Badge>
-          </MenuItem>
-          <MenuItem>모바일 앱 개발</MenuItem>
-          <MenuItem>완료된 프로젝트</MenuItem>
-          <MenuItem>
-            마케팅 사이트 개발
-            <SubText>2024.02.10</SubText>
-          </MenuItem>
-        </MenuList>
-      </Sidebar>
-
       <MainContent>
         <Header>
           <TabContainer>
@@ -137,72 +117,6 @@ const ProjectPost = () => {
 const DashboardContainer = styled.div`
   display: flex;
   min-height: 100vh;
-`;
-
-const Sidebar = styled.div`
-  width: 250px;
-  background: #fff;
-  border-right: 1px solid #eee;
-  padding: 20px;
-`;
-
-const Logo = styled.img`
-  width: 40px;
-  height: 40px;
-  margin-bottom: 30px;
-`;
-
-const SidebarCreateButton = styled.button`
-  width: 100%;
-  background-color: #000;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #333;
-  }
-`;
-
-const MenuList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const MenuItem = styled.div`
-  padding: 12px;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 14px;
-  ${props => props.active && `
-    background: #f5f5f5;
-    font-weight: bold;
-  `}
-`;
-
-const Badge = styled.span`
-  background: #FF4444;
-  color: white;
-  padding: ${props => props.small ? '1px 4px' : '2px 6px'};
-  border-radius: 10px;
-  font-size: ${props => props.small ? '10px' : '12px'};
-  margin-left: 8px;
-`;
-
-const SubText = styled.div`
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
 `;
 
 const MainContent = styled.div`

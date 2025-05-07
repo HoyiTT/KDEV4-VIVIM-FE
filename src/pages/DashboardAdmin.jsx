@@ -18,8 +18,29 @@ import axiosInstance from '../utils/axiosInstance';
 
 const DashboardAdmin = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // 관리자가 아닌 경우 대시보드로 리다이렉트
+    if (user?.companyRole !== 'ADMIN') {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    projectChange: 0,
+    activeProjects: 0,
+    activeChange: 0,
+    completedProjects: 0,
+    completedChange: 0,
+    pendingInquiries: 0,
+    inquiryChange: 0
+  });
+  const [recentProjects, setRecentProjects] = useState([]);
+  const [recentInquiries, setRecentInquiries] = useState([]);
   const [summaryData, setSummaryData] = useState([
     { title: '계약중인 프로젝트', value: 0 },
     { title: '검수중인 프로젝트', value: 0 },
@@ -46,7 +67,35 @@ const DashboardAdmin = () => {
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('ko-KR').replace(/\. /g, '.').slice(0, -1);
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return '진행중';
+      case 'COMPLETED':
+        return '완료';
+      case 'ON_HOLD':
+        return '보류';
+      default:
+        return '대기중';
+    }
+  };
+
+  const getInquiryStatusText = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return '대기중';
+      case 'IN_PROGRESS':
+        return '처리중';
+      case 'COMPLETED':
+        return '완료';
+      default:
+        return '대기중';
+    }
+  };
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -146,6 +195,48 @@ const DashboardAdmin = () => {
     fetchInquiries();
   }, []);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data } = await axiosInstance.get('/projects/dashboard/stats');
+        setStats({
+          totalProjects: data.totalProjects || 0,
+          projectChange: data.projectChange || 0,
+          activeProjects: data.activeProjects || 0,
+          activeChange: data.activeChange || 0,
+          completedProjects: data.completedProjects || 0,
+          completedChange: data.completedChange || 0,
+          pendingInquiries: data.pendingInquiries || 0,
+          inquiryChange: data.inquiryChange || 0
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    const fetchRecentProjects = async () => {
+      try {
+        const { data } = await axiosInstance.get('/projects/recent');
+        setRecentProjects(data);
+      } catch (error) {
+        console.error('Error fetching recent projects:', error);
+      }
+    };
+
+    const fetchRecentInquiries = async () => {
+      try {
+        const { data } = await axiosInstance.get('/admininquiry/recent');
+        setRecentInquiries(data);
+      } catch (error) {
+        console.error('Error fetching recent inquiries:', error);
+      }
+    };
+
+    fetchStats();
+    fetchRecentProjects();
+    fetchRecentInquiries();
+  }, []);
+
   const handlePostClick = (postId, projectId) => {
     navigate(`/project/${projectId}/post/${postId}`);
   };
@@ -172,130 +263,101 @@ const DashboardAdmin = () => {
 
   return (
     <PageContainer>
-      <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+      <Navbar />
       <MainContent>
         <TopSection>
-          <SummarySection>
-            <ProjectSummaryTitle>프로젝트 진행현황 요약</ProjectSummaryTitle>
-            <SummaryGrid>
-              {summaryData.map((item, idx) => (
-                <SummaryCard key={idx} onClick={() => handleSummaryClick(item.title)}>
-                  <SummaryTitle>{item.title}</SummaryTitle>
-                  <SummaryValue>{item.value}</SummaryValue>
-                </SummaryCard>
-              ))}
-            </SummaryGrid>
-          </SummarySection>
-          <ChartSection>
-            <SectionTitle>진행중인 단계별 프로젝트 비율</SectionTitle>
-            <ChartWrapper>
-              <ChartContainer>
-                <PieChart
-                  data={chartData}
-                  lineWidth={45}
-                  paddingAngle={2}
-                  label={({ dataEntry }) => `${dataEntry.value}%`}
-                  labelStyle={{ fontSize: '5px', fill: '#fff', fontWeight: '500' }}
-                  labelPosition={80}
-                />
-              </ChartContainer>
-              <ChartLegend>
-                {chartData.map((item, idx) => (
-                  <LegendItem key={idx}>
-                    <LegendColor color={item.color} />
-                    <LegendTextWrapper>
-                      <LegendTitle>{item.title}</LegendTitle>
-                      <LegendCount>
-                        <span>{item.count}건</span>
-                        <LegendPercent>({item.value}%)</LegendPercent>
-                      </LegendCount>
-                    </LegendTextWrapper>
-                  </LegendItem>
-                ))}
-              </ChartLegend>
-            </ChartWrapper>
-          </ChartSection>
+          <StatCard>
+            <StatTitle>총 프로젝트</StatTitle>
+            <StatValue>{stats.totalProjects}</StatValue>
+            <StatChange isPositive={stats.projectChange > 0}>
+              {stats.projectChange > 0 ? '↑' : '↓'} {Math.abs(stats.projectChange)}%
+            </StatChange>
+          </StatCard>
+          <StatCard>
+            <StatTitle>진행 중인 프로젝트</StatTitle>
+            <StatValue>{stats.activeProjects}</StatValue>
+            <StatChange isPositive={stats.activeChange > 0}>
+              {stats.activeChange > 0 ? '↑' : '↓'} {Math.abs(stats.activeChange)}%
+            </StatChange>
+          </StatCard>
+          <StatCard>
+            <StatTitle>완료된 프로젝트</StatTitle>
+            <StatValue>{stats.completedProjects}</StatValue>
+            <StatChange isPositive={stats.completedChange > 0}>
+              {stats.completedChange > 0 ? '↑' : '↓'} {Math.abs(stats.completedChange)}%
+            </StatChange>
+          </StatCard>
+          <StatCard>
+            <StatTitle>대기 중인 문의</StatTitle>
+            <StatValue>{stats.pendingInquiries}</StatValue>
+            <StatChange isPositive={stats.inquiryChange > 0}>
+              {stats.inquiryChange > 0 ? '↑' : '↓'} {Math.abs(stats.inquiryChange)}%
+            </StatChange>
+          </StatCard>
         </TopSection>
 
-        <TopSection>
-          <InquirySection>
-            <SectionTitle onClick={() => navigate('/admin-inquiry-list')}>
-              관리자 문의
-            </SectionTitle>
-            <InquiryList>
-              {adminInquiries.map(i => (
-                <InquiryItem
-                  key={i.id}
-                  onClick={() => navigate(`/admin-inquiry-list/${i.id}`)}
-                >
-                  <InquiryHeader>
-                    <InquiryTitle>{i.title}</InquiryTitle>
-                    <InquiryStatus status={i.inquiryStatus}>
-                      {i.inquiryStatus === 'PENDING'
-                        ? '미답변'
-                        : i.inquiryStatus === 'IN_PROGRESS'
-                        ? '검토중'
-                        : '답변완료'}
-                    </InquiryStatus>
-                  </InquiryHeader>
-                  <InquiryInfo>
-                    <CompanyInfo>{i.creatorName}</CompanyInfo>
-                    <InquiryDate>
-                      {new Date(i.createdAt)
-                        .toLocaleDateString('ko-KR')
-                        .replace(/\. /g, '.')
-                        .slice(0, -1)}
-                    </InquiryDate>
-                  </InquiryInfo>
-                </InquiryItem>
-              ))}
-            </InquiryList>
-          </InquirySection>
-          <RevenueSection>
-            <TitleRow>
-              <SectionTitle>이번 달 매출 현황</SectionTitle>
-              <RevenueAmount>
-                총 매출: {revenueData.reduce((sum, it) => sum + it.amount, 0).toLocaleString()}만원
-              </RevenueAmount>
-            </TitleRow>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={val => [`${val.toLocaleString()}만원`, '매출']} />
-                <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </RevenueSection>
-        </TopSection>
-
-        <RecentPostSection>
-          <SectionTitle>최근 게시글</SectionTitle>
-          <PostList>
-            {recentPosts.map(p => (
-              <PostItem key={p.postId} onClick={() => handlePostClick(p.postId, p.projectId)}>
-                <PostCategory>
-                  {p.projectPostStatus === 'NORMAL'
-                    ? '일반'
-                    : p.projectPostStatus === 'QUESTION'
-                    ? '질문'
-                    : '공지'}
-                </PostCategory>
-                <PostTitle>{p.title}</PostTitle>
-                <PostInfo>
-                  <PostAuthor>{p.creatorName}</PostAuthor>
-                  <PostDate>
-                    {new Date(p.createdAt)
-                      .toLocaleDateString('ko-KR')
-                      .replace(/\. /g, '.')
-                      .slice(0, -1)}
-                  </PostDate>
-                </PostInfo>
-              </PostItem>
+        <ProjectSummaryCard>
+          <ProjectSummaryTitle>프로젝트 진행 현황</ProjectSummaryTitle>
+          <ProjectList>
+            {recentProjects.map(project => (
+              <ProjectCard key={project.id}>
+                <ProjectHeader>
+                  <ProjectTitle>{project.name}</ProjectTitle>
+                  <ProjectStatus status={project.status}>
+                    {getStatusText(project.status)}
+                  </ProjectStatus>
+                </ProjectHeader>
+                <ProjectInfo>
+                  <InfoRow>
+                    <InfoLabel>고객사</InfoLabel>
+                    <InfoValue>{project.customerName}</InfoValue>
+                  </InfoRow>
+                  <InfoRow>
+                    <InfoLabel>시작일</InfoLabel>
+                    <InfoValue>{formatDate(project.startDate)}</InfoValue>
+                  </InfoRow>
+                  <InfoRow>
+                    <InfoLabel>종료일</InfoLabel>
+                    <InfoValue>{formatDate(project.endDate)}</InfoValue>
+                  </InfoRow>
+                  <InfoRow>
+                    <InfoLabel>진행률</InfoLabel>
+                    <InfoValue>{project.progress}%</InfoValue>
+                  </InfoRow>
+                  <ProgressBar>
+                    <Progress style={{ width: `${project.progress}%` }} />
+                  </ProgressBar>
+                </ProjectInfo>
+              </ProjectCard>
             ))}
-          </PostList>
-        </RecentPostSection>
+          </ProjectList>
+        </ProjectSummaryCard>
+
+        <RecentInquiriesCard>
+          <SectionTitle>최근 문의사항</SectionTitle>
+          <InquiryList>
+            {recentInquiries.map(inquiry => (
+              <InquiryItem key={inquiry.id}>
+                <InquiryInfo>
+                  <InquiryTitle>{inquiry.title}</InquiryTitle>
+                  <InquiryMeta>
+                    <span>{inquiry.customerName}</span>
+                    <span>•</span>
+                    <span>{formatDate(inquiry.createdAt)}</span>
+                  </InquiryMeta>
+                </InquiryInfo>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <InquiryStatus status={inquiry.status}>
+                    {getInquiryStatusText(inquiry.status)}
+                  </InquiryStatus>
+                  <ViewButton onClick={() => navigate(`/admin-inquiry-detail/${inquiry.id}`)}>
+                    상세보기
+                  </ViewButton>
+                </div>
+              </InquiryItem>
+            ))}
+          </InquiryList>
+        </RecentInquiriesCard>
       </MainContent>
 
       {showModal && (
@@ -315,13 +377,13 @@ const DashboardAdmin = () => {
                     onClick={() => navigate(`/project/${proj.projectId}`)}
                   >
                     <ProjectName>{proj.name}</ProjectName>
-                    <ProjectInfo>
+                    <ProjectItemInfo>
                       <CompanyName>{proj.companyName}</CompanyName>
                       <ProjectDate>
                         {new Date(proj.startDate).toLocaleDateString('ko-KR')} ~{' '}
                         {new Date(proj.endDate).toLocaleDateString('ko-KR')}
                       </ProjectDate>
-                    </ProjectInfo>
+                    </ProjectItemInfo>
                   </ProjectItem>
                 ))
               ) : (
@@ -338,327 +400,289 @@ const DashboardAdmin = () => {
 // Styled components definitions
 
 const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI,
-    Roboto, Oxygen, Ubuntu, Cantarell, Open Sans, Helvetica Neue, sans-serif;
+  background: #f8fafc;
+  padding: 120px 32px 32px 272px;
 `;
 
-const MainContent = styled.main`
-  padding: 24px;
-  margin: 60px auto 0;
-  max-width: 1300px;
-  width: calc(100% - 100px);
+const MainContent = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
 `;
 
 const TopSection = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+`;
+
+const StatCard = styled.div`
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+  }
+`;
+
+const StatTitle = styled.div`
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 500;
+`;
+
+const StatValue = styled.div`
+  font-size: 28px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+`;
+
+const StatChange = styled.div`
+  font-size: 13px;
+  color: ${props => props.isPositive ? '#2E7D32' : '#dc2626'};
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const SectionTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 20px 0;
-`;
-
-const ProjectSummaryTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 20px;
-`;
-
-const SummarySection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-`;
-
-const SummaryGrid = styled.div`
+  margin: 0 0 24px 0;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
+  align-items: center;
+  gap: 8px;
 
-const SummaryCard = styled.div`
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  transition: transform 0.2s;
-  &:hover {
-    transform: translateY(-2px);
+  &::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 18px;
+    background: #2E7D32;
+    border-radius: 2px;
   }
 `;
 
-const SummaryTitle = styled.div`
+const ProjectSummaryCard = styled.div`
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 32px;
+`;
+
+const ProjectSummaryTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 18px;
+    background: #2E7D32;
+    border-radius: 2px;
+  }
+`;
+
+const ProjectList = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+`;
+
+const ProjectCard = styled.div`
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+  }
+`;
+
+const ProjectHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+`;
+
+const ProjectTitle = styled.h4`
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin: 0;
 `;
 
-const SummaryValue = styled.div`
-  font-size: 24px;
-  font-weight: 600;
-  color: #2e7d32;
-  &::after {
-    content: '건';
-    font-size: 14px;
-    color: #64748b;
-  }
-`;
-
-const ChartSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-`;
-
-const ChartWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 32px;
-`;
-
-const ChartContainer = styled.div`
-  width: 260px;
-  height: 260px;
-`;
-
-const ChartLegend = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const LegendColor = styled.div`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background-color: ${(props) => props.color};
-`;
-
-const LegendTextWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const LegendTitle = styled.span`
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const LegendCount = styled.div`
+const ProjectStatus = styled.div`
   font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  background: ${props => {
+    switch (props.status) {
+      case 'IN_PROGRESS': return '#e8f5e9';
+      case 'COMPLETED': return '#f1f5f9';
+      case 'ON_HOLD': return '#fff7ed';
+      default: return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'IN_PROGRESS': return '#2E7D32';
+      case 'COMPLETED': return '#64748b';
+      case 'ON_HOLD': return '#c2410c';
+      default: return '#64748b';
+    }
+  }};
+`;
+
+const ProjectInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+`;
+
+const InfoLabel = styled.span`
   color: #64748b;
 `;
 
-const LegendPercent = styled.span`
-  color: #94a3b8;
+const InfoValue = styled.span`
+  color: #1e293b;
+  font-weight: 500;
 `;
 
-const InquirySection = styled.div`
+const ProgressBar = styled.div`
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 16px;
+`;
+
+const Progress = styled.div`
+  height: 100%;
+  background: #2E7D32;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+`;
+
+const RecentInquiriesCard = styled.div`
   background: white;
   padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 `;
 
 const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
-  flex: 1;
 `;
 
 const InquiryItem = styled.div`
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover {
-    background: white;
-  }
-`;
-
-const InquiryHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-`;
-
-const InquiryTitle = styled.span`
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const InquiryStatus = styled.span`
-  font-size: 12px;
-  padding: 4px 8px;
+  align-items: center;
+  padding: 16px;
+  background: #f8fafc;
   border-radius: 12px;
-  font-weight: 600;
-  ${(props) => {
-    switch (props.status) {
-      case 'PENDING':
-        return `
-          background: #FEF2F2;
-          color: #EF4444;
-          border: 1px solid #FCA5A5;
-        `;
-      case 'IN_PROGRESS':
-        return `
-          background: #F0F9FF;
-          color: #0EA5E9;
-          border: 1px solid #7DD3FC;
-        `;
-      case 'COMPLETED':
-        return `
-          background: #F0FDF4;
-          color: #22C55E;
-          border: 1px solid #86EFAC;
-        `;
-      default:
-        return `
-          background: #F8FAFC;
-          color: #64748B;  
-          border: 1px solid #CBD5E1;
-        `;
-    }
-  }}
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
 `;
 
 const InquiryInfo = styled.div`
   display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #64748b;
-`;
-
-const CompanyInfo = styled.span``;
-
-const InquiryDate = styled.span`
-  color: #94a3b8;
-`;
-
-const RevenueSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const RevenueAmount = styled.div`
-  font-size: 18px;
-  font-weight: 600;
-  color: #82a6dd;
-`;
-
-const RecentPostSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 24px;
-`;
-
-const PostList = styled.div`
-  display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px;
 `;
 
-const PostItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const PostCategory = styled.span`
-  background: ${(props) => {
-    switch (props.children) {
-      case '질문':
-        return '#E3F2FD';
-      case '일반':
-        return '#E8F5E9';
-      case '공지':
-        return '#F3E5F5';
-      default:
-        return '#e2e8f0';
-    }
-  }};
-  color: ${(props) => {
-    switch (props.children) {
-      case '질문':
-        return '#1976D2';
-      case '일반':
-        return '#2E7D32';
-      case '공지':
-        return '#9C27B0';
-      default:
-        return '#475569';
-    }
-  }};
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-`;
-
-const PostTitle = styled.span`
-  font-size: 14px;
+const InquiryTitle = styled.div`
+  font-size: 15px;
   font-weight: 500;
   color: #1e293b;
-  flex: 1;
 `;
 
-const PostInfo = styled.div`
+const InquiryMeta = styled.div`
   display: flex;
+  align-items: center;
   gap: 12px;
   font-size: 13px;
   color: #64748b;
 `;
 
-const PostAuthor = styled.span``;
+const InquiryStatus = styled.div`
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#fff7ed';
+      case 'IN_PROGRESS': return '#e8f5e9';
+      case 'COMPLETED': return '#f1f5f9';
+      default: return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#c2410c';
+      case 'IN_PROGRESS': return '#2E7D32';
+      case 'COMPLETED': return '#64748b';
+      default: return '#64748b';
+    }
+  }};
+`;
 
-const PostDate = styled.span`
-  color: #94a3b8;
+const ViewButton = styled.button`
+  background: none;
+  border: none;
+  color: #2E7D32;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e8f5e9;
+  }
 `;
 
 const ModalOverlay = styled.div`
@@ -723,7 +747,7 @@ const ProjectName = styled.div`
   color: #1e293b;
 `;
 
-const ProjectInfo = styled.div`
+const ProjectItemInfo = styled.div`
   display: flex;
   justify-content: space-between;
   font-size: 13px;
