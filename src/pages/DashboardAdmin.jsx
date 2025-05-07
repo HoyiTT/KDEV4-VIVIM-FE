@@ -106,7 +106,7 @@ const DashboardAdmin = () => {
     plugins: {
       legend: {
         position: 'right',
-        align: 'start',
+        align: 'center',
         labels: {
           boxWidth: 10,
           padding: 10,
@@ -394,11 +394,19 @@ const DashboardAdmin = () => {
     }
   };
 
+  const handleInquiryClick = (inquiryId) => {
+    navigate(`/admin/inquiry/${inquiryId}`);
+  };
+
+  const handleViewAllInquiries = () => {
+    navigate('/admin/inquiries');
+  };
+
   return (
     <PageContainer>
       <ContentWrapper>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <Card>
               <CardTitle>시스템 현황</CardTitle>
               <CardContent>
@@ -456,11 +464,17 @@ const DashboardAdmin = () => {
           </div>
 
           <Card>
-            <CardTitle>관리자 문의 목록</CardTitle>
+            <CardHeader>
+              <CardTitle>관리자 문의 목록</CardTitle>
+              <ViewAllButton onClick={handleViewAllInquiries}>
+                전체보기
+                <ArrowIcon>→</ArrowIcon>
+              </ViewAllButton>
+            </CardHeader>
             <CardContent>
               <InquiryList>
-                {adminInquiries.map((inquiry) => (
-                  <NoticeItem key={inquiry.id}>
+                {adminInquiries.slice(0, 5).map((inquiry) => (
+                  <NoticeItem key={inquiry.id} onClick={() => handleInquiryClick(inquiry.id)}>
                     <NoticeInfo>
                       <NoticeTitle>{inquiry.title}</NoticeTitle>
                       <NoticeMeta>
@@ -480,7 +494,7 @@ const DashboardAdmin = () => {
 
         <Card>
           <CardTitle>프로젝트 통계</CardTitle>
-          <CardContent noPadding>
+          <CardContent>
             <ChartGrid>
               <ChartSection>
                 <ChartTitle>월별 프로젝트 통계</ChartTitle>
@@ -644,7 +658,9 @@ const CardContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: ${props => props.noPadding ? '0' : '20px'};
+  padding-bottom: 0;
+  min-height: 0;
+  flex: 1;
 `;
 
 const StatsGrid = styled.div`
@@ -721,8 +737,8 @@ const DoughnutChartSection = styled.div`
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 350px;
-  height: 320px;
+  max-width: 320px;
+  height: 300px;
   margin: 0 auto;
   position: relative;
 `;
@@ -788,35 +804,13 @@ const InquirySection = styled.div`
   flex-direction: column;
 `;
 
-const ProjectSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-  border-radius: 16px;
-  padding: 20px;
-`;
-
 const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 2px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 2px;
-  }
+  padding: 0 8px 0 0;
+  flex: 1;
+  justify-content: flex-start;
 `;
 
 const ProjectList = styled.div`
@@ -1133,24 +1127,22 @@ const NoticeList = styled.div`
 const NoticeItem = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 10px;
   background: #ffffff;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
   cursor: pointer;
 
   &:hover {
     background: #f8fafc;
     border-color: #cbd5e1;
-    transform: translateY(-1px);
   }
 `;
 
 const NoticeInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 `;
 
 const NoticeTitle = styled.div`
@@ -1201,6 +1193,42 @@ const NoticeStatus = styled.div`
       default: return '#64748b';
     }
   }};
+`;
+
+const ViewAllButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+`;
+
+const ArrowIcon = styled.span`
+  font-size: 14px;
+  transition: transform 0.2s ease;
+  ${ViewAllButton}:hover & {
+    transform: translateX(2px);
+  }
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 `;
 
 export default DashboardAdmin;
