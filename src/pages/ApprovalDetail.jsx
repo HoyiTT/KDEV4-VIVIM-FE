@@ -11,6 +11,7 @@ import approvalUtils from '../utils/approvalStatus';
 import ApprovalProposal from '../components/ApprovalProposal';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
+import { useAuth } from '../hooks/useAuth';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -632,6 +633,7 @@ const ApprovalDetail = () => {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [deletedFileIds, setDeletedFileIds] = useState([]);
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
+  const { isAdmin, isClient, isDeveloperManager } = useAuth();
 
   useEffect(() => {
     fetchProposalDetail();
@@ -758,22 +760,33 @@ const ApprovalDetail = () => {
   // 승인 상태 요약 정보 조회
   const fetchStatusSummary = async () => {
     try {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('승인 상태 요약 조회 권한이 없습니다.');
+        return;
+      }
+
       console.log("승인요청 상태 요약 조회 시작:", id);
       
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(id));
-      console.log("승인요청 상태 요약 데이터:", data);
+      const response = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(id), {
+        withCredentials: true
+      });
+      console.log("승인요청 상태 요약 데이터:", response.data);
       
       // 주요 상태 정보 로그 출력
-      console.log(`총 승인권자: ${data.totalApproverCount}명`);
-      console.log(`승인 완료: ${data.approvedApproverCount}명`);
-      console.log(`반려: ${data.modificationRequestedApproverCount}명`);
-      console.log(`대기중: ${data.waitingApproverCount}명`);
-      console.log(`요청전: ${data.beforeRequestCount}명`);
-      console.log(`최종 상태: ${getApprovalStatusText(data.proposalStatus)}`);
+      console.log(`총 승인권자: ${response.data.totalApproverCount}명`);
+      console.log(`승인 완료: ${response.data.approvedApproverCount}명`);
+      console.log(`반려: ${response.data.modificationRequestedApproverCount}명`);
+      console.log(`대기중: ${response.data.waitingApproverCount}명`);
+      console.log(`요청전: ${response.data.beforeRequestCount}명`);
+      console.log(`최종 상태: ${getApprovalStatusText(response.data.proposalStatus)}`);
       
-      setStatusSummary(data);
+      setStatusSummary(response.data);
     } catch (error) {
       console.error('Error fetching status summary:', error);
+      if (error.response?.status === 403) {
+        console.log('승인 상태 요약 조회 권한이 없습니다.');
+      }
       // 요약 정보는 실패해도 전체 페이지에 영향 없음
     }
   };
@@ -1092,19 +1105,43 @@ const ApprovalDetail = () => {
 
   const fetchFiles = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILES(id));
-      setFiles(data);
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('파일 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.FILES(id)}`, {
+        withCredentials: true
+      });
+      setFiles(response.data);
     } catch (error) {
       console.error('Error fetching files:', error);
+      if (error.response?.status === 403) {
+        console.log('파일 조회 권한이 없습니다.');
+      }
+      setFiles([]);
     }
   };
 
   const fetchLinks = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.GET_LINKS(id));
-      setLinks(data);
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('링크 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.GET_LINKS(id)}`, {
+        withCredentials: true
+      });
+      setLinks(response.data);
     } catch (error) {
       console.error('Error fetching links:', error);
+      if (error.response?.status === 403) {
+        console.log('링크 조회 권한이 없습니다.');
+      }
+      setLinks([]);
     }
   };
 

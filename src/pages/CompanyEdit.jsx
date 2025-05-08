@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
@@ -12,12 +11,40 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
 `;
 
 const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
   width: 100%;
   max-width: 800px;
+`;
+
+const HeaderButtonsContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+`;
+
+const BackButton = styled.button`
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -125,7 +152,6 @@ const SubmitButton = styled.button`
 const CompanyEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [activeMenuItem, setActiveMenuItem] = useState('회사 관리');
   const [formData, setFormData] = useState({
     name: '',
     businessNumber: '',
@@ -190,20 +216,20 @@ const CompanyEdit = () => {
     }));
   }, []);
 
-  const handleMenuClick = useCallback((menuItem) => {
-    setActiveMenuItem(menuItem);
-  }, []);
+  const handleBack = () => {
+    navigate(-1);
+  };
 
-  // Make sure the component always returns JSX
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
       <MainContent>
         <Header>
           <PageTitle>회사 수정</PageTitle>
+          <HeaderButtonsContainer>
+            <BackButton onClick={handleBack}>
+              ← 돌아가기
+            </BackButton>
+          </HeaderButtonsContainer>
         </Header>
 
         <FormContainer onSubmit={handleSubmit}>

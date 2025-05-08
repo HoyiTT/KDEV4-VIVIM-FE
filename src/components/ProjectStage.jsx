@@ -140,6 +140,7 @@ const StageProgressItem = styled.div`
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
   position: relative;
+  background-color: ${props => props['data-active'] === 'true' ? 'rgba(59, 130, 246, 0.02)' : 'transparent'};
 
   &:hover {
     background-color: rgba(59, 130, 246, 0.02);
@@ -151,8 +152,8 @@ const StageProgressMarker = styled.div`
   height: 44px;
   border-radius: 12px;
   background-color: ${props => {
-    if (props.completed) return '#22c55e';
-    if (props.current) return '#3b82f6';
+    if (props['data-completed'] === 'true') return '#22c55e';
+    if (props['data-current'] === 'true') return '#3b82f6';
     return '#e2e8f0';
   }};
   display: flex;
@@ -160,7 +161,7 @@ const StageProgressMarker = styled.div`
   justify-content: center;
   margin-bottom: 12px;
   box-shadow: ${props => 
-    props.viewing 
+    props['data-viewing'] === 'true'
       ? '0 0 0 2px #fff, 0 0 0 4px #3b82f6' 
       : '0 2px 4px rgba(0, 0, 0, 0.1)'
   };
@@ -193,8 +194,8 @@ const StageProgressName = styled.div`
 const StageProgressStatus = styled.div`
   font-size: 12px;
   color: ${props => {
-    if (props.isCompleted) return '#16a34a';
-    if (props.isCurrent) return '#3b82f6';
+    if (props['data-completed'] === 'true') return '#16a34a';
+    if (props['data-current'] === 'true') return '#3b82f6';
     return '#64748b';
   }};
   font-weight: 500;
@@ -599,12 +600,12 @@ const ProjectStageProgress = ({
               <StageProgressItem 
                 key={stage.id}
                 onClick={() => setCurrentStageIndex(index)}
-                active={isViewing}
+                data-active={isViewing.toString()}
               >
                 <StageProgressMarker 
-                  completed={isCompleted}
-                  current={isCurrent}
-                  viewing={isViewing}
+                  data-completed={isCompleted.toString()}
+                  data-current={isCurrent.toString()}
+                  data-viewing={isViewing.toString()}
                 >
                   {isCompleted ? 
                     <FaCheck /> : 
@@ -614,8 +615,8 @@ const ProjectStageProgress = ({
                 <StageProgressDetails>
                   <StageProgressName>{stage.name}</StageProgressName>
                   <StageProgressStatus 
-                    isCompleted={isCompleted}
-                    isCurrent={isCurrent}
+                    data-completed={isCompleted.toString()}
+                    data-current={isCurrent.toString()}
                   >
                     {isCompleted ? '완료' : 
                      isCurrent ? '진행중' : 

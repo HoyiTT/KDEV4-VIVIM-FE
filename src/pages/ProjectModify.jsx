@@ -5,6 +5,18 @@ import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 
+// 파일 상단, 컴포넌트 함수 바깥에 선언!
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 0px;
+`;
+
+const MyDiv = styled.div`
+  // 스타일
+`;
+
 const ProjectModify = () => {
   const navigate = useNavigate();
   const { projectId } = useParams(); // Get project ID from URL
@@ -64,31 +76,21 @@ const ProjectModify = () => {
   // Fetch project data
   useEffect(() => {
     if (projectId) {
-      const token = localStorage.getItem('token');
-      console.log('프로젝트 상세 정보 요청:', API_ENDPOINTS.PROJECT_DETAIL(projectId));
-      
-      // 프로젝트 상세 정보와 회사 정보를 병렬로 요청
       Promise.all([
-        fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
-          headers: {
-            'Authorization': token
-          }
-        }).then(response => response.json()),
-        fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/companies`, {
-          headers: {
-            'Authorization': token
-          }
-        }).then(response => response.json()),
-        fetch(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
-          headers: {
-            'Authorization': token
-          }
-        }).then(response => response.json())
+        axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
+          withCredentials: true
+        }),
+        axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/companies`, {
+          withCredentials: true
+        }),
+        axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/users`, {
+          withCredentials: true
+        })
       ])
-        .then(([projectData, companiesData, usersData]) => {
-          console.log('프로젝트 상세 정보 응답:', projectData);
-          console.log('프로젝트 회사 정보 응답:', companiesData);
-          console.log('프로젝트 사용자 정보 응답:', usersData);
+        .then(([projectResponse, companiesResponse, usersResponse]) => {
+          const projectData = projectResponse.data;
+          const companiesData = companiesResponse.data;
+          const usersData = usersResponse.data;
           
           // Populate form with project data
           setProjectName(projectData.name);
@@ -99,7 +101,6 @@ const ProjectModify = () => {
           // projectFee 값이 있는 경우에만 천 단위 쉼표 포맷팅 적용
           if (projectData.projectFee) {
             const formattedFee = projectData.projectFee.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            console.log('Formatted project fee:', formattedFee);
             setProjectFee(formattedFee);
           }
           
@@ -132,16 +133,12 @@ const ProjectModify = () => {
             if (clientCompany) {
               setSelectedClientCompany(clientCompany);
               // 고객사 사용자 정보 가져오기
-              fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(clientCompany.id), {
-                headers: {
-                  'Authorization': token
-                }
+              axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(clientCompany.id), {
+                withCredentials: true
               })
-                .then(response => response.json())
                 .then(result => {
-                  console.log('고객사 사용자 목록 응답:', result);
-                  if (result.statusCode === 200 && Array.isArray(result.data)) {
-                    const formattedUsers = result.data.map(user => ({
+                  if (result.data.statusCode === 200 && Array.isArray(result.data.data)) {
+                    const formattedUsers = result.data.data.map(user => ({
                       id: user.id,
                       userId: String(user.id),
                       name: user.name,
@@ -166,16 +163,12 @@ const ProjectModify = () => {
 
               // 각 개발사의 사용자 정보 가져오기
               devCompanies.forEach(company => {
-                fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
-                  headers: {
-                    'Authorization': token
-                  }
+                axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+                  withCredentials: true
                 })
-                  .then(response => response.json())
                   .then(result => {
-                    console.log('개발사 사용자 목록 응답:', result);
-                    if (result.statusCode === 200 && Array.isArray(result.data)) {
-                      const formattedUsers = result.data.map(user => ({
+                    if (result.data.statusCode === 200 && Array.isArray(result.data.data)) {
+                      const formattedUsers = result.data.data.map(user => ({
                         id: user.id,
                         userId: String(user.id),
                         name: user.name,
@@ -285,7 +278,6 @@ const ProjectModify = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     
     // 모든 개발사 사용자 ID를 저장하는 Map
     const allDevUsersMap = new Map();
@@ -332,30 +324,13 @@ const ProjectModify = () => {
     console.log('Project data to be sent to server:', projectData);
     
     // Send PUT request to update the project
-    fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': token
-      },
-      body: JSON.stringify(projectData)
+    axiosInstance.put(API_ENDPOINTS.PROJECT_DETAIL(projectId), projectData, {
+      withCredentials: true
     })
     .then(response => {
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        return response.text().then(text => {
-          console.log('Error response body:', text);
-          throw new Error(`Server responded with ${response.status}: ${text || 'No error details provided'}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Success:', data);
-      // Navigate back to dashboard on success
-      navigate('/dashboard-admin');
+      console.log('Success:', response.data);
+      // Navigate back to project detail page on success
+      navigate(`/project/${projectId}`);
     })
     .catch(error => {
       console.error('Error:', error);
@@ -368,23 +343,12 @@ const ProjectModify = () => {
     if (!selectedClientCompany) return;
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany.id), {
+        withCredentials: true
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
-      
-      if (result.statusCode === 200 && Array.isArray(result.data)) {
-        const formattedUsers = result.data.map(user => ({
+      if (response.data.statusCode === 200 && Array.isArray(response.data.data)) {
+        const formattedUsers = response.data.data.map(user => ({
           id: user.id,
           userId: String(user.id),
           name: user.name,
@@ -396,7 +360,7 @@ const ProjectModify = () => {
         setSearchedUsers(formattedUsers);
         setShowClientUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
+        console.error('예상치 못한 응답 형식:', response.data);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
@@ -412,23 +376,12 @@ const ProjectModify = () => {
     setShowClientCompanyModal(false);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+        withCredentials: true
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
-      
-      if (result.statusCode === 200 && Array.isArray(result.data)) {
-        const formattedUsers = result.data.map(user => ({
+      if (response.data.statusCode === 200 && Array.isArray(response.data.data)) {
+        const formattedUsers = response.data.data.map(user => ({
           id: user.id,
           userId: String(user.id),
           name: user.name,
@@ -440,7 +393,7 @@ const ProjectModify = () => {
         setSearchedUsers(formattedUsers);
         setShowClientUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
+        console.error('예상치 못한 응답 형식:', response.data);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
@@ -474,23 +427,12 @@ const ProjectModify = () => {
     setSelectedDevCompany(selection);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selection.companyId), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(selection.companyId), {
+        withCredentials: true
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
-      
-      if (result.statusCode === 200 && Array.isArray(result.data)) {
-        const formattedUsers = result.data.map(user => ({
+      if (response.data.statusCode === 200 && Array.isArray(response.data.data)) {
+        const formattedUsers = response.data.data.map(user => ({
           id: user.id,
           userId: String(user.id),
           name: user.name,
@@ -502,7 +444,7 @@ const ProjectModify = () => {
         setSearchedUsers(formattedUsers);
         setShowDevUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
+        console.error('예상치 못한 응답 형식:', response.data);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
@@ -511,40 +453,16 @@ const ProjectModify = () => {
     }
   };
 
-  const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 0px;
-`;
-
   // 개발사 선택 핸들러 수정
   const handleDevCompanySelect = async (company) => {
-    console.log('선택된 개발사:', company);
-    if (!selectedDevCompany) {
-      console.error('선택된 개발사 정보가 없습니다.');
-      return;
-    }
-
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+        withCredentials: true
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
       
-      if (result.statusCode === 200 && Array.isArray(result.data)) {
+      if (response.data.statusCode === 200 && Array.isArray(response.data.data)) {
         // 모든 사용자를 포맷팅
-        const formattedUsers = result.data.map(user => ({
+        const formattedUsers = response.data.data.map(user => ({
           id: user.id,
           userId: String(user.id),
           name: user.name,
@@ -553,7 +471,7 @@ const ProjectModify = () => {
         }));
         
         setDevCompanySelections(prev => prev.map(selection => 
-          selection.id === selectedDevCompany.id
+          selection.id === selectedDevCompany?.id
             ? { ...selection, companyId: company.id, companyUsers: formattedUsers }
             : selection
         ));
@@ -563,7 +481,6 @@ const ProjectModify = () => {
         setShowDevCompanyModal(false);
         setShowDevUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
@@ -1147,6 +1064,7 @@ const ButtonGroup = styled.div`
 `;
 
 const CancelButton = styled.button`
+  white-space: nowrap;
   padding: 12px 24px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -1160,6 +1078,7 @@ const CancelButton = styled.button`
   &:hover {
     background-color: #f8fafc;
     border-color: #cbd5e1;
+      white-space: nowrap;
   }
 `;
 
@@ -1177,15 +1096,18 @@ const SubmitButton = styled.button`
   align-items: center;
   gap: 8px;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  white-space: nowrap;
   
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    white-space: nowrap;
   }
 
   &:active {
     transform: translateY(0);
     background: #2563eb;
+    white-space: nowrap;
   }
 `;
 
@@ -1195,10 +1117,11 @@ const ModalOverlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 `;
 
 const Modal = styled.div`
@@ -1207,6 +1130,7 @@ const Modal = styled.div`
   border-radius: 8px;
   width: 50%;
   max-width: 500px;
+  z-index: 1001;
 `;
 
 const ModalHeader = styled.div`
@@ -1303,29 +1227,43 @@ const DetailItem = styled.div`
 
 const EditButton = styled.button`
   padding: 8px 16px;
-  background-color: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
   
   &:hover {
-    background-color: #f1f5f9;
+    background-color: #1B5E20;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const RemoveButton = styled.button`
   padding: 8px 16px;
-  background: white;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 4px;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
   
   &:hover {
-    background: #fee2e2;
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -1427,14 +1365,14 @@ const RoleButton = styled.button`
   padding: 6px 12px;
   border: 1px solid ${props => props.selected ? '#2E7D32' : '#e2e8f0'};
   border-radius: 4px;
-  background-color: ${props => props.selected ? '#2E7D32' : 'white'};
-  color: ${props => props.selected ? 'white' : '#64748b'};
+  background-color: ${props => props.selected ? 'white' : '#f8fafc'};
+  color: ${props => props.selected ? '#2E7D32' : '#64748b'};
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   font-size: 14px;
   opacity: ${props => props.disabled ? 0.5 : 1};
   
   &:hover:not(:disabled) {
-    background-color: ${props => props.selected ? '#1B5E20' : '#f8fafc'};
+    background-color: ${props => props.selected ? '#f0fdf4' : '#f8fafc'};
   }
 `;
 

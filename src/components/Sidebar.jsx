@@ -156,10 +156,10 @@ const Sidebar = () => {
             e.stopPropagation();
             setShowNotifications(prev => !prev);
           }}
-          active={showNotifications}
+          $active={showNotifications.toString()}
         >
           알림
-          {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
+          {unreadCount > 0 && <NotificationBadge data-active={showNotifications.toString()}>{unreadCount}</NotificationBadge>}
         </NotificationButton>
       </LogoSection>
 
@@ -225,13 +225,13 @@ const Sidebar = () => {
           </NotificationHeader>
           <NotificationFilters>
             <FilterButton
-              active={!showReadNotifications}
+              active={!showReadNotifications.toString()}
               onClick={() => setShowReadNotifications(false)}
             >
               안읽은 알림 ({notifications.filter(n => !n.read).length})
             </FilterButton>
             <FilterButton
-              active={showReadNotifications}
+              active={showReadNotifications.toString()}
               onClick={() => setShowReadNotifications(true)}
             >
               읽은 알림 ({notifications.filter(n => n.read).length})
@@ -323,8 +323,8 @@ const NotificationButton = styled.button`
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: ${props => props.active ? '#e8f5e9' : '#f8fafc'};
-  color: ${props => props.active ? '#2E7D32' : '#1e293b'};
+  background: ${props => props.$active === 'true' ? '#e8f5e9' : '#f8fafc'};
+  color: ${props => props.$active === 'true' ? '#2E7D32' : '#1e293b'};
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -335,12 +335,12 @@ const NotificationButton = styled.button`
   gap: 8px;
 
   &:hover {
-    background: ${props => props.active ? '#e8f5e9' : '#f1f5f9'};
+    background: ${props => props.$active === 'true' ? '#e8f5e9' : '#f1f5f9'};
   }
 `;
 
-const NotificationBadge = styled.span`
-  background: #ef4444;
+const NotificationBadge = styled.div`
+  background-color: ${props => props['data-active'] === 'true' ? '#ef4444' : '#94a3b8'};
   color: white;
   font-size: 12px;
   font-weight: 600;
@@ -543,17 +543,17 @@ const NotificationFilters = styled.div`
 
 const FilterButton = styled.button`
   padding: 4px 12px;
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
+  border: 1px solid ${props => props.active === 'true' ? '#2E7D32' : '#e2e8f0'};
   border-radius: 6px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  color: ${props => props.active ? 'white' : '#64748b'};
+  background: ${props => props.active === 'true' ? '#2E7D32' : 'white'};
+  color: ${props => props.active === 'true' ? 'white' : '#64748b'};
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
+    background: ${props => props.active === 'true' ? '#2E7D32' : '#f8fafc'};
   }
 `;
 

@@ -43,17 +43,27 @@ const AdminInquiryDetail = () => {
 
   const fetchComments = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id));
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id)}/comment`, {
+        withCredentials: true
+      });
       setComments(data);
     } catch (error) {
       console.error('Error fetching comments:', error);
+      setComments([]);
     }
   };
 
   const handleCompleteAnswer = async () => {
+    if (!user || user.companyRole !== 'ADMIN') {
+      alert('관리자만 답변 완료 처리가 가능합니다.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id));
+      await axiosInstance.patch(`${API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id)}/complete`, {}, {
+        withCredentials: true
+      });
       alert('답변이 완료 처리되었습니다.');
       fetchInquiryDetail();
     } catch (error) {
@@ -71,13 +81,12 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      await axiosInstance.post(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
+      await axiosInstance.post(`${API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id)}/comment`, {
         content: answer
       });
       alert('답변이 등록되었습니다.');
       setAnswer('');
       fetchComments();
-      fetchInquiryDetail();
     } catch (error) {
       console.error('Error submitting answer:', error);
       alert('답변 등록 중 오류가 발생했습니다.');
@@ -139,7 +148,7 @@ const AdminInquiryDetail = () => {
                 </TypeBadge>
                 <StatusBadge status={inquiry.status}>
                   {inquiry.status === 'PENDING' ? '대기중' :
-                   inquiry.status === 'IN_PROGRESS' ? '처리중' : '완료'}
+                   inquiry.status === 'IN_PROGRESS' ? '처리중' : '답변 완료'}
                 </StatusBadge>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -534,4 +543,4 @@ const EmptyMessage = styled.div`
   font-size: 14px;
 `;
 
-export default AdminInquiryDetail; 
+export default AdminInquiryDetail;

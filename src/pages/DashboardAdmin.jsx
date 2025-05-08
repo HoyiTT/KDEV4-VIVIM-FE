@@ -81,18 +81,20 @@ const DashboardAdmin = () => {
 
   // 차트 데이터
   const projectStatusData = {
-    labels: ['계약중', '검수중', '완료'],
-    datasets: [
-      {
-        data: [0, 0, 0],
-        backgroundColor: [
-          '#2E7D32',
-          '#FFA000',
-          '#43A047'
-        ],
-        borderWidth: 0,
-      },
-    ],
+    labels: ['요구사항정의', '화면설계', '디자인', '개발', '배포', '검수', '완료'],
+    datasets: [{
+      data: [15, 2, 2, 0, 1, 1, 0],
+      backgroundColor: [
+        '#e8f5e9',  // 요구사항정의 - 가장 밝은 녹색
+        '#c8e6c9',  // 화면설계
+        '#a5d6a7',  // 디자인
+        '#81c784',  // 개발
+        '#66bb6a',  // 배포
+        '#4caf50',  // 검수
+        '#2E7D32'   // 완료 - 시그니처 색상
+      ],
+      borderWidth: 0,
+    }]
   };
 
   const monthlyStatsData = {
@@ -247,7 +249,7 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchProjectStatusData = async () => {
       try {
-        const { data } = await axiosInstance.get('/projects/dashboard/progress_count');
+        const { data } = await axiosInstance.get('/api/projects/dashboard/inspection_count');
         console.log('Project status data:', data);
         // 프로젝트 현황 데이터 업데이트
         setSummaryData([
@@ -396,15 +398,15 @@ const DashboardAdmin = () => {
               <CardContent>
                 <StatsGrid>
                   <StatItem>
-                    <StatLabel>계약한 프로젝트</StatLabel>
+                    <StatLabel>계약 완료한<br />프로젝트</StatLabel>
                     <StatValue>20</StatValue>
                   </StatItem>
                   <StatItem>
-                    <StatLabel>검수중인 프로젝트</StatLabel>
+                    <StatLabel>검수 중인<br />프로젝트</StatLabel>
                     <StatValue>1</StatValue>
                   </StatItem>
                   <StatItem>
-                    <StatLabel>검수한 프로젝트</StatLabel>
+                    <StatLabel>검수 완료한<br />프로젝트</StatLabel>
                     <StatValue>1</StatValue>
                   </StatItem>
                 </StatsGrid>
@@ -416,30 +418,7 @@ const DashboardAdmin = () => {
               <CardContent>
                 <DoughnutChartSection>
                   <Doughnut 
-                    data={{
-                      labels: [
-                        '요구사항정의',
-                        '화면설계',
-                        '디자인',
-                        '개발',
-                        '배포',
-                        '검수',
-                        '완료'
-                      ],
-                      datasets: [{
-                        data: [8, 5, 12, 15, 7, 10, 20],
-                        backgroundColor: [
-                          '#e8f5e9',  // 요구사항정의 - 가장 밝은 녹색
-                          '#c8e6c9',  // 화면설계
-                          '#a5d6a7',  // 디자인
-                          '#81c784',  // 개발
-                          '#66bb6a',  // 배포
-                          '#4caf50',  // 검수
-                          '#2E7D32'   // 완료 - 시그니처 색상
-                        ],
-                        borderWidth: 0,
-                      }]
-                    }} 
+                    data={projectStatusData}
                     options={doughnutOptions}
                   />
                 </DoughnutChartSection>

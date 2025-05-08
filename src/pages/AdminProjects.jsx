@@ -10,28 +10,42 @@ import Select from '../components/common/Select';
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  transition: all 0.15s ease;
-  background: ${props => {
+  font-size: 12px;
+  font-weight: 500;
+  background-color: ${props => {
+    if (props.status === 'DELETED') {
+      return 'rgba(185, 28, 28, 0.1)';
+    }
     switch (props.status) {
-      case 'PENDING': return '#FEF3C7';
-      case 'IN_PROGRESS': return '#DBEAFE';
-      case 'COMPLETED': return '#DCFCE7';
-      case 'ON_HOLD': return '#FEE2E2';
-      default: return '#F8FAFC';
+      case 'PENDING':
+        return 'rgba(220, 38, 38, 0.1)';
+      case 'IN_PROGRESS':
+        return 'rgba(46, 125, 50, 0.1)';
+      case 'COMPLETED':
+        return 'rgba(100, 116, 139, 0.1)';
+      case 'ON_HOLD':
+        return 'rgba(245, 158, 11, 0.1)';
+      default:
+        return 'rgba(100, 116, 139, 0.1)';
     }
   }};
   color: ${props => {
+    if (props.status === 'DELETED') {
+      return '#B91C1C';
+    }
     switch (props.status) {
-      case 'PENDING': return '#D97706';
-      case 'IN_PROGRESS': return '#2563EB';
-      case 'COMPLETED': return '#16A34A';
-      case 'ON_HOLD': return '#DC2626';
-      default: return '#64748B';
+      case 'PENDING':
+        return '#DC2626';
+      case 'IN_PROGRESS':
+        return '#2E7D32';
+      case 'COMPLETED':
+        return '#64748B';
+      case 'ON_HOLD':
+        return '#F59E0B';
+      default:
+        return '#64748B';
     }
   }};
 
@@ -60,11 +74,43 @@ const AdminProjects = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchParams, setSearchParams] = useState({
+    name: '',
+    isDeleted: false
+  });
+
   const [filters, setFilters] = useState({
     name: '',
     isDeleted: false
   });
+
   const itemsPerPage = 10;
+
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setSearchParams(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else {
+      setSearchParams(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleSearch = () => {
+    setFilters(searchParams);
+    setCurrentPage(1);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -86,20 +132,7 @@ const AdminProjects = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, itemsPerPage]);
-
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchProjects();
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+  }, [currentPage, itemsPerPage]);
 
   const handleDeleteProject = async (projectId) => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -117,6 +150,11 @@ const AdminProjects = () => {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // filters가 변경될 때만 fetchProjects 실행
+  useEffect(() => {
+    fetchProjects();
+  }, [filters]);
 
   // 현재 페이지의 프로젝트만 표시
   const getCurrentPageProjects = () => {
@@ -147,7 +185,7 @@ const AdminProjects = () => {
 
   const getStatusColor = (project) => {
     if (project.isDeleted) {
-      return { text: '삭제됨', color: '#64748B' };
+      return { text: '삭제됨', color: '#B91C1C' };
     }
     switch (project.projectStatus) {
       case 'PENDING':
@@ -199,6 +237,7 @@ const AdminProjects = () => {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 
     &:hover {
       background: #1B5E20;
@@ -221,6 +260,7 @@ const AdminProjects = () => {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 
     &:hover {
       background: #C51111;
@@ -470,40 +510,46 @@ const AdminProjects = () => {
       <Sidebar />
       <MainContent>
         <Header>
-          <PageTitle>프로젝트 관리</PageTitle>
-          <SearchSection>
-            <SearchInput
-              type="text"
-              placeholder="프로젝트명 검색"
-              value={filters.name}
-              onChange={handleFilterChange}
-            />
-            <Select
-              value={filters.projectStatus}
-              onChange={(e) => handleFilterChange({ target: { name: 'projectStatus', value: e.target.value } })}
-            >
-              <option value="">전체</option>
-              <option value="PENDING">대기중</option>
-              <option value="IN_PROGRESS">진행중</option>
-              <option value="UNDER_INSPECTION">검수중</option>
-              <option value="COMPLETED">완료</option>
-            </Select>
-            <SearchCheckbox>
-              <input
-                type="checkbox"
-                name="isDeleted"
-                checked={filters.isDeleted}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <PageTitle>프로젝트 관리</PageTitle>
+              <CreateButton onClick={() => navigate('/project-create')}>
+                + 새 프로젝트 등록
+              </CreateButton>
+            </div>
+            <SearchSection>
+              <SearchInput
+                type="text"
+                placeholder="프로젝트명 검색"
+                value={searchParams.name}
                 onChange={handleFilterChange}
+                onKeyPress={handleKeyPress}
+                name="name"
               />
-              삭제된 프로젝트만 검색
-            </SearchCheckbox>
-            <SearchButton onClick={handleSearch}>
-              검색
-            </SearchButton>
-          </SearchSection>
-          <CreateButton onClick={() => navigate('/project-create')}>
-            + 새 프로젝트 등록
-          </CreateButton>
+              <Select
+                value={searchParams.projectStatus}
+                onChange={(e) => handleFilterChange({ target: { name: 'projectStatus', value: e.target.value } })}
+              >
+                <option value="">전체</option>
+                <option value="PENDING">대기중</option>
+                <option value="IN_PROGRESS">진행중</option>
+                <option value="UNDER_INSPECTION">검수중</option>
+                <option value="COMPLETED">완료</option>
+              </Select>
+              <SearchCheckbox>
+                <input
+                  type="checkbox"
+                  name="isDeleted"
+                  checked={searchParams.isDeleted}
+                  onChange={handleFilterChange}
+                />
+                삭제된 프로젝트만 검색
+              </SearchCheckbox>
+              <SearchButton onClick={handleSearch}>
+                검색
+              </SearchButton>
+            </SearchSection>
+          </div>
         </Header>
 
         {loading ? (

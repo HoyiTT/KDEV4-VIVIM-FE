@@ -152,14 +152,14 @@ const AdminInquiryList = () => {
                   return (
                     <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiry/${inquiry.id}`)}>
                       <TableCell>{inquiry.title}</TableCell>
-                      <TableCell>{inquiry.creatorName}</TableCell>
+                      <TableCell nowrap>{inquiry.creatorName}</TableCell>
                       <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
-                      <TableCell>
+                      <TableCell nowrap>
                         <StatusBadge status={inquiry.status}>
                           {statusBadge.text}
                         </StatusBadge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell nowrap>
                         <ActionButtonContainer>
                           <ActionButton onClick={(e) => {
                             e.stopPropagation();
@@ -328,6 +328,7 @@ const TableCell = styled.td`
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
   vertical-align: middle;
+  white-space: ${props => props.nowrap ? 'nowrap' : 'normal'};
 `;
 
 const StatusBadge = styled.span`

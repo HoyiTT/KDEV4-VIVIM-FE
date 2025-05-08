@@ -28,56 +28,13 @@ const PROGRESS_STAGE_MAP = {
   'COMPLETED': '완료'
 };
 
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  background-color: ${props => {
-    switch (props.$status) {
-      case ApprovalProposalStatus.DRAFT:
-        return 'rgba(75, 85, 99, 0.08)';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return 'rgba(30, 64, 175, 0.08)';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return 'rgba(46, 125, 50, 0.08)';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return 'rgba(185, 28, 28, 0.08)';
-      default:
-        return 'rgba(75, 85, 99, 0.08)';
-    }
-  }};
-  color: ${props => {
-    switch (props.$status) {
-      case ApprovalProposalStatus.DRAFT:
-        return '#4B5563';
-      case ApprovalProposalStatus.UNDER_REVIEW:
-        return '#1E40AF';
-      case ApprovalProposalStatus.FINAL_APPROVED:
-        return '#2E7D32';
-      case ApprovalProposalStatus.FINAL_REJECTED:
-        return '#B91C1C';
-      default:
-        return '#4B5563';
-    }
-  }};
-  border: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  svg {
-    font-size: 14px;
-    opacity: 0.9;
-  }
+const StatusBadge = styled.div`
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: ${props => props.$isDeleted ? '#ef4444' : '#2E7D32'};
+  color: white;
 `;
 
 const ContentWrapper = styled.div`
@@ -173,7 +130,6 @@ const ActionButtons = styled.div`
 const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 24px;
 `;
 
 const ProjectInfoSection = styled.div`
@@ -223,7 +179,7 @@ const ProjectSubDescription = styled.p`
 
 const DateContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 `;
@@ -481,7 +437,7 @@ const SectionTitle = styled.h2`
 
 const CreateButton = styled.button`
   padding: 8px 16px;
-  background: ${props => props.delete ? '#dc2626' : '#2E7D32'};
+  background: ${props => props.$delete ? '#dc2626' : '#2E7D32'};
   color: white;
   border: none;
   border-radius: 6px;
@@ -491,7 +447,7 @@ const CreateButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.delete ? '#b91c1c' : '#1B5E20'};
+    background: ${props => props.$delete ? '#b91c1c' : '#1B5E20'};
     transform: translateY(-1px);
   }
 `;
@@ -1182,6 +1138,120 @@ const BackButton = styled.button`
   }
 `;
 
+const ToggleSection = styled.div`
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const ToggleHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: ${props => props.$isOpen ? '1px solid #e2e8f0' : 'none'};
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 14px;
+    transition: transform 0.2s ease;
+    transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0)'};
+  }
+`;
+
+const ToggleTitle = styled.div`
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 16px;
+    background-color: #2E7D32;
+    border-radius: 2px;
+  }
+`;
+
+const ToggleContent = styled.div`
+  padding: ${props => props.$isOpen ? '20px' : '0'};
+  max-height: ${props => props.$isOpen ? '500px' : '0'};
+  opacity: ${props => props.$isOpen ? '1' : '0'};
+  transition: all 0.3s ease;
+  overflow: hidden;
+`;
+
+const ToggleItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+`;
+
+const ToggleLabel = styled.span`
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const ToggleValue = styled.span`
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+`;
+
+const NotificationOverlay = styled(ModalOverlay)`
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+`;
+
+const NotificationPanel = styled(ModalContent)`
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 90vw;
+  height: 100vh;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  transform: translateX(${props => props.$isOpen ? '0' : '100%'});
+  transition: transform 0.3s ease-in-out;
+`;
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1231,6 +1301,16 @@ const ProjectDetail = () => {
     })
   );
 
+  const [showCompanyInfo, setShowCompanyInfo] = useState(false);
+  const [showClientInfo, setShowClientInfo] = useState(false);
+  const [showDevInfo, setShowDevInfo] = useState(false);
+
+  const [companyInfo, setCompanyInfo] = useState(null);
+  const [clientUserInfo, setClientUserInfo] = useState(null);
+  const [devUserInfo, setDevUserInfo] = useState(null);
+
+  const [showNotifications, setShowNotifications] = useState(false);
+
   useEffect(() => {
     if (progressList) {
       setStages(progressList.map(stage => ({
@@ -1272,12 +1352,27 @@ const ProjectDetail = () => {
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
-        await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${id}`);
-        alert('프로젝트가 삭제되었습니다.');
-        navigate('/dashboard');
+        const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${id}`, {
+          withCredentials: true,
+          data: {
+            projectId: id,
+            deleteReason: '사용자에 의한 삭제'
+          }
+        });
+        
+        if (response.data.statusCode === 200) {
+          alert('프로젝트가 삭제되었습니다.');
+          navigate('/admin/projects');
+        } else {
+          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        }
       } catch (error) {
         console.error('Error deleting project:', error);
-        alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        if (error.response?.status === 403) {
+          alert('프로젝트를 삭제할 권한이 없습니다.');
+        } else {
+          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        }
       }
     }
   };
@@ -1289,6 +1384,13 @@ const ProjectDetail = () => {
     fetchApprovalRequests();
     fetchProjectOverallProgress();
     fetchProgressStatus();
+
+    // 회사 정보 조회 추가
+    if (isAdmin || isClient || isDeveloperManager) {
+      fetchCompanyInfo();
+      fetchClientUserInfo();
+      fetchDevUserInfo();
+    }
 
     // 30초마다 데이터 업데이트
     const updateInterval = setInterval(() => {
@@ -1378,7 +1480,9 @@ const ProjectDetail = () => {
 
   const fetchProjectProgress = async () => {
     try {
-      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`);
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
+        withCredentials: true
+      });
       console.log('Progress 조회 응답:', response.data);
       
       // 새로 추가된 단계의 isCompleted 값을 false로 설정
@@ -1395,8 +1499,21 @@ const ProjectDetail = () => {
 
   const fetchProjectDetail = async () => {
     try {
-      const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(id));
+      const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(id), {
+        withCredentials: true
+      });
       setProject(response.data);
+      
+      // 현재 진행 단계 설정
+      if (response.data.currentProgress && progressList.length > 0) {
+        const currentStageIndex = progressList.findIndex(
+          stage => stage.position === response.data.currentProgress
+        );
+        if (currentStageIndex !== -1) {
+          setCurrentStageIndex(currentStageIndex);
+        }
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching project:', error);
@@ -1406,7 +1523,9 @@ const ProjectDetail = () => {
 
   const fetchProjectPosts = async () => {
     try {
-      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`);
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
+        withCredentials: true
+      });
       setPosts(response.data);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -1428,7 +1547,9 @@ const ProjectDetail = () => {
   // 승인요청 항목 클릭 시 처리하는 함수
   const handleApprovalClick = async (approval) => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(approval.id));
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(approval.id), {
+        withCredentials: true
+      });
       setSelectedProposal(data);
       
       // 승인 상태 요약 정보 조회
@@ -1444,7 +1565,9 @@ const ProjectDetail = () => {
   // 승인 상태 요약 정보 조회 함수 추가
   const fetchStatusSummary = async (approvalId) => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(approvalId));
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(approvalId), {
+        withCredentials: true
+      });
       setStatusSummary(data);
     } catch (error) {
       console.error('Error fetching status summary:', error);
@@ -1484,10 +1607,12 @@ const ProjectDetail = () => {
         name: stageName,
         position: progressList.length + 1,
         isCompleted: false
+      }, {
+        withCredentials: true
       });
       
       if (response.status === 200 || response.status === 201) {
-        console.log('Progress 추가 응답:', response.data); // 응답 데이터 로깅
+        console.log('Progress 추가 응답:', response.data);
         alert('진행 단계가 추가되었습니다.');
         fetchProjectProgress();
         setShowStageModal(false);
@@ -1512,14 +1637,14 @@ const ProjectDetail = () => {
       const response = await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
         name: stageName,
         position: editingStage.position
+      }, {
+        withCredentials: true
       });
       
       if (response.status === 200) {
         const data = response.data;
-        // 응답 데이터 확인
         console.log('Progress 수정 응답:', data);
         
-        // 수정된 진행단계 정보로 progressList 업데이트
         setProgressList(prev => 
           prev.map(item => 
             item.id === data.id 
@@ -1548,7 +1673,9 @@ const ProjectDetail = () => {
     
     if (window.confirm('정말로 이 진행 단계를 삭제하시겠습니까?')) {
       try {
-        const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`);
+        const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${editingStage.id}`, {
+          withCredentials: true
+        });
         
         if (response.status === 200) {
           alert('진행 단계가 삭제되었습니다.');
@@ -1592,11 +1719,13 @@ const ProjectDetail = () => {
 
       // 사용자 권한 확인
       if (!isAdmin && !isClient && !isDeveloperManager) {
-        console.log('승인요청 목록 조회 권한이 없습니다.');
+        console.log('접근 권한이 없습니다.');
         return;
       }
 
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`, {
+        withCredentials: true
+      });
       setApprovalRequests(data);
       
       // 승인요청 상태가 변경되면 진행률 다시 조회
@@ -1617,7 +1746,9 @@ const ProjectDetail = () => {
   // 프로젝트 진행률 조회
   const fetchProjectOverallProgress = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`, {
+        withCredentials: true
+      });
       
       // 현재 단계의 승인요청들을 필터링
       const currentStageApprovals = approvalRequests.filter(
@@ -1656,7 +1787,9 @@ const ProjectDetail = () => {
   // 프로젝트 단계별 승인요청 진척도 조회
   const fetchProgressStatus = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`, {
+        withCredentials: true
+      });
 
       // 각 단계의 완료 여부는 단계 승급 버튼을 눌러야만 설정되도록 수정
       const updatedProgressList = data.progressList.map(progress => ({
@@ -1701,7 +1834,9 @@ const ProjectDetail = () => {
     
     try {
       setIsIncreasing(true); // 진행 중 상태로 설정
-      await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`);
+      await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {}, {
+        withCredentials: true
+      });
 
       // 승급 후 데이터 새로고침 순서 변경
       await Promise.all([
@@ -1741,7 +1876,10 @@ const ProjectDetail = () => {
         console.log(`단계 ID: ${stage.id}, 이름: ${stage.name}, 위치: ${i}`);
         await axiosInstance.put(
           `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}/positioning`,
-          { targetIndex: i }
+          { targetIndex: i },
+          {
+            withCredentials: true
+          }
         );
       }
       
@@ -1756,6 +1894,111 @@ const ProjectDetail = () => {
         alert('단계 순서 변경에 실패했습니다.');
       }
     }
+  };
+
+  // 회사 정보 조회
+  const fetchCompanyInfo = async () => {
+    try {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('회사 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/company-info`, {
+        withCredentials: true
+      });
+      setCompanyInfo(response.data);
+    } catch (error) {
+      console.error('회사 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('회사 정보 조회 권한이 없습니다.');
+      }
+    }
+  };
+
+  // 고객사 사용자 정보 조회
+  const fetchClientUserInfo = async () => {
+    try {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/client-users`, {
+        withCredentials: true
+      });
+      setClientUserInfo(response.data);
+    } catch (error) {
+      console.error('고객사 사용자 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
+      }
+    }
+  };
+
+  // 개발사 사용자 정보 조회
+  const fetchDevUserInfo = async () => {
+    try {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/dev-users`, {
+        withCredentials: true
+      });
+      setDevUserInfo(response.data);
+    } catch (error) {
+      console.error('개발사 사용자 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
+      }
+    }
+  };
+
+  // 토글 헤더 클릭 핸들러 수정
+  const handleCompanyInfoToggle = () => {
+    if (!companyInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchCompanyInfo();
+    }
+    setShowCompanyInfo(!showCompanyInfo);
+  };
+
+  const handleClientInfoToggle = () => {
+    if (!clientUserInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchClientUserInfo();
+    }
+    setShowClientInfo(!showClientInfo);
+  };
+
+  const handleDevInfoToggle = () => {
+    if (!devUserInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchDevUserInfo();
+    }
+    setShowDevInfo(!showDevInfo);
+  };
+
+  // progressList가 변경될 때도 현재 진행 단계 업데이트
+  useEffect(() => {
+    if (project?.currentProgress && progressList.length > 0) {
+      const currentStageIndex = progressList.findIndex(
+        stage => stage.position === project.currentProgress
+      );
+      if (currentStageIndex !== -1) {
+        setCurrentStageIndex(currentStageIndex);
+      }
+    }
+  }, [progressList, project?.currentProgress]);
+
+  // 현재 단계의 모든 승인요청이 APPROVED 상태인지 확인하는 함수
+  const isAllApprovalsApproved = (stageId) => {
+    const stageApprovals = approvalRequests.filter(req => req.stageId === stageId);
+    return stageApprovals.length > 0 && stageApprovals.every(req => 
+      req.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED
+    );
   };
 
   return (
@@ -1773,10 +2016,9 @@ const ProjectDetail = () => {
                 </BackButton>
                 <PageTitle style={{ margin: '0 0 0 24px' }}>프로젝트 상세</PageTitle>
               </div>
-
               <ProjectInfoSection>
                 <ProjectHeader>
-                  <StatusBadge isDeleted={project?.isDeleted}>
+                  <StatusBadge $isDeleted={project?.isDeleted}>
                     {project?.isDeleted ? '삭제됨' : '진행중'}
                   </StatusBadge>
                   {isAdmin && !project?.isDeleted && (
@@ -1784,7 +2026,7 @@ const ProjectDetail = () => {
                       <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
                         수정
                       </CreateButton>
-                      <CreateButton delete onClick={() => handleDeleteProject()}>
+                      <CreateButton $delete onClick={() => handleDeleteProject()}>
                         삭제
                       </CreateButton>
                     </ActionButtons>
@@ -1803,7 +2045,105 @@ const ProjectDetail = () => {
                     <DateLabel>종료일</DateLabel>
                     <DateValue>{project.endDate}</DateValue>
                   </DateItem>
+                  <DateItem>
+                    <DateLabel>계약금</DateLabel>
+                    <DateValue>{project.projectFee?.toLocaleString()}원</DateValue>
+                  </DateItem>
                 </DateContainer>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleCompanyInfoToggle}
+                    $isOpen={showCompanyInfo}
+                  >
+                    <ToggleTitle>회사 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showCompanyInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : companyInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>고객사</ToggleLabel>
+                          <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>개발사</ToggleLabel>
+                          <ToggleValue>
+                            {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleClientInfoToggle}
+                    $isOpen={showClientInfo}
+                  >
+                    <ToggleTitle>고객사 사용자 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showClientInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : clientUserInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>고객사 담당자</ToggleLabel>
+                          <ToggleValue>
+                            {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>고객사 사용자</ToggleLabel>
+                          <ToggleValue>
+                            {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleDevInfoToggle}
+                    $isOpen={showDevInfo}
+                  >
+                    <ToggleTitle>개발사 사용자 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showDevInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : devUserInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>개발사 담당자</ToggleLabel>
+                          <ToggleValue>
+                            {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>개발사 사용자</ToggleLabel>
+                          <ToggleValue>
+                            {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
               </ProjectInfoSection>
 
               <StageSection>
@@ -1835,6 +2175,13 @@ const ProjectDetail = () => {
                           >
                             <StageHeader>
                               <StageTitle title={stage.name} />
+                              {!isAllApprovalsApproved(stage.id) && (
+                                <StageHeaderActions>
+                                  <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
+                                    <FaPlus /> 승인요청 추가
+                                  </StageActionButton>
+                                </StageHeaderActions>
+                              )}
                             </StageHeader>
                             <ApprovalProposal 
                               progressId={stage.id} 
@@ -2170,6 +2517,17 @@ const ProjectDetail = () => {
             </ModalFooter>
           </StageModalContent>
         </ModalOverlay>
+      )}
+      
+      {showNotifications && (
+        <NotificationOverlay onClick={() => setShowNotifications(false)}>
+          <NotificationPanel 
+            $isOpen={showNotifications} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 알림 패널 내용 */}
+          </NotificationPanel>
+        </NotificationOverlay>
       )}
     </PageContainer>
   );
