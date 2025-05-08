@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import Select from '../components/common/Select';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
@@ -97,19 +100,15 @@ const AuditLog = () => {
     <PageContainer>
       <MainContent>
         <Header>
-          <PageTitle>로그 기록</PageTitle>
-          <FilterContainer>
-            <FilterGroup>
-              <Label>액션 타입</Label>
+          <HeaderLeft>
+            <PageTitle>로그 기록</PageTitle>
+            <FilterContainer>
               <Select name="actionType" value={filters.actionType} onChange={handleFilterChange}>
                 <option value="">전체</option>
                 <option value="CREATE">생성</option>
                 <option value="MODIFY">수정</option>
                 <option value="DELETE">삭제</option>
               </Select>
-            </FilterGroup>
-            <FilterGroup>
-              <Label>엔티티 타입</Label>
               <Select name="entityType" value={filters.entityType} onChange={handleFilterChange}>
                 <option value="">전체</option>
                 <option value="PROJECT">프로젝트</option>
@@ -117,21 +116,14 @@ const AuditLog = () => {
                 <option value="POST">게시글</option>
                 <option value="COMMENT">댓글</option>
               </Select>
-            </FilterGroup>
-            <FilterGroup>
-              <Label>시작일</Label>
               <Input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
-            </FilterGroup>
-            <FilterGroup>
-              <Label>종료일</Label>
               <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
-            </FilterGroup>
-            <FilterGroup>
-              <Label>사용자 ID</Label>
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
-            </FilterGroup>
+            </FilterContainer>
+          </HeaderLeft>
+          <HeaderRight>
             <SearchButton onClick={handleSearch}>검색</SearchButton>
-          </FilterContainer>
+          </HeaderRight>
         </Header>
 
         {loading ? (
@@ -157,7 +149,7 @@ const AuditLog = () => {
                     <TableCell>{formatDate(log.loggedAt)}</TableCell>
                     <TableCell>{log.actorId}</TableCell>
                     <TableCell>
-                      <ActionBadge color={getActionTypeColor(log.actionType)}>
+                      <ActionBadge status={log.actionType}>
                         {log.actionType}
                       </ActionBadge>
                     </TableCell>
@@ -262,19 +254,25 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-left: 15px;
-  overflow-y: auto;
-`;
-
 const Header = styled.div`
   margin-bottom: 24px;
   background: white;
   padding: 32px;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+`;
+
+const HeaderLeft = styled.div`
+  flex: 1;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: center;
 `;
 
 const PageTitle = styled.h1`
@@ -302,40 +300,7 @@ const FilterContainer = styled.div`
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  align-items: flex-end;
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const Label = styled.label`
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const Select = styled.select`
-  padding: 10px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  min-width: 120px;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  background-color: white;
-  
-  &:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-  }
+  align-items: center;
 `;
 
 const Input = styled.input`
@@ -424,19 +389,39 @@ const TableCell = styled.td`
 `;
 
 const ActionBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: ${props => props.color};
-  background-color: rgba(241, 245, 249, 0.8);
-  border: 1px solid ${props => props.color};
-  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'CREATE': return '#DCFCE7';
+      case 'MODIFY': return '#DBEAFE';
+      case 'DELETE': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'CREATE': return '#16A34A';
+      case 'MODIFY': return '#2563EB';
+      case 'DELETE': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
 
-  &:hover {
-    background-color: ${props => props.color};
-    color: white;
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
   }
 `;
 

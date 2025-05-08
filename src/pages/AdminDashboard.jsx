@@ -8,8 +8,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const DashboardContainer = styled.div`
   padding: 24px;
-  height: 100vh;
-  overflow-y: auto;
+  height: auto;
+  overflow-y: visible;
   background-color: #f8fafc;
 `;
 

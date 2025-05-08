@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 const UserProjectList = () => {
   const navigate = useNavigate();
@@ -129,18 +130,9 @@ const UserProjectList = () => {
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  background-color: #f8fafc;
-`;
-
-const MainContent = styled.main`
-  padding: 32px;
-  margin-top: 60px;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  background-color: #f5f7fa;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
 const Header = styled.div`
@@ -199,31 +191,42 @@ const InfoValue = styled.span`
 `;
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  
-  ${props => {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
     switch (props.status) {
-      case 'IN_PROGRESS':
-        return `
-          background: #EFF6FF;
-          color: #2563EB;
-        `;
-      case 'COMPLETED':
-        return `
-          background: #F0FDF4;
-          color: #15803D;
-        `;
-      default:
-        return `
-          background: #F3F4F6;
-          color: #4B5563;
-        `;
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
     }
-  }}
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
+  }
 `;
 
 const RoleBadge = styled.span`

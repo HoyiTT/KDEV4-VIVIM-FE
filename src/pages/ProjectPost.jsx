@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 const ProjectPost = () => {
   const navigate = useNavigate();
@@ -13,7 +16,7 @@ const ProjectPost = () => {
   };
 
   return (
-    <DashboardContainer>
+    <PageContainer>
       <MainContent>
         <Header>
           <TabContainer>
@@ -110,19 +113,15 @@ const ProjectPost = () => {
           </Pagination>
         </PostSection>
       </MainContent>
-    </DashboardContainer>
+    </PageContainer>
   );
 };
 
-const DashboardContainer = styled.div`
+const PageContainer = styled.div`
   display: flex;
   min-height: 100vh;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  background: #f9f9f9;
-  padding: 20px;
+  background-color: #f5f7fa;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
 const Header = styled.div`

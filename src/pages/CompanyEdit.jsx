@@ -3,24 +3,15 @@ import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 // Move all styled components outside the component function
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 const Header = styled.div`

@@ -5,6 +5,8 @@ import Sidebar from '../components/Sidebar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
+import MainContent from '../components/common/MainContent';
+import Select from '../components/common/Select';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
@@ -91,7 +93,12 @@ const AdminInquiryList = () => {
       <Sidebar />
       <MainContent>
         <Header>
-          <PageTitle>문의사항 관리</PageTitle>
+          <HeaderTop>
+            <PageTitle>문의사항 관리</PageTitle>
+            <SearchButton onClick={handleSearch}>
+              검색
+            </SearchButton>
+          </HeaderTop>
           <SearchSection>
             <SearchInput
               type="text"
@@ -100,7 +107,7 @@ const AdminInquiryList = () => {
               value={filters.title}
               onChange={handleFilterChange}
             />
-            <SearchSelect
+            <Select
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
@@ -109,7 +116,7 @@ const AdminInquiryList = () => {
               <option value="PENDING">대기중</option>
               <option value="IN_PROGRESS">처리중</option>
               <option value="COMPLETED">완료</option>
-            </SearchSelect>
+            </Select>
             <SearchInput
               type="date"
               name="startDate"
@@ -122,9 +129,6 @@ const AdminInquiryList = () => {
               value={filters.endDate}
               onChange={handleFilterChange}
             />
-            <SearchButton onClick={handleSearch}>
-              검색
-            </SearchButton>
           </SearchSection>
         </Header>
 
@@ -151,7 +155,7 @@ const AdminInquiryList = () => {
                       <TableCell>{inquiry.creatorName}</TableCell>
                       <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
                       <TableCell>
-                        <StatusBadge color={statusBadge.color}>
+                        <StatusBadge status={inquiry.status}>
                           {statusBadge.text}
                         </StatusBadge>
                       </TableCell>
@@ -184,23 +188,21 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-left: 15px;
-  overflow-y: auto;
-`;
-
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 24px;
   margin-bottom: 24px;
   background: white;
   padding: 32px;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  gap: 24px;
+`;
+
+const HeaderTop = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const PageTitle = styled.h1`
@@ -229,8 +231,7 @@ const SearchSection = styled.div`
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
-  flex: 1;
-  justify-content: flex-end;
+  justify-content: flex-start;
 `;
 
 const SearchInput = styled.input`
@@ -246,28 +247,6 @@ const SearchInput = styled.input`
     color: #94a3b8;
   }
 
-  &:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-  }
-`;
-
-const SearchSelect = styled.select`
-  padding: 10px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 240px;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  background-color: white;
-  
   &:hover {
     border-color: #cbd5e1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -352,20 +331,41 @@ const TableCell = styled.td`
 `;
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  transition: all 0.2s ease;
-  color: ${props => props.color};
-  background-color: rgba(241, 245, 249, 0.8);
-  border: 1px solid ${props => props.color};
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
 
-  &:hover {
-    background-color: ${props => props.color};
-    color: white;
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
   }
 `;
 

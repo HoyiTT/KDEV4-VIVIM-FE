@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
@@ -14,6 +13,8 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useAuth } from '../hooks/useAuth';
+import MainContent from '../components/common/MainContent';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -32,8 +33,8 @@ const StatusBadge = styled.span`
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   background-color: ${props => {
@@ -43,7 +44,7 @@ const StatusBadge = styled.span`
       case ApprovalProposalStatus.UNDER_REVIEW:
         return 'rgba(30, 64, 175, 0.08)';
       case ApprovalProposalStatus.FINAL_APPROVED:
-        return 'rgba(4, 120, 87, 0.08)';
+        return 'rgba(46, 125, 50, 0.08)';
       case ApprovalProposalStatus.FINAL_REJECTED:
         return 'rgba(185, 28, 28, 0.08)';
       default:
@@ -57,7 +58,7 @@ const StatusBadge = styled.span`
       case ApprovalProposalStatus.UNDER_REVIEW:
         return '#1E40AF';
       case ApprovalProposalStatus.FINAL_APPROVED:
-        return '#047857';
+        return '#2E7D32';
       case ApprovalProposalStatus.FINAL_REJECTED:
         return '#B91C1C';
       default:
@@ -65,12 +66,12 @@ const StatusBadge = styled.span`
     }
   }};
   border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   svg {
@@ -79,10 +80,1103 @@ const StatusBadge = styled.span`
   }
 `;
 
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1400px;
+  padding: 10px;
+  margin: 20px auto;
+  box-sizing: border-box;
+  width: 100%;
+`;
+
+const InfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const InfoLabel = styled.span`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const InfoValue = styled.span`
+  font-size: 16px;
+  color: #1e293b;
+  font-weight: 500;
+`;
+
+const InfoItemFull = styled(InfoItem)`
+  grid-column: 1 / -1;
+`;
+
+const PageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  position: fixed;
+  left: 270px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+`;
+
+const Header = styled.div`
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  padding-left: 16px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #10b981;
+    border-radius: 2px;
+  }
+`;
+
+const PageTitle = styled.h1`
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const PageDescription = styled.p`
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 24px;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const ContentContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const ProjectInfoSection = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+`;
+
+const ProjectHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const ProjectTitle = styled.h1`
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const ProjectDescription = styled.p`
+  font-size: 15px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.6;
+`;
+
+const ProjectSubDescription = styled.p`
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 8px 0 0 0;
+  line-height: 1.5;
+`;
+
+const DateContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+`;
+
+const DateItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+`;
+
+const DateLabel = styled.span`
+  font-size: 14px;
+  color: #64748b;
+`;
+
+const DateValue = styled.span`
+  font-size: 16px;
+  color: #1e293b;
+  font-weight: 500;
+`;
+
+const StatusContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const DropdownContainer = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const DropdownButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 1000;
+  margin-top: 8px;
+`;
+
+const DropdownItem = styled.div`
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  &.delete {
+    color: #dc2626;
+    
+    &:hover {
+      background: #fee2e2;
+    }
+  }
+`;
+
+const EmptyBoardCell = styled.td`
+  text-align: center;
+  padding: 48px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+`;
+
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 20px;
+`;
+
+const EmptyStateTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const EmptyStateDescription = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+  text-align: center;
+`;
+
+const StageSection = styled.div`
+  background: transparent;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: 0;
+`;
+
+const StageGrid = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+`;
+
+const StageItem = styled.div`
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  height: 550px;
+  max-height: 550px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  position: relative;
+  margin: 0 auto;
+  box-sizing: border-box;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+`;
+
+const StageHeader = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding: 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 12px;
+`;
+
+const StageEditActions = styled.div`
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 5;
+`;
+
+const ShowMoreButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+`;
+
+const AddButtonContainer = styled.div`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 5px;
+  margin-top: auto;
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
+`;
+
+const ErrorMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #ef4444;
+`;
+
+const BoardSection = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const BoardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const CreateButton = styled.button`
+  padding: 10px 20px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: #059669;
+    transform: translateY(-1px);
+  }
+`;
+
+const BoardTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+`;
+
+const BoardHeaderCell = styled.th`
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+`;
+
+const BoardCell = styled.td`
+  padding: 16px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  min-height: 30px;
+  white-space: normal;
+  word-break: break-word;
+  background: transparent;
+  vertical-align: middle;
+  line-height: 1.5;
+
+  &.title-cell {
+    display: table-cell;
+    align-items: center;
+    max-width: 400px;
+    font-weight: 500;
+  }
+
+  &.child-post {
+    padding-left: 40px;
+  }
+`;
+
+const BoardRow = styled.tr`
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+const ReplyButton = styled.button`
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #475569;
+  }
+`;
+
+const ReplyIndicator = styled.span`
+  color: #64748b;
+  margin-right: 8px;
+  font-size: 14px;
+`;
+
+const StageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1px;
+  padding-top: 20px;
+  box-sizing: border-box;
+`;
+
+const StageTitle = styled.h3`
+  margin: 0;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  
+  &::before {
+    content: '${props => props.title || ''}';
+  }
+  
+  &::after {
+    content: ': 승인요청 목록보기';
+    font-size: 14px;
+    font-weight: 400;
+    color: #64748b;
+    margin-left: 5px;
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const StageSplitLayout = styled.div`
+  display: flex;
+  gap: 24px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  flex-direction: column;
+`;
+
+// 모달 관련 스타일 컴포넌트 추가
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    color: #1e293b;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #64748b;
+  
+  &:hover {
+    color: #334155;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+const ModalFooter = styled.div`
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+const ModalButton = styled.button`
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+`;
+
+const ContentSection = styled.div`
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+`;
+
+const ProposalSubtitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  ${props => props.withMargin && `
+    margin-top: 32px;
+  `}
+`;
+
+// 날짜 포맷팅 함수
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
+
+const ApprovalDetailModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalSection = styled.div`
+  margin-bottom: 20px;
+  
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #475569;
+  }
+  
+  p {
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1e293b;
+`;
+
+const ProposalTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1e293b;
+`;
+
+const ProposalInfo = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+`;
+
+const ApprovalDecision = styled.div`
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+`;
+
+const StageProgressHeader = styled.div`
+  margin-bottom: 20px;
+`;
+
+const StageProgressTimeline = styled.div`
+  position: relative;
+  margin: 30px 0;
+  padding: 0 10px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #2E7D32;
+    z-index: 1;
+  }
+`;
+
+const StageProgressList = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StageProgressItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  cursor: pointer;
+  ${props => props.active && `
+    font-weight: bold;
+  `}
+`;
+
+const StageProgressMarker = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: ${props => props.completed ? '#2E7D32' : props.current ? '#3b82f6' : '#e2e8f0'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  svg {
+    color: white;
+    font-size: 20px;
+  }
+`;
+
+const StageProgressDetails = styled.div`
+  text-align: center;
+`;
+
+const StageProgressName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 4px;
+`;
+
+const StageProgressStatus = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const StageProgressInfo = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+`;
+
+const ProgressInfoItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 4px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  width: ${props => props.width};
+  height: 100%;
+  background-color: #2E7D32;
+  border-radius: 2px;
+`;
+
+// 새로 추가된 스타일 컴포넌트
+const StageHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const StageActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const StageActionIcon = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background-color: #f3f4f6;
+    color: #4f46e5;
+  }
+`;
+
+const StageModalContent = styled(ModalContent)`
+  max-width: 500px;
+`;
+
+const ModalForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FormLabel = styled.label`
+  font-weight: 500;
+  color: #374151;
+`;
+
+const FormInput = styled.input`
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 16px;
+  
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+  }
+`;
+
+const ActionCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+`;
+
+const ActionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const ActionTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  position: relative;
+  padding-left: 16px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #2E7D32;
+    border-radius: 2px;
+  }
+`;
+
+const EmptyStageMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const AddStageButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const ActionButton = styled.button`
+  padding: 10px 16px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #4338ca;
+  }
+  
+  &.delete {
+    background-color: #ef4444;
+    
+    &:hover {
+      background-color: #dc2626;
+    }
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 10px 16px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
+`;
+
+const DeleteConfirmMessage = styled.div`
+  padding: 16px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-radius: 4px;
+  margin: 16px 0;
+  text-align: center;
+  font-weight: 500;
+`;
+
+const DragInstructions = styled.p`
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 16px;
+`;
+
+const StageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const SortableItem = ({ id, name, position }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <SortableStageItem ref={setNodeRef} style={style}>
+      <DragHandle {...attributes} {...listeners}>
+        <FaGripVertical />
+      </DragHandle>
+      <StageItemContent>
+        <StageItemName>{name}</StageItemName>
+        <StageItemPosition>{position}번째</StageItemPosition>
+      </StageItemContent>
+    </SortableStageItem>
+  );
+};
+
+const SortableStageItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const DragHandle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 8px;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const StageItemContent = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StageItemName = styled.div`
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const StageItemPosition = styled.div`
+  color: #64748b;
+  font-size: 14px;
+`;
+
+const ListButton = styled.button`
+  padding: 8px 16px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+`;
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
+  const { user, isAdmin, isClient, isDeveloperManager } = useAuth();
   const [project, setProject] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +1192,7 @@ const ProjectDetail = () => {
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [approvalRequestsForStage, setApprovalRequestsForStage] = useState([]);
   const [showStageModal, setShowStageModal] = useState(false);
-  const [stageAction, setStageAction] = useState(''); // 'add', 'edit', 'delete'
+  const [stageAction, setStageAction] = useState('');
   const [editingStage, setEditingStage] = useState(null);
   const [stageName, setStageName] = useState('');
   const [showPositionModal, setShowPositionModal] = useState(false);
@@ -116,9 +1210,6 @@ const ProjectDetail = () => {
   });
 
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(null);
-  const [isClient, setIsClient] = useState(null);
-  const [isDeveloperManager, setIsDeveloperManager] = useState(null);
 
   const [isIncreasing, setIsIncreasing] = useState(false);
 
@@ -172,23 +1263,9 @@ const ProjectDetail = () => {
   const handleDeleteProject = async () => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token,
-            'accept': '*/*',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        });
-        
-        if (response.ok) {
-          alert('프로젝트가 삭제되었습니다.');
-          navigate('/dashboard');
-        } else {
-          alert('프로젝트 삭제에 실패했습니다.');
-        }
+        await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${id}`);
+        alert('프로젝트가 삭제되었습니다.');
+        navigate('/dashboard');
       } catch (error) {
         console.error('Error deleting project:', error);
         alert('프로젝트 삭제 중 오류가 발생했습니다.');
@@ -327,35 +1404,6 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
-  useEffect(() => {
-    const checkUserRole = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const decodedToken = JSON.parse(atob(token.split('.')[1]));
-          const isAdminUser = decodedToken.role === 'ADMIN';
-          const isClientUser = decodedToken.role === 'CUSTOMER';
-          const isDeveloperManagerUser = decodedToken.role === 'DEVELOPER_MANAGER';
-          setIsAdmin(isAdminUser);
-          setIsClient(isClientUser);
-          setIsDeveloperManager(isDeveloperManagerUser);
-        } catch (error) {
-          console.error('Error decoding token:', error);
-          setIsAdmin(false);
-          setIsClient(false);
-          setIsDeveloperManager(false);
-        }
-      }
-      setAdminCheckLoading(false);
-    };
-    
-    checkUserRole();
-  }, []);
-
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
       setCurrentStageIndex(prev => prev + 1);
@@ -371,19 +1419,7 @@ const ProjectDetail = () => {
   // 승인요청 항목 클릭 시 처리하는 함수
   const handleApprovalClick = async (approval) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.APPROVAL.DETAIL(approval.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('승인요청 상세 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(approval.id));
       setSelectedProposal(data);
       
       // 승인 상태 요약 정보 조회
@@ -716,1427 +1752,424 @@ const ProjectDetail = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <ContentWrapper>
         <MainContent>
-          <Header>
-            <PageTitle>프로젝트 상세보기</PageTitle>
-          </Header>
-
-        {loading ? (
-          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-        ) : project ? (
-          <ContentContainer>
-            <ProjectInfoSection>
-              <ProjectHeader>
-                <ProjectTitle>{project.name}</ProjectTitle>
-                <StatusContainer>
-                  <StatusBadge isDeleted={project.isDeleted}>
-                    {project.isDeleted ? '삭제됨' : '진행중'}
-                  </StatusBadge>
+          {loading ? (
+            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+          ) : project ? (
+            <ContentContainer>
+              <ActionCard>
+                <ActionHeader>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <ListButton onClick={() => navigate('/admin/projects')}>
+                      <FaArrowLeft /> 목록보기
+                    </ListButton>
+                    <ActionTitle>프로젝트 상세</ActionTitle>
+                  </div>
                   {isAdmin && (
-                    <DropdownContainer>
-                      <DropdownButton onClick={() => setShowDropdown(!showDropdown)}>
-                        ⋮
-                      </DropdownButton>
-                      {showDropdown && (
-                        <DropdownMenu>
-                          <DropdownItem onClick={() => navigate(`/projectModify/${id}`)}>
-                            수정하기
-                          </DropdownItem>
-                          <DropdownItem onClick={() => handleDeleteProject()} className="delete">
-                            삭제하기
-                          </DropdownItem>
-                        </DropdownMenu>
-                      )}
-                    </DropdownContainer>
+                    <ActionButtons>
+                      <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
+                        <FaEdit /> 프로젝트 수정
+                      </CreateButton>
+                      <CreateButton onClick={() => handleDeleteProject()} style={{ background: '#dc2626' }}>
+                        <FaTrashAlt /> 프로젝트 삭제
+                      </CreateButton>
+                    </ActionButtons>
                   )}
-                </StatusContainer>
-              </ProjectHeader>
-              <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
-              <DateContainer>
-                <DateItem>
-                  <DateLabel>시작일</DateLabel>
-                  <DateValue>{project.startDate}</DateValue>
-                </DateItem>
-                <DateItem>
-                  <DateLabel>종료일</DateLabel>
-                  <DateValue>{project.endDate}</DateValue>
-                </DateItem>
-              </DateContainer>
-            </ProjectInfoSection>
+                </ActionHeader>
+              </ActionCard>
 
-            <StageSection>
-              <StageSplitLayout>
-                <ProjectStageProgress 
-                  progressList={progressList}
-                  currentStageIndex={currentStageIndex}
-                  setCurrentStageIndex={setCurrentStageIndex}
-                  title="프로젝트 진행 단계"
-                  isAdmin={isAdmin}
-                  isDeveloperManager={isDeveloperManager}
-                  openStageModal={openStageModal}
-                  projectProgress={projectProgress}
-                  progressStatus={progressStatus}
-                  onIncreaseProgress={handleIncreaseProgress}
-                  currentProgress={project?.currentProgress}
-                  projectId={project?.id}
-                >
-                  {progressList.length > 0 ? (
-                    progressList
-                  .sort((a, b) => a.position - b.position)
-                    .map((stage, index) => (
-                      <StageContainer 
-                        key={stage.id} 
-                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
-                      >
-                        <StageItem 
-                          ref={el => stageRefs.current[index] = el} 
+              <ProjectInfoSection>
+                <ProjectHeader>
+                  <ProjectTitle>
+                    {project.name}
+                    <StatusContainer>
+                      <StatusBadge isDeleted={project?.isDeleted}>
+                        {project?.isDeleted ? '삭제됨' : '진행중'}
+                      </StatusBadge>
+                    </StatusContainer>
+                  </ProjectTitle>
+                  <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+                </ProjectHeader>
+                <DateContainer>
+                  <DateItem>
+                    <DateLabel>시작일</DateLabel>
+                    <DateValue>{project.startDate}</DateValue>
+                  </DateItem>
+                  <DateItem>
+                    <DateLabel>종료일</DateLabel>
+                    <DateValue>{project.endDate}</DateValue>
+                  </DateItem>
+                </DateContainer>
+              </ProjectInfoSection>
+
+              <StageSection>
+                <StageSplitLayout>
+                  <ProjectStageProgress 
+                    progressList={progressList}
+                    currentStageIndex={currentStageIndex}
+                    setCurrentStageIndex={setCurrentStageIndex}
+                    title="프로젝트 진행 단계"
+                    isAdmin={isAdmin}
+                    isDeveloperManager={isDeveloperManager}
+                    openStageModal={openStageModal}
+                    projectProgress={projectProgress}
+                    progressStatus={progressStatus}
+                    onIncreaseProgress={handleIncreaseProgress}
+                    currentProgress={project?.currentProgress}
+                    projectId={project?.id}
+                  >
+                    {progressList.length > 0 ? (
+                      progressList
+                    .sort((a, b) => a.position - b.position)
+                      .map((stage, index) => (
+                        <StageContainer 
+                          key={stage.id} 
+                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
                         >
-                          <StageHeader>
-                            <StageTitle title={stage.name} />
-                          </StageHeader>
-                          <ApprovalProposal 
-                            progressId={stage.id} 
-                            progressStatus={progressStatus}
-                          />
-                    </StageItem>
-                      </StageContainer>
-                    ))
-                  ) : (
-                    <EmptyStageMessage>
-                      등록된 진행 단계가 없습니다.
-                      {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
-                    </EmptyStageMessage>
-                  )}
-                </ProjectStageProgress>
-              </StageSplitLayout>
-            </StageSection>
-                        <BoardSection>
-                          <BoardHeader>
-                            <SectionTitle>게시판</SectionTitle>
-                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
-                              글쓰기
-                            </CreateButton>
-                          </BoardHeader>
-                          <BoardTable>
-                            <thead>
-                              <tr>
-                                <BoardHeaderCell>제목</BoardHeaderCell>
-                                <BoardHeaderCell>답글</BoardHeaderCell>
-                                <BoardHeaderCell>상태</BoardHeaderCell>
-                                <BoardHeaderCell>작성자</BoardHeaderCell>
-                                <BoardHeaderCell>역할</BoardHeaderCell>
-                                <BoardHeaderCell>작성일</BoardHeaderCell>
-                                <BoardHeaderCell>수정일</BoardHeaderCell>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {posts.length === 0 ? (
-                                <tr>
-                                  <EmptyBoardCell colSpan="7">
-                                    <EmptyStateContainer>
-                                      <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
-                                      <EmptyStateDescription>
-                                        새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
-                                      </EmptyStateDescription>
-                                    </EmptyStateContainer>
-                                  </EmptyBoardCell>
-                                </tr>
-                              ) : (
-                                posts
-                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                                .reduce((acc, post) => {
-                                  if (!post.parentId) {
-                                    acc.push(post);
-                                    const replies = posts.filter(reply => reply.parentId === post.postId);
-                                    acc.push(...replies);
-                                  }
-                                  return acc;
-                                }, [])
-                                .map((post) => (
-                                  <BoardRow key={post.postId}>
-                                    <BoardCell 
-                                      className={`title-cell ${post.parentId ? 'child-post' : ''}`}
-                                      onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
-                                    >
-                                      {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
-                                      {post.title}
-                                    </BoardCell>
-                                    <BoardCell>
-                                      {!post.parentId && (
-                                        <ReplyButton onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/project/${id}/post/create`, {
-                                            state: { parentPost: post }
-                                          });
-                                        }}>
-                                          답글
-                                        </ReplyButton>
-                                      )}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
-                                       post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.creatorName}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {translateRole(post.creatorRole)}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                                    </BoardCell>
-                                    <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
-                                      {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
-                                    </BoardCell>
-                                  </BoardRow>
-                                  ))
-                              )}
-                            </tbody>
-                          </BoardTable>
-                        </BoardSection>
-          </ContentContainer>
-        ) : (
-          <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
-        )}
-      </MainContent>
-    </ContentWrapper>
-    
-    {isProposalModalOpen && selectedProposal && (
-      <ModalOverlay onClick={() => {
-        setIsProposalModalOpen(false);
-        setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
-      }}>
-        <ModalContent onClick={(e) => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>승인요청 상세보기</ModalTitle>
-            <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
-          </ModalHeader>
-          <ModalBody>
-            <ProposalTitle>{selectedProposal.title}</ProposalTitle>
-            <ProposalInfo>
-              <InfoItem>
-                <InfoLabel>작성자</InfoLabel>
-                <InfoValue>{selectedProposal.creator?.name} ({selectedProposal.creator?.companyName})</InfoValue>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>작성일</InfoLabel>
-                <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>상태</InfoLabel>
-                <InfoValue>
-                  <StatusBadge $status={selectedProposal.approvalProposalStatus}>
-                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && <FaEdit />}
-                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.UNDER_REVIEW && <FaClock />}
-                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED && <FaCheck />}
-                    {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && <FaTimes />}
-                    {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
-                  </StatusBadge>
-                </InfoValue>
-              </InfoItem>
-            </ProposalInfo>
-            <ContentSection>
-              {selectedProposal.content}
-            </ContentSection>
-            
-            {statusSummary && (
-              <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>승인 상태 요약</h3>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dcfce7', borderRadius: '8px', minWidth: '80px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#16a34a' }}>{statusSummary.approvedApproverCount}</div>
-                    <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>승인</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fee2e2', borderRadius: '8px', minWidth: '80px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#dc2626' }}>{statusSummary.modificationRequestedApproverCount}</div>
-                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>반려</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dbeafe', borderRadius: '8px', minWidth: '80px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: '600', color: '#2563eb' }}>{statusSummary.waitingApproverCount}</div>
-                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>대기</div>
-                  </div>
-                  {statusSummary.totalApproverCount > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', minWidth: '80px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>{statusSummary.totalApproverCount}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>전체</div>
+                          <StageItem 
+                            ref={el => stageRefs.current[index] = el} 
+                          >
+                            <StageHeader>
+                              <StageTitle title={stage.name} />
+                            </StageHeader>
+                            <ApprovalProposal 
+                              progressId={stage.id} 
+                              progressStatus={progressStatus}
+                            />
+                      </StageItem>
+                        </StageContainer>
+                      ))
+                    ) : (
+                      <EmptyStageMessage>
+                        등록된 진행 단계가 없습니다.
+                        {isAdmin && <AddStageButton onClick={() => openStageModal('add')}>프로젝트 진행단계 추가</AddStageButton>}
+                      </EmptyStageMessage>
+                    )}
+                  </ProjectStageProgress>
+                </StageSplitLayout>
+              </StageSection>
+              <BoardSection>
+                <BoardHeader>
+                  <SectionTitle>게시판</SectionTitle>
+                  <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                    글쓰기
+                  </CreateButton>
+                </BoardHeader>
+                <BoardTable>
+                  <thead>
+                    <tr>
+                      <BoardHeaderCell>제목</BoardHeaderCell>
+                      <BoardHeaderCell>답글</BoardHeaderCell>
+                      <BoardHeaderCell>상태</BoardHeaderCell>
+                      <BoardHeaderCell>작성자</BoardHeaderCell>
+                      <BoardHeaderCell>역할</BoardHeaderCell>
+                      <BoardHeaderCell>작성일</BoardHeaderCell>
+                      <BoardHeaderCell>수정일</BoardHeaderCell>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posts.length === 0 ? (
+                      <tr>
+                        <EmptyBoardCell colSpan="7">
+                          <EmptyStateContainer>
+                            <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
+                            <EmptyStateDescription>
+                              새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
+                            </EmptyStateDescription>
+                          </EmptyStateContainer>
+                        </EmptyBoardCell>
+                      </tr>
+                    ) : (
+                      posts
+                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .reduce((acc, post) => {
+                        if (!post.parentId) {
+                          acc.push(post);
+                          const replies = posts.filter(reply => reply.parentId === post.postId);
+                          acc.push(...replies);
+                        }
+                        return acc;
+                      }, [])
+                      .map((post) => (
+                        <BoardRow key={post.postId}>
+                          <BoardCell 
+                            className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                            onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                          >
+                            {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                            {post.title}
+                          </BoardCell>
+                          <BoardCell>
+                            {!post.parentId && (
+                              <ReplyButton onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/project/${id}/post/create`, {
+                                  state: { parentPost: post }
+                                });
+                              }}>
+                                답글
+                              </ReplyButton>
+                            )}
+                          </BoardCell>
+                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                            {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                             post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                          </BoardCell>
+                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                            {post.creatorName}
+                          </BoardCell>
+                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                            {translateRole(post.creatorRole)}
+                          </BoardCell>
+                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                            {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                          </BoardCell>
+                          <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                            {post.modifiedAt ? new Date(post.modifiedAt).toLocaleDateString() : '-'}
+                          </BoardCell>
+                        </BoardRow>
+                        ))
+                    )}
+                  </tbody>
+                </BoardTable>
+              </BoardSection>
+            </ContentContainer>
+          ) : (
+            <ErrorMessage>프로젝트를 찾을 수 없습니다.</ErrorMessage>
+          )}
+        </MainContent>
+      </ContentWrapper>
+      
+      {isProposalModalOpen && selectedProposal && (
+        <ModalOverlay onClick={() => {
+          setIsProposalModalOpen(false);
+          setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+        }}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>승인요청 상세보기</ModalTitle>
+              <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <ProposalTitle>{selectedProposal.title}</ProposalTitle>
+              <ProposalInfo>
+                <InfoItem>
+                  <InfoLabel>작성자</InfoLabel>
+                  <InfoValue>{selectedProposal.creator?.name} ({selectedProposal.creator?.companyName})</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>작성일</InfoLabel>
+                  <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                  <InfoLabel>상태</InfoLabel>
+                  <InfoValue>
+                    <StatusBadge $status={selectedProposal.approvalProposalStatus}>
+                      {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && <FaEdit />}
+                      {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.UNDER_REVIEW && <FaClock />}
+                      {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED && <FaCheck />}
+                      {selectedProposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && <FaTimes />}
+                      {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
+                    </StatusBadge>
+                  </InfoValue>
+                </InfoItem>
+              </ProposalInfo>
+              <ContentSection>
+                {selectedProposal.content}
+              </ContentSection>
+              
+              {statusSummary && (
+                <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>승인 상태 요약</h3>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dcfce7', borderRadius: '8px', minWidth: '80px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#16a34a' }}>{statusSummary.approvedApproverCount}</div>
+                      <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>승인</div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <ProposalSubtitle withMargin>
-              <span>승인권자별 응답목록</span>
-            </ProposalSubtitle>
-            <ApprovalDecision approvalId={selectedProposal.id} />
-          </ModalBody>
-          <ModalFooter>
-            <ModalButton onClick={() => {
-              setIsProposalModalOpen(false);
-              setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
-            }}>닫기</ModalButton>
-          </ModalFooter>
-        </ModalContent>
-      </ModalOverlay>
-    )}
-    {selectedApproval && (
-      <ApprovalDetailModal onClick={closeModal}>
-        <ModalContent onClick={(e) => e.stopPropagation()}>
-          <ModalHeader>
-            <h3>{selectedApproval.title}</h3>
-            <CloseButton onClick={closeModal}>&times;</CloseButton>
-          </ModalHeader>
-          
-          <ModalSection>
-            <h4>상태</h4>
-            <StatusBadge $status={selectedApproval.status}>
-              {getApprovalStatusText(selectedApproval.status)}
-            </StatusBadge>
-          </ModalSection>
-          
-          <ModalSection>
-            <h4>요청 정보</h4>
-            <p><strong>요청자:</strong> {selectedApproval.requestMemberName}</p>
-            <p><strong>요청일:</strong> {new Date(selectedApproval.createdAt).toLocaleString()}</p>
-            <p><strong>설명:</strong> {selectedApproval.description || '설명 없음'}</p>
-          </ModalSection>
-          
-          <ModalSection>
-            <h4>승인자 목록</h4>
-            {selectedApproval.approvalList && selectedApproval.approvalList.length > 0 ? (
-              <div>
-                {selectedApproval.approvalList.map((approver, index) => (
-                  <div key={index} style={{ 
-                    margin: '8px 0', 
-                    padding: '8px', 
-                    borderBottom: index < selectedApproval.approvalList.length - 1 ? '1px solid #e2e8f0' : 'none' 
-                  }}>
-                    <p><strong>{approver.approverName}</strong></p>
-                    <p>상태: {getApprovalStatusText(approver.status)}</p>
-                    {approver.comment && <p>코멘트: {approver.comment}</p>}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fee2e2', borderRadius: '8px', minWidth: '80px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#dc2626' }}>{statusSummary.modificationRequestedApproverCount}</div>
+                      <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>반려</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#dbeafe', borderRadius: '8px', minWidth: '80px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600', color: '#2563eb' }}>{statusSummary.waitingApproverCount}</div>
+                      <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px' }}>대기</div>
+                    </div>
+                    {statusSummary.totalApproverCount > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', minWidth: '80px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b' }}>{statusSummary.totalApproverCount}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>전체</div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p>승인자가 지정되지 않았습니다.</p>
-            )}
-          </ModalSection>
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-            <button 
-              onClick={closeModal}
-              style={{
-                background: '#f1f5f9',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              닫기
-            </button>
-          </div>
-        </ModalContent>
-      </ApprovalDetailModal>
-    )}
-    {/* 진행단계 추가/수정/삭제 모달 */}
-    {showStageModal && (
-      <ModalOverlay onClick={() => setShowStageModal(false)}>
-        <StageModalContent onClick={(e) => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>
-              {stageAction === 'add' ? '진행 단계 추가' : 
-               stageAction === 'edit' ? '진행 단계 수정' : '진행 단계 삭제'}
-            </ModalTitle>
-            <CloseButton onClick={() => setShowStageModal(false)}>×</CloseButton>
-          </ModalHeader>
-          <ModalBody>
-            {stageAction !== 'delete' && (
-              <ModalForm>
-                <FormField>
-                  <FormLabel>단계명</FormLabel>
-                  <FormInput 
-                    type="text" 
-                    value={stageName}
-                    onChange={(e) => setStageName(e.target.value)}
-                    placeholder="단계명을 입력하세요"
-                  />
-                </FormField>
-              </ModalForm>
-            )}
-            {stageAction === 'delete' && (
-              <DeleteConfirmMessage>
-                정말로 '{editingStage?.name}' 단계를 삭제하시겠습니까?
-              </DeleteConfirmMessage>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            {stageAction === 'add' && (
-              <ActionButton onClick={handleAddStage}>추가</ActionButton>
-            )}
-            {stageAction === 'edit' && (
-              <ActionButton onClick={handleEditStage}>수정</ActionButton>
-            )}
-            {stageAction === 'delete' && (
-              <ActionButton className="delete" onClick={handleDeleteStage}>삭제</ActionButton>
-            )}
-            <CancelButton onClick={() => setShowStageModal(false)}>취소</CancelButton>
-          </ModalFooter>
-        </StageModalContent>
-      </ModalOverlay>
-    )}
-    {showPositionModal && (
-      <ModalOverlay onClick={() => setShowPositionModal(false)}>
-        <StageModalContent onClick={(e) => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>단계 순서 변경</ModalTitle>
-            <CloseButton onClick={() => setShowPositionModal(false)}>×</CloseButton>
-          </ModalHeader>
-          <ModalBody>
-            <DragInstructions>
-              단계를 드래그하여 순서를 변경할 수 있습니다.
-            </DragInstructions>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={progressList.map(stage => stage.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <StageList>
-                  {progressList.map((stage) => (
-                    <SortableItem
-                      key={stage.id}
-                      id={stage.id}
-                      name={stage.name}
-                      position={stage.position}
-                    />
+                </div>
+              )}
+              
+              <ProposalSubtitle withMargin>
+                <span>승인권자별 응답목록</span>
+              </ProposalSubtitle>
+              <ApprovalDecision approvalId={selectedProposal.id} />
+            </ModalBody>
+            <ModalFooter>
+              <ModalButton onClick={() => {
+                setIsProposalModalOpen(false);
+                setStatusSummary(null); // 모달을 닫을 때 상태 요약 정보 초기화
+              }}>닫기</ModalButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+      {selectedApproval && (
+        <ApprovalDetailModal onClick={closeModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h3>{selectedApproval.title}</h3>
+              <CloseButton onClick={closeModal}>&times;</CloseButton>
+            </ModalHeader>
+            
+            <ModalSection>
+              <h4>상태</h4>
+              <StatusBadge $status={selectedApproval.status}>
+                {getApprovalStatusText(selectedApproval.status)}
+              </StatusBadge>
+            </ModalSection>
+            
+            <ModalSection>
+              <h4>요청 정보</h4>
+              <p><strong>요청자:</strong> {selectedApproval.requestMemberName}</p>
+              <p><strong>요청일:</strong> {new Date(selectedApproval.createdAt).toLocaleString()}</p>
+              <p><strong>설명:</strong> {selectedApproval.description || '설명 없음'}</p>
+            </ModalSection>
+            
+            <ModalSection>
+              <h4>승인자 목록</h4>
+              {selectedApproval.approvalList && selectedApproval.approvalList.length > 0 ? (
+                <div>
+                  {selectedApproval.approvalList.map((approver, index) => (
+                    <div key={index} style={{ 
+                      margin: '8px 0', 
+                      padding: '8px', 
+                      borderBottom: index < selectedApproval.approvalList.length - 1 ? '1px solid #e2e8f0' : 'none' 
+                    }}>
+                      <p><strong>{approver.approverName}</strong></p>
+                      <p>상태: {getApprovalStatusText(approver.status)}</p>
+                      {approver.comment && <p>코멘트: {approver.comment}</p>}
+                    </div>
                   ))}
-                </StageList>
-              </SortableContext>
-            </DndContext>
-          </ModalBody>
-          <ModalFooter>
-            <ActionButton onClick={() => handleSavePositions()}>
-              순서 저장
-            </ActionButton>
-            <CancelButton onClick={() => setShowPositionModal(false)}>취소</CancelButton>
-          </ModalFooter>
-        </StageModalContent>
-      </ModalOverlay>
-    )}
+                </div>
+              ) : (
+                <p>승인자가 지정되지 않았습니다.</p>
+              )}
+            </ModalSection>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button 
+                onClick={closeModal}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                닫기
+              </button>
+            </div>
+          </ModalContent>
+        </ApprovalDetailModal>
+      )}
+      {/* 진행단계 추가/수정/삭제 모달 */}
+      {showStageModal && (
+        <ModalOverlay onClick={() => setShowStageModal(false)}>
+          <StageModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>
+                {stageAction === 'add' ? '진행 단계 추가' : 
+                 stageAction === 'edit' ? '진행 단계 수정' : '진행 단계 삭제'}
+              </ModalTitle>
+              <CloseButton onClick={() => setShowStageModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              {stageAction !== 'delete' && (
+                <ModalForm>
+                  <FormField>
+                    <FormLabel>단계명</FormLabel>
+                    <FormInput 
+                      type="text" 
+                      value={stageName}
+                      onChange={(e) => setStageName(e.target.value)}
+                      placeholder="단계명을 입력하세요"
+                    />
+                  </FormField>
+                </ModalForm>
+              )}
+              {stageAction === 'delete' && (
+                <DeleteConfirmMessage>
+                  정말로 '{editingStage?.name}' 단계를 삭제하시겠습니까?
+                </DeleteConfirmMessage>
+              )}
+            </ModalBody>
+            <ModalFooter>
+              {stageAction === 'add' && (
+                <ActionButton onClick={handleAddStage}>추가</ActionButton>
+              )}
+              {stageAction === 'edit' && (
+                <ActionButton onClick={handleEditStage}>수정</ActionButton>
+              )}
+              {stageAction === 'delete' && (
+                <ActionButton className="delete" onClick={handleDeleteStage}>삭제</ActionButton>
+              )}
+              <CancelButton onClick={() => setShowStageModal(false)}>취소</CancelButton>
+            </ModalFooter>
+          </StageModalContent>
+        </ModalOverlay>
+      )}
+      {showPositionModal && (
+        <ModalOverlay onClick={() => setShowPositionModal(false)}>
+          <StageModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>단계 순서 변경</ModalTitle>
+              <CloseButton onClick={() => setShowPositionModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <DragInstructions>
+                단계를 드래그하여 순서를 변경할 수 있습니다.
+              </DragInstructions>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={progressList.map(stage => stage.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <StageList>
+                    {progressList.map((stage) => (
+                      <SortableItem
+                        key={stage.id}
+                        id={stage.id}
+                        name={stage.name}
+                        position={stage.position}
+                      />
+                    ))}
+                  </StageList>
+                </SortableContext>
+              </DndContext>
+            </ModalBody>
+            <ModalFooter>
+              <ActionButton onClick={() => handleSavePositions()}>
+                순서 저장
+              </ActionButton>
+              <CancelButton onClick={() => setShowPositionModal(false)}>취소</CancelButton>
+            </ModalFooter>
+          </StageModalContent>
+        </ModalOverlay>
+      )}
     </PageContainer>
   );
 };
 
-
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 0 270px;
-  background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  
-  @media (max-width: 1400px) {
-    padding: 0 10%;
-  }
-  
-  @media (max-width: 768px) {
-    padding: 0 5%;
-  }
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-`;
-
-const Header = styled.div`
-  margin-bottom: 24px;
-`;
-
-const PageTitle = styled.h1`
-  font-size: 24px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const ContentContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-`;
-
-const ProjectInfoSection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const ProjectHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 20px 0;
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const InfoLabel = styled.span`
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const InfoValue = styled.span`
-  font-size: 16px;
-  color: #1e293b;
-  font-weight: 500;
-`;
-
-const ReplyButton = styled.button`
-  padding: 4px 8px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  color: #64748b;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #e2e8f0;
-  }
-`;
-
-const StageSection = styled.div`
-  background: transparent;
-  width: 100%;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  padding: 0;
-`;
-
-const StageGrid = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 600px;
-  overflow: hidden;
-`;
-
-const StageItem = styled.div`
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 100%;
-  height: 550px;
-  max-height: 550px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  position: relative;
-  margin: 0 auto;
-  box-sizing: border-box;
-  
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-`;
-
-const StageHeader = styled.div`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
-  padding: 0;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 12px;
-`;
-
-const StageEditActions = styled.div`
-  display: flex;
-  gap: 8px;
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  z-index: 5;
-`;
-
-const ShowMoreButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 12px;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const AddButtonContainer = styled.div`
-  position: sticky;
-  bottom: 0;
-  background: white;
-  padding-top: 5px;
-  margin-top: auto;
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const ErrorMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #ef4444;
-`;
-
-const BoardSection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const BoardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const CreateButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-  }
-`;
-
-const BoardTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-`;
-
-const BoardCell = styled.td`
-  padding: 8px 12px;
-  font-size: 14px;
-  color: #1e293b;
-  border-bottom: 1px solid #e2e8f0;
-  min-height: 30px;
-  white-space: normal;
-  word-break: break-word;
-  background: transparent;
-  vertical-align: middle;
-  line-height: 1.5;
-
-  &.title-cell {
-    display: table-cell;
-    align-items: center;
-    max-width: 400px;
-  }
-
-  &.child-post {
-    padding-left: 40px;
-  }
-`;
-
-const BoardHeaderCell = styled.th`
-  padding: 12px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const BoardRow = styled.tr`
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const ReplyIndicator = styled.span`
-  color: #64748b;
-  margin-right: 8px;
-  font-size: 14px;
-`;
-
-const InfoItemFull = styled(InfoItem)`
-  grid-column: 1 / -1;
-`;
-
 export default ProjectDetail;
-
-const ProjectTitle = styled.h1`
-  font-size: 32px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 12px 0;
-`;
-
-const ProjectDescription = styled.p`
-  font-size: 14px;
-  color: #64748b;
-  margin: 0 0 24px 0;
-  line-height: 1.5;
-`;
-
-const DateContainer = styled.div`
-  display: flex;
-  gap: 32px;
-  margin-bottom: 16px;
-`;
-
-const DateItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DateLabel = styled.span`
-  font-size: 13px;
-  color: #64748b;
-`;
-
-const DateValue = styled.span`
-  font-size: 15px;
-  color: #1e293b;
-  font-weight: 500;
-`;
-
-const ActionCell = styled(BoardCell)`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-right: 24px;
-  min-width: 100px;
-  border-bottom: 1px solid #e2e8f0;
-  align-items: center;
-`;
-const ContentWrapper = styled.div`
-  display: flex;
-  flex: 1;
-`;
-
-const DropdownContainer = styled.div`
-  position: relative;
-  display: inline-block;
-  margin-left: 8px;
-`;
-
-const DropdownButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #64748b;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const DropdownMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 120px;
-  z-index: 1000;
-`;
-
-const DropdownItem = styled.div`
-  padding: 8px 16px;
-  font-size: 14px;
-  color: #1e293b;
-  cursor: pointer;
-
-  &:hover {
-    background: #f8fafc;
-  }
-
-  &.delete {
-    color: #dc2626;
-    
-    &:hover {
-      background: #fee2e2;
-    }
-  }
-`;
-
-const StatusContainer = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const EmptyBoardCell = styled.td`
-  text-align: center;
-  padding: 48px 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-`;
-
-const EmptyStateContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-`;
-
-const EmptyStateTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 500;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const EmptyStateDescription = styled.p`
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const StageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 1px;
-  padding-top: 20px;
-  box-sizing: border-box;
-`;
-
-const StageTitle = styled.h3`
-  margin: 0;
-  padding: 5px;
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  
-  &::before {
-    content: '${props => props.title || ''}';
-  }
-  
-  &::after {
-    content: ': 승인요청 목록보기';
-    font-size: 14px;
-    font-weight: 400;
-    color: #64748b;
-    margin-left: 5px;
-  }
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const StageSplitLayout = styled.div`
-  display: flex;
-  gap: 24px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  flex-direction: column;
-`;
-
-// 모달 관련 스타일 컴포넌트 추가
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background-color: white;
-  padding: 24px;
-  border-radius: 12px;
-  width: 600px;
-  max-width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  
-  h3 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-    color: #1e293b;
-  }
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #64748b;
-  
-  &:hover {
-    color: #334155;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 16px;
-  width: 100%;
-  box-sizing: border-box;
-`;
-
-const ModalFooter = styled.div`
-  padding: 16px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-`;
-
-const ModalButton = styled.button`
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-
-  &:hover {
-    background: #e2e8f0;
-  }
-`;
-
-const ContentSection = styled.div`
-  font-size: 14px;
-  color: #475569;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  white-space: pre-wrap;
-`;
-
-const ProposalSubtitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
-  ${props => props.withMargin && `
-    margin-top: 32px;
-  `}
-`;
-
-// 날짜 포맷팅 함수
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-const ApprovalDetailModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalSection = styled.div`
-  margin-bottom: 20px;
-  
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #475569;
-  }
-  
-  p {
-    margin: 8px 0;
-    line-height: 1.5;
-  }
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #1e293b;
-`;
-
-const ProposalTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #1e293b;
-`;
-
-const ProposalInfo = styled.div`
-  margin-bottom: 20px;
-  padding: 16px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-`;
-
-const ApprovalDecision = styled.div`
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
-`;
-
-const StageProgressHeader = styled.div`
-  margin-bottom: 20px;
-`;
-
-const StageProgressTimeline = styled.div`
-  position: relative;
-  margin: 30px 0;
-  padding: 0 10px;
-`;
-
-const StageProgressList = styled.div`
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-`;
-
-const StageProgressItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 120px;
-  cursor: pointer;
-  ${props => props.active && `
-    font-weight: bold;
-  `}
-`;
-
-const StageProgressMarker = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: ${props => props.completed ? '#22c55e' : props.current ? '#3b82f6' : '#e2e8f0'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
-  svg {
-    color: white;
-    font-size: 20px;
-  }
-`;
-
-const StageProgressDetails = styled.div`
-  text-align: center;
-`;
-
-const StageProgressName = styled.div`
-  font-weight: 600;
-  font-size: 14px;
-  color: #334155;
-  margin-bottom: 4px;
-`;
-
-const StageProgressStatus = styled.div`
-  font-size: 12px;
-  color: #64748b;
-`;
-
-const StageProgressInfo = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 32px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-`;
-
-const ProgressInfoItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const ProgressInfoLabel = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 4px;
-`;
-
-const ProgressInfoValue = styled.span`
-  font-size: 16px;
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const ProgressBar = styled.div`
-  width: 100%;
-  height: 4px;
-  background-color: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-`;
-
-const ProgressFill = styled.div`
-  width: ${props => props.width};
-  height: 100%;
-  background-color: #22c55e;
-  border-radius: 2px;
-`;
-
-// 새로 추가된 스타일 컴포넌트
-const StageHeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const StageActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
-
-const StageActionIcon = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    background-color: #f3f4f6;
-    color: #4f46e5;
-  }
-`;
-
-const StageModalContent = styled(ModalContent)`
-  max-width: 500px;
-`;
-
-const ModalForm = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const FormField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const FormLabel = styled.label`
-  font-weight: 500;
-  color: #374151;
-`;
-
-const FormInput = styled.input`
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 16px;
-  
-  &:focus {
-    outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
-  }
-`;
-
-const ActionButton = styled.button`
-  padding: 10px 16px;
-  background-color: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #4338ca;
-  }
-  
-  &.delete {
-    background-color: #ef4444;
-    
-    &:hover {
-      background-color: #dc2626;
-    }
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 10px 16px;
-  background-color: #f3f4f6;
-  color: #374151;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #e5e7eb;
-  }
-`;
-
-const DeleteConfirmMessage = styled.div`
-  padding: 16px;
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border-radius: 4px;
-  margin: 16px 0;
-  text-align: center;
-  font-weight: 500;
-`;
-
-const EmptyStageMessage = styled.div`
-  text-align: center;
-  padding: 40px 20px;
-  color: #6b7280;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-`;
-
-const AddStageButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
-
-const ManageDropdown = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 180px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-top: 5px;
-  z-index: 100;
-`;
-
-const DragInstructions = styled.p`
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 16px;
-`;
-
-const StageList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const SortableItem = ({ id, name, position }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <SortableStageItem ref={setNodeRef} style={style}>
-      <DragHandle {...attributes} {...listeners}>
-        <FaGripVertical />
-      </DragHandle>
-      <StageItemContent>
-        <StageItemName>{name}</StageItemName>
-        <StageItemPosition>{position}번째</StageItemPosition>
-      </StageItemContent>
-    </SortableStageItem>
-  );
-};
-
-const SortableStageItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: grab;
-  
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const DragHandle = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  cursor: grab;
-  padding: 8px;
-  
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const StageItemContent = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const StageItemName = styled.div`
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const StageItemPosition = styled.div`
-  color: #64748b;
-  font-size: 14px;
-`;

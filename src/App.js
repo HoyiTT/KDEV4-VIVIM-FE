@@ -12,7 +12,6 @@ import UserManagement from './pages/UserManagement';
 import CompanyCreate from './pages/CompanyCreate';
 import UserCreate from './pages/UserCreate';
 import CompanyEdit from './pages/CompanyEdit';
-import AdminProjectList from './pages/AdminProjectList';
 import AdminProjects from './pages/AdminProjects';
 import ProjectDetail from './pages/ProjectDetail';
 import UserEdit from './pages/UserEdit';
@@ -54,7 +53,6 @@ const AppContent = () => {
           <Route path="/company-edit/:id" element={<ProtectedRoute><CompanyEdit /></ProtectedRoute>} />
           <Route path="/project-list" element={<ProtectedRoute><UserProjectList /></ProtectedRoute>} />
           <Route path="/admin/projects" element={<ProtectedRoute><AdminProjects /></ProtectedRoute>} />
-          <Route path="/admin-projects" element={<ProtectedRoute><AdminProjectList /></ProtectedRoute>} />
           <Route path="/project/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
           <Route path="/user-edit/:id" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />
           <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />

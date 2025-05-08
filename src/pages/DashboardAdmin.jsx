@@ -17,6 +17,9 @@ import {
   PointElement,
   Title
 } from 'chart.js';
+import MainContent from '../components/common/MainContent';
+import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const DashboardAdmin = () => {
   const { user } = useAuth();
@@ -435,7 +438,7 @@ const DashboardAdmin = () => {
 
   return (
     <PageContainer>
-      <ContentWrapper>
+      <MainContent>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <Card>
@@ -592,7 +595,7 @@ const DashboardAdmin = () => {
             </ProjectStatsGrid>
           </ProjectStatsContent>
         </ProjectStatsCard>
-      </ContentWrapper>
+      </MainContent>
 
       {showModal && (
         <ModalOverlay onClick={() => setShowModal(false)}>
@@ -632,14 +635,22 @@ const DashboardAdmin = () => {
 };
 
 const PageContainer = styled.div`
-  flex: 1;
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
 `;
 
 const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 100%;
+  max-width: 1400px;
+  padding: 10px;
+  margin: 20px auto;
+  box-sizing: border-box;
+  width: 100%;
 `;
 
 const Card = styled.div`
@@ -1154,7 +1165,9 @@ const ProjectStatsGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 32px;
   align-items: center;
-  height: 300px;
+  height: 400px;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const ProjectStatsSection = styled.div`
@@ -1163,6 +1176,8 @@ const ProjectStatsSection = styled.div`
   align-items: center;
   width: 100%;
   height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
 `;
 
 const ProjectStatsChartTitle = styled.div`

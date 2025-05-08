@@ -6,22 +6,45 @@ import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { API_ENDPOINTS } from '../config/api';
+import MainContent from '../components/common/MainContent';
+import Select from '../components/common/Select';
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  transition: all 0.2s ease;
-  color: ${props => props.color};
-  background-color: rgba(241, 245, 249, 0.8);
-  border: 1px solid ${props => props.color};
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
 
-  &:hover {
-    background-color: ${props => props.color};
-    color: white;
+  &::before {
+    content: '';
+  display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
   }
 `;
 
@@ -296,12 +319,16 @@ const UserManagement = () => {
   `;
 
   const SearchSection = styled.div`
-  display: flex;
-  gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  `;
+
+  const SearchRow = styled.div`
+    display: flex;
+    gap: 16px;
     align-items: center;
     flex-wrap: wrap;
-    flex: 1;
-    justify-content: flex-end;
   `;
 
   const SearchInput = styled.input`
@@ -319,28 +346,6 @@ const UserManagement = () => {
 
   &:hover {
     border-color: #cbd5e1;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-    
-    &:focus {
-      outline: none;
-      border-color: #2E7D32;
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-    }
-  `;
-
-  const SearchSelect = styled.select`
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    width: 240px;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    background-color: white;
-    
-    &:hover {
-      border-color: #cbd5e1;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     
@@ -402,12 +407,7 @@ const UserManagement = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-  margin-bottom: 24px;
-  background: white;
-    padding: 32px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    gap: 24px;
+    margin-bottom: 24px;
   `;
 
   const PageTitle = styled.h1`
@@ -431,25 +431,37 @@ const UserManagement = () => {
     }
   `;
 
-  const CreateButton = styled.button`
-    padding: 10px 20px;
+  const ButtonContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  `;
+
+  const AddButton = styled.button`
+    padding: 8px 16px;
     background: #2E7D32;
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    
+    &:before {
+      content: '+';
+      font-size: 18px;
+      font-weight: 400;
+    }
 
     &:hover {
       background: #1B5E20;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
     }
 
     &:active {
@@ -481,69 +493,77 @@ const UserManagement = () => {
     <PageContainer>
       <Sidebar />
       <MainContent>
-        <Header>
-          <PageTitle>사용자 관리</PageTitle>
+        <Card>
+          <Header>
+            <PageTitle>사용자 관리</PageTitle>
+            <ButtonContainer>
+              <SearchCheckbox>
+                <input
+                  type="checkbox"
+                  name="isDeleted"
+                  checked={filters.isDeleted}
+                  onChange={handleFilterChange}
+                />
+                <span>삭제된 사용자만 검색</span>
+              </SearchCheckbox>
+              <SearchButton onClick={handleSearch}>
+                검색
+              </SearchButton>
+              <AddButton onClick={() => navigate('/user-create')}>
+                새 사용자 등록
+              </AddButton>
+            </ButtonContainer>
+          </Header>
           <SearchSection>
-            <SearchInput
-              type="text"
-              name="name"
-              placeholder="이름 검색"
-              value={filters.name}
-              onChange={handleFilterChange}
-            />
-            <SearchInput
-              type="text"
-              name="email"
-              placeholder="이메일 검색"
-              value={filters.email}
-              onChange={handleFilterChange}
-            />
-            <SearchInput
-              type="text"
-              name="phone"
-              placeholder="전화번호 검색"
-              value={filters.phone}
-              onChange={handleFilterChange}
-            />
-            <SearchSelect
-              name="companyId"
-              value={filters.companyId}
-              onChange={handleFilterChange}
-            >
-              <option value="">회사 선택</option>
-              {companies.map(company => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </SearchSelect>
-            <SearchSelect
-              name="companyRole"
-              value={filters.companyRole}
-              onChange={handleFilterChange}
-            >
-              <option value="">역할 선택</option>
-              <option value="ADMIN">관리자</option>
-              <option value="DEVELOPER">개발사</option>
-              <option value="CUSTOMER">고객사</option>
-            </SearchSelect>
-            <SearchCheckbox>
-              <input
-                type="checkbox"
-                name="isDeleted"
-                checked={filters.isDeleted}
+            <SearchRow>
+              <Select
+                name="companyRole"
+                value={filters.companyRole}
+                onChange={handleFilterChange}
+              >
+                <option value="">역할 선택</option>
+                <option value="ADMIN">관리자</option>
+                <option value="DEVELOPER">개발사</option>
+                <option value="CUSTOMER">고객사</option>
+              </Select>
+              <Select
+                name="companyId"
+                value={filters.companyId}
+                onChange={handleFilterChange}
+              >
+                <option value="">회사 선택</option>
+                {companies.map(company => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </Select>
+            </SearchRow>
+            <SearchRow>
+              <SearchInput
+                type="text"
+                name="name"
+                placeholder="이름 검색"
+                value={filters.name}
                 onChange={handleFilterChange}
               />
-              <span>삭제된 사용자만 검색</span>
-            </SearchCheckbox>
-            <SearchButton onClick={handleSearch}>
-              검색
-            </SearchButton>
+              <SearchInput
+                type="text"
+                name="email"
+                placeholder="이메일 검색"
+                value={filters.email}
+                onChange={handleFilterChange}
+              />
+              <SearchInput
+                type="text"
+                name="phone"
+                placeholder="전화번호 검색"
+                value={filters.phone}
+                onChange={handleFilterChange}
+              />
+            </SearchRow>
           </SearchSection>
-          <CreateButton onClick={() => navigate('/user-create')}>
-            + 새 사용자 등록
-          </CreateButton>
-        </Header>
+        </Card>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -571,7 +591,7 @@ const UserManagement = () => {
                       <TableCell>{user.companyName}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          color={roleBadge.color}
+                          status={user.status}
                         >
                           {roleBadge.text}
                         </StatusBadge>
@@ -633,13 +653,15 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
+const Card = styled.div`
+  background: white;
   padding: 24px;
-  margin-left: 15px;
-  overflow-y: auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
 `;
 
 export default UserManagement;

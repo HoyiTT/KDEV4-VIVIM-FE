@@ -1,24 +1,48 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import Sidebar from '../components/Sidebar';
+import Select from '../components/common/Select';
 
 const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  transition: all 0.2s ease;
-  color: ${props => props.color};
-  background-color: rgba(241, 245, 249, 0.8);
-  border: 1px solid ${props => props.color};
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
 
-  &:hover {
-    background-color: ${props => props.color};
-    color: white;
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
   }
 `;
 
@@ -430,6 +454,13 @@ const AdminProjects = () => {
     margin-top: 24px;
   `;
 
+  const PageContainer = styled.div`
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  `;
+
   return (
     <PageContainer>
       <Sidebar />
@@ -439,11 +470,20 @@ const AdminProjects = () => {
           <SearchSection>
             <SearchInput
               type="text"
-              name="name"
               placeholder="프로젝트명 검색"
               value={filters.name}
               onChange={handleFilterChange}
             />
+            <Select
+              value={filters.projectStatus}
+              onChange={(e) => handleFilterChange({ target: { name: 'projectStatus', value: e.target.value } })}
+            >
+              <option value="">전체</option>
+              <option value="PENDING">대기중</option>
+              <option value="IN_PROGRESS">진행중</option>
+              <option value="UNDER_INSPECTION">검수중</option>
+              <option value="COMPLETED">완료</option>
+            </Select>
             <SearchCheckbox>
               <input
                 type="checkbox"
@@ -451,7 +491,7 @@ const AdminProjects = () => {
                 checked={filters.isDeleted}
                 onChange={handleFilterChange}
               />
-              <span>삭제된 프로젝트만 검색</span>
+              삭제된 프로젝트만 검색
             </SearchCheckbox>
             <SearchButton onClick={handleSearch}>
               검색
@@ -491,9 +531,9 @@ const AdminProjects = () => {
                       <TableCell>{formatDate(project.endDate)}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          color={statusColor.color}
+                          status={project.projectStatus}
                         >
-                          {statusColor.text}
+                          {getProjectStatus(project.projectStatus)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>
@@ -547,19 +587,5 @@ const AdminProjects = () => {
     </PageContainer>
   );
 };
-
-const PageContainer = styled.div`
-  display: flex;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-left: 15px;
-  overflow-y: auto;
-`;
 
 export default AdminProjects;

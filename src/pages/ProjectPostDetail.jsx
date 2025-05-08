@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
@@ -694,16 +695,9 @@ const AuthorName = styled.span`
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-top: 60px;
 `;
 
 const PostContainer = styled.div`
