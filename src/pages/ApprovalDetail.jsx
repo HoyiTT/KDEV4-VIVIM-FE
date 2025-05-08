@@ -10,6 +10,7 @@ import { FaEdit, FaTrashAlt, FaSave, FaTimes, FaCheck, FaClock } from 'react-ico
 import approvalUtils from '../utils/approvalStatus';
 import ApprovalProposal from '../components/ApprovalProposal';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -18,33 +19,13 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 0 270px;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  
-  @media (max-width: 1400px) {
-    padding: 0 10%;
-  }
-  
-  @media (max-width: 768px) {
-    padding: 0 5%;
-  }
 `;
 
 const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
 `;
 
 const Header = styled.div`
@@ -1139,14 +1120,10 @@ const ApprovalDetail = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <ContentWrapper>
         <MainContent>
           <Header>
-            <PageTitle>승인요청 상세보기</PageTitle>
+            <PageTitle>승인요청 상세</PageTitle>
             <HeaderButtonsContainer>
               <BackButton onClick={handleBack}>
                 ← 돌아가기

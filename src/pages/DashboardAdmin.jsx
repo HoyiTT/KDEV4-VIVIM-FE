@@ -22,47 +22,20 @@ import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 
 const DashboardAdmin = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated || !user || user.companyRole !== 'ADMIN') {
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, user, authLoading, navigate]);
 
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
-  const [recentPosts, setRecentPosts] = useState([
-    {
-      id: 1,
-      title: '프로젝트 요구사항 정의서 작성',
-      status: 'IN_PROGRESS',
-      createdAt: '2024-03-15',
-      projectId: 1
-    },
-    {
-      id: 2,
-      title: 'UI/UX 디자인 가이드라인',
-      status: 'COMPLETED',
-      createdAt: '2024-03-14',
-      projectId: 2
-    },
-    {
-      id: 3,
-      title: '데이터베이스 스키마 설계',
-      status: 'IN_PROGRESS',
-      createdAt: '2024-03-13',
-      projectId: 3
-    },
-    {
-      id: 4,
-      title: 'API 문서 작성',
-      status: 'ON_HOLD',
-      createdAt: '2024-03-12',
-      projectId: 4
-    },
-    {
-      id: 5,
-      title: '테스트 계획서 검토',
-      status: 'IN_PROGRESS',
-      createdAt: '2024-03-11',
-      projectId: 5
-    }
-  ]);
+  const [recentPosts, setRecentPosts] = useState([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -327,22 +300,30 @@ const DashboardAdmin = () => {
   }, []);
 
   useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        const { data } = await axiosInstance.get('/posts/admin/recent');
-        // setRecentPosts(data); // API 데이터 대신 더미 데이터 사용
-      } catch (error) {
-        console.error('Error fetching recent posts:', error);
-        // setRecentPosts([]); // 에러 시에도 더미 데이터 유지
-      }
-    };
+    console.log('useEffect for recent posts triggered');
     fetchRecentPosts();
   }, []);
+
+  const fetchRecentPosts = async () => {
+    try {
+      console.log('Fetching recent posts...');
+      const { data } = await axiosInstance.get('/posts/admin/recent', {
+        withCredentials: true
+      });
+      console.log('Recent posts data:', data);
+      setRecentPosts(data);
+    } catch (error) {
+      console.error('Error fetching recent posts:', error);
+      setRecentPosts([]);
+    }
+  };
 
   useEffect(() => {
     const fetchAdminInquiries = async () => {
       try {
-        const { data } = await axiosInstance.get('/admininquiry');
+        const { data } = await axiosInstance.get('/admininquiry', {
+          withCredentials: true
+        });
         console.log('Admin inquiries data:', data);
         setAdminInquiries(data);
       } catch (error) {
@@ -352,41 +333,6 @@ const DashboardAdmin = () => {
     };
 
     fetchAdminInquiries();
-  }, []);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const { data } = await axiosInstance.get('/projects/dashboard/stats');
-        setStats({
-          totalProjects: data.totalProjects || 0,
-          projectChange: data.projectChange || 0,
-          activeProjects: data.activeProjects || 0,
-          activeChange: data.activeChange || 0,
-          completedProjects: data.completedProjects || 0,
-          completedChange: data.completedChange || 0,
-          pendingInquiries: data.pendingInquiries || 0,
-          inquiryChange: data.inquiryChange || 0
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-
-    const fetchRecentInquiries = async () => {
-      try {
-        const { data } = await axiosInstance.get('/admininquiry/recent', {
-          withCredentials: true
-        });
-        setRecentInquiries(data);
-      } catch (error) {
-        console.error('Error fetching recent inquiries:', error);
-        setRecentInquiries([]);
-      }
-    };
-
-    fetchStats();
-    fetchRecentInquiries();
   }, []);
 
   useEffect(() => {
@@ -436,6 +382,10 @@ const DashboardAdmin = () => {
     navigate('/admin/inquiries');
   };
 
+  const handleProposalClick = (proposalId) => {
+    navigate(`/admin/proposal/${proposalId}`);
+  };
+
   return (
     <PageContainer>
       <MainContent>
@@ -450,11 +400,11 @@ const DashboardAdmin = () => {
                     <StatValue>20</StatValue>
                   </StatItem>
                   <StatItem>
-                    <StatLabel>검수한 프로젝트</StatLabel>
+                    <StatLabel>검수중인 프로젝트</StatLabel>
                     <StatValue>1</StatValue>
                   </StatItem>
                   <StatItem>
-                    <StatLabel>검수중인 프로젝트</StatLabel>
+                    <StatLabel>검수한 프로젝트</StatLabel>
                     <StatValue>1</StatValue>
                   </StatItem>
                 </StatsGrid>
@@ -534,25 +484,27 @@ const DashboardAdmin = () => {
           <Card>
             <CardTitle>최근 게시물</CardTitle>
             <CardContent>
-              <PostList>
-                {recentPosts.length > 0 ? (
-                  recentPosts.map((post) => (
-                    <PostItem key={post.id} onClick={() => handlePostClick(post.id, post.projectId)}>
-                      <PostInfo>
-                        <PostTitle>{post.title}</PostTitle>
-                        <PostMeta>
-                          <PostDate>{formatDate(post.createdAt)}</PostDate>
-                        </PostMeta>
-                      </PostInfo>
-                      <PostStatus status={post.status}>
-                        {getStatusText(post.status)}
-                      </PostStatus>
-                    </PostItem>
-                  ))
-                ) : (
-                  <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
-                )}
-              </PostList>
+              {recentPosts.length > 0 ? (
+                recentPosts.map((post) => (
+                  <ProjectItem key={post.postId} onClick={() => navigate(`/project/${post.projectId}/post/${post.postId}`)}>
+                    <ProjectInfo>
+                      <ProjectName>{post.title}</ProjectName>
+                      <ProjectDate>
+                        {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        }).replace(/\. /g, '.').slice(0, -1)}
+                      </ProjectDate>
+                    </ProjectInfo>
+                    <ProjectStatus status={post.status}>
+                      {post.creatorName}
+                    </ProjectStatus>
+                  </ProjectItem>
+                ))
+              ) : (
+                <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
+              )}
             </CardContent>
           </Card>
 
@@ -562,7 +514,7 @@ const DashboardAdmin = () => {
               <ProjectList>
                 {recentProposals.length > 0 ? (
                   recentProposals.map((proposal) => (
-                    <ProjectItem key={proposal.id} onClick={() => handleInquiryClick(proposal.id)}>
+                    <ProjectItem key={proposal.id} onClick={() => handleProposalClick(proposal.id)}>
                       <ProjectInfo>
                         <ProjectName>{proposal.title}</ProjectName>
                         <ProjectDate>{formatDate(proposal.createdAt)}</ProjectDate>
@@ -692,12 +644,11 @@ const StatItem = styled.div`
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    background-color: #f8fafc;
     border-color: #cbd5e1;
   }
 `;
@@ -1038,37 +989,40 @@ const PostList = styled.div`
 
 const PostItem = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
   cursor: pointer;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
     background-color: #f8fafc;
   }
 `;
 
-const PostInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
 const PostTitle = styled.div`
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: #1e293b;
   line-height: 1.4;
 `;
 
-const PostMeta = styled.div`
+const PostInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: 12px;
+  font-size: 12px;
   color: #64748b;
+`;
+
+const PostAuthor = styled.div`
+  font-weight: 500;
+  color: #475569;
 `;
 
 const PostDate = styled.div`

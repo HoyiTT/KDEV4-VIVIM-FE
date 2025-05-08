@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
@@ -51,19 +50,15 @@ const ProjectModify = () => {
 
   // Fetch companies
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(API_ENDPOINTS.COMPANIES, {
-      headers: {
-        'Authorization': token
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        setCompanies(data);
-      })
-      .catch(error => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+        setCompanies(response.data);
+      } catch (error) {
         console.error('Error fetching companies:', error);
-      });
+      }
+    };
+    fetchCompanies();
   }, []);
 
   // Fetch project data
@@ -516,6 +511,13 @@ const ProjectModify = () => {
     }
   };
 
+  const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 0px;
+`;
+
   // 개발사 선택 핸들러 수정
   const handleDevCompanySelect = async (company) => {
     console.log('선택된 개발사:', company);
@@ -625,393 +627,397 @@ const ProjectModify = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
-      <MainContent>
-        <Header>
-          <PageTitle>프로젝트 수정</PageTitle>
-        </Header>
+      <ContentWrapper>
+        <MainContent>
+          {loading ? (
+            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+          ) : (
+            <>
+            <HeaderRow>
+              <BackButton onClick={() => navigate(`/project/${projectId}`)}>
+                <span>← </span>
+                돌아가기
+              </BackButton>
+              <FormHeader>
+                  <FormTitle>프로젝트 수정</FormTitle>
+                </FormHeader>
+              </HeaderRow>
+              <FormContainer>
 
-        {loading ? (
-          <LoadingContainer>
-            <LoadingMessage>프로젝트 정보를 불러오는 중...</LoadingMessage>
-          </LoadingContainer>
-        ) : (
-          <FormSection>
-            <Form onSubmit={handleSubmit}>
-              <FormGroup>
-                <Label>프로젝트 이름</Label>
-                <Input 
-                  type="text" 
-                  value={projectName} 
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="프로젝트 이름을 입력하세요"
-                  required
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label>프로젝트 설명</Label>
-                <TextArea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="프로젝트 설명을 입력하세요"
-                  required
-                />
-              </FormGroup>
-
-              <FormRow>
-                <FormGroup>
-                  <Label>시작일</Label>
-                  <Input 
-                    type="date" 
-                    value={startDate} 
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
-                  />
-                </FormGroup>
-                <FormGroup>
-                  <Label>종료일</Label>
-                  <Input 
-                    type="date" 
-                    value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                  />
-                </FormGroup>
-              </FormRow>
-
-              <FormGroup>
-                <Label>계약금 (원)</Label>
-                <Input 
-                  type="text" 
-                  value={projectFee}
-                  onChange={handleProjectFeeChange}
-                  placeholder="계약금을 입력하세요"
-                  required
-                />
-              </FormGroup>
-
-              <SectionDivider>고객사 정보</SectionDivider>
-
-              <FormGroup>
-                <Label>고객사</Label>
-                <ClientCompanySection>
-                  {selectedClientCompany ? (
-                    <SelectedCompanyInfo>
-                      <CompanyName>{selectedClientCompany.name}</CompanyName>
-                      <CompanyDetails>
-                        {/* <DetailItem>
-                          <span>담당자: {clientManagers.length}명</span>
-                        </DetailItem>
-                        <DetailItem>
-                          <span>일반 사용자: {clientUsers.length}명</span> */}
-                      </CompanyDetails>
-                      <ButtonGroup>
-                        <EditButton 
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleClientCompanyEdit();
-                          }}
-                        >
-                          수정
-                        </EditButton>
-                        <RemoveButton 
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSelectedClientCompany(null);
-                          }}
-                        >
-                          삭제
-                        </RemoveButton>
-                      </ButtonGroup>
-                    </SelectedCompanyInfo>
-                  ) : (
-                    <SelectCompanyButton 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowClientCompanyModal(true);
-                      }}
-                    >
-                      <span>+</span> 고객사 선택
-                    </SelectCompanyButton>
-                  )}
-                </ClientCompanySection>
-              </FormGroup>
-
-              <SectionDivider>개발사 정보</SectionDivider>
-
-              {devCompanySelections.length === 0 ? (
-                <FormGroup>
-                  <ClientCompanySection>
-                    <SelectCompanyButton onClick={() => {
-                      const newSelection = { id: 1, companyId: '', managers: [], users: [], companyUsers: [] };
-                      setDevCompanySelections([newSelection]);
-                      setSelectedDevCompany(newSelection);
-                      setShowDevCompanyModal(true);
-                    }}>
-                      <span>+</span> 개발사 선택
-                    </SelectCompanyButton>
-                  </ClientCompanySection>
-                </FormGroup>
-              ) : (
-                <>
-                  {devCompanySelections.map((selection, index) => (
-                    <FormGroup key={selection.id}>
-                      <ClientCompanySection>
-                        {selection.companyId ? (
-                          <SelectedCompanyInfo>
-                            <CompanyName>{companies.find(c => c.id === selection.companyId)?.name}</CompanyName>
-                            <CompanyDetails>
-                              {/* <DetailItem>
-                                <span>담당자: {selection.managers.length}명</span>
-                              </DetailItem>
-                              <DetailItem>
-                                <span>일반 사용자: {selection.users.length}명</span>
-                              </DetailItem> */}
-                            </CompanyDetails>
-                            <ButtonGroup>
-                              <EditButton 
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleDevCompanyEdit(selection);
-                                }}
-                              >
-                                수정
-                              </EditButton>
-                              <RemoveButton 
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleRemoveDevCompany(selection.id);
-                                }}
-                              >
-                                삭제
-                              </RemoveButton>
-                            </ButtonGroup>
-                          </SelectedCompanyInfo>
-                        ) : (
-                          <SelectCompanyButton 
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setSelectedDevCompany(selection);
-                              setShowDevCompanyModal(true);
-                            }}
-                          >
-                            <span>+</span> 개발사 선택
-                          </SelectCompanyButton>
-                        )}
-                      </ClientCompanySection>
-                    </FormGroup>
-                  ))}
+                <Form onSubmit={handleSubmit}>
+                  <FormGroup>
+                    <Label>프로젝트 이름</Label>
+                    <Input 
+                      type="text" 
+                      value={projectName} 
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="프로젝트 이름을 입력하세요"
+                      required
+                    />
+                  </FormGroup>
 
                   <FormGroup>
+                    <Label>프로젝트 설명</Label>
+                    <TextArea 
+                      value={description} 
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="프로젝트 설명을 입력하세요"
+                      required
+                    />
+                  </FormGroup>
+
+                  <FormRow>
+                    <FormGroup>
+                      <Label>시작일</Label>
+                      <Input 
+                        type="date" 
+                        value={startDate} 
+                        onChange={(e) => setStartDate(e.target.value)}
+                        required
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <Label>종료일</Label>
+                      <Input 
+                        type="date" 
+                        value={endDate} 
+                        onChange={(e) => setEndDate(e.target.value)}
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
+
+                  <FormGroup>
+                    <Label>계약금 (원)</Label>
+                    <Input 
+                      type="text" 
+                      value={projectFee}
+                      onChange={handleProjectFeeChange}
+                      placeholder="계약금을 입력하세요"
+                      required
+                    />
+                  </FormGroup>
+
+                  <SectionDivider>고객사 정보</SectionDivider>
+
+                  <FormGroup>
+                    <Label>고객사</Label>
                     <ClientCompanySection>
-                      <AddDevCompanyButton type="button" onClick={handleAddDevCompany}>
-                        <span>+</span> 개발사 추가
-                      </AddDevCompanyButton>
+                      {selectedClientCompany ? (
+                        <SelectedCompanyInfo>
+                          <CompanyName>{selectedClientCompany.name}</CompanyName>
+                          <CompanyDetails>
+                            {/* <DetailItem>
+                              <span>담당자: {clientManagers.length}명</span>
+                            </DetailItem>
+                            <DetailItem>
+                              <span>일반 사용자: {clientUsers.length}명</span> */}
+                          </CompanyDetails>
+                          <ButtonGroup>
+                            <EditButton 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleClientCompanyEdit();
+                              }}
+                            >
+                              수정
+                            </EditButton>
+                            <RemoveButton 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setSelectedClientCompany(null);
+                              }}
+                            >
+                              삭제
+                            </RemoveButton>
+                          </ButtonGroup>
+                        </SelectedCompanyInfo>
+                      ) : (
+                        <SelectCompanyButton 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowClientCompanyModal(true);
+                          }}
+                        >
+                          <span>+</span> 고객사 선택
+                        </SelectCompanyButton>
+                      )}
                     </ClientCompanySection>
                   </FormGroup>
-                </>
-              )}
 
-              <ButtonGroup>
-                <CancelButton type="button" onClick={() => navigate('/dashboard-admin')}>취소</CancelButton>
-                <SubmitButton type="submit">프로젝트 수정</SubmitButton>
-              </ButtonGroup>
-            </Form>
-          </FormSection>
-        )}
+                  <SectionDivider>개발사 정보</SectionDivider>
 
-        {/* 고객사 선택 모달 */}
-        {showClientCompanyModal && (
-          <ModalOverlay>
-            <Modal>
-              <ModalHeader>
-                <ModalTitle>고객사 선택</ModalTitle>
-                <CloseButton onClick={() => setShowClientCompanyModal(false)}>×</CloseButton>
-              </ModalHeader>
-              <ModalContent>
-                <CompanyList>
-                  {companies
-                    .filter(company => company.companyRole === 'CUSTOMER')
-                    .map(company => (
-                      <CompanyItem 
-                        key={company.id}
-                        onClick={() => handleClientCompanySelect(company)}
-                      >
-                        {company.name}
-                      </CompanyItem>
-                    ))
-                  }
-                </CompanyList>
-              </ModalContent>
-              <ModalFooter>
-                <ModalButton onClick={() => setShowClientCompanyModal(false)}>선택</ModalButton>
-              </ModalFooter>
-            </Modal>
-          </ModalOverlay>
-        )}
+                  {devCompanySelections.length === 0 ? (
+                    <FormGroup>
+                      <ClientCompanySection>
+                        <SelectCompanyButton onClick={() => {
+                          const newSelection = { id: 1, companyId: '', managers: [], users: [], companyUsers: [] };
+                          setDevCompanySelections([newSelection]);
+                          setSelectedDevCompany(newSelection);
+                          setShowDevCompanyModal(true);
+                        }}>
+                          <span>+</span> 개발사 선택
+                        </SelectCompanyButton>
+                      </ClientCompanySection>
+                    </FormGroup>
+                  ) : (
+                    <>
+                      {devCompanySelections.map((selection, index) => (
+                        <FormGroup key={selection.id}>
+                          <ClientCompanySection>
+                            {selection.companyId ? (
+                              <SelectedCompanyInfo>
+                                <CompanyName>{companies.find(c => c.id === selection.companyId)?.name}</CompanyName>
+                                <CompanyDetails>
+                                  {/* <DetailItem>
+                                    <span>담당자: {selection.managers.length}명</span>
+                                  </DetailItem>
+                                  <DetailItem>
+                                    <span>일반 사용자: {selection.users.length}명</span>
+                                  </DetailItem> */}
+                                </CompanyDetails>
+                                <ButtonGroup>
+                                  <EditButton 
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleDevCompanyEdit(selection);
+                                    }}
+                                  >
+                                    수정
+                                  </EditButton>
+                                  <RemoveButton 
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleRemoveDevCompany(selection.id);
+                                    }}
+                                  >
+                                    삭제
+                                  </RemoveButton>
+                                </ButtonGroup>
+                              </SelectedCompanyInfo>
+                            ) : (
+                              <SelectCompanyButton 
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setSelectedDevCompany(selection);
+                                  setShowDevCompanyModal(true);
+                                }}
+                              >
+                                <span>+</span> 개발사 선택
+                              </SelectCompanyButton>
+                            )}
+                          </ClientCompanySection>
+                        </FormGroup>
+                      ))}
 
-        {/* 개발사 선택 모달 */}
-        {showDevCompanyModal && (
-          <ModalOverlay>
-            <Modal>
-              <ModalHeader>
-                <ModalTitle>개발사 선택</ModalTitle>
-                <CloseButton onClick={() => setShowDevCompanyModal(false)}>×</CloseButton>
-              </ModalHeader>
-              <ModalContent>
-                <CompanyList>
-                  {companies
-                    .filter(company => company.companyRole === 'DEVELOPER')
-                    .filter(company => !devCompanySelections.some(selection => selection.companyId === company.id))
-                    .map(company => (
-                      <CompanyItem 
-                        key={company.id}
-                        onClick={() => handleDevCompanySelect(company)}
-                      >
-                        {company.name}
-                      </CompanyItem>
-                    ))
-                  }
-                </CompanyList>
-              </ModalContent>
-              <ModalFooter>
-                <ModalButton onClick={() => setShowDevCompanyModal(false)}>선택</ModalButton>
-              </ModalFooter>
-            </Modal>
-          </ModalOverlay>
-        )}
+                      <FormGroup>
+                        <ClientCompanySection>
+                          <AddDevCompanyButton type="button" onClick={handleAddDevCompany}>
+                            <span>+</span> 개발사 추가
+                          </AddDevCompanyButton>
+                        </ClientCompanySection>
+                      </FormGroup>
+                    </>
+                  )}
 
-        {/* 고객사 사용자 선택 모달 */}
-        {showClientUserModal && (
-          <ModalOverlay>
-            <Modal>
-              <ModalHeader>
-                <ModalTitle>고객사 사용자 선택</ModalTitle>
-                <CloseButton onClick={() => setShowClientUserModal(false)}>×</CloseButton>
-              </ModalHeader>
-              <ModalContent>
-                <SearchSection>
-                  <SearchInput
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder="이름 또는 이메일로 검색"
-                  />
-                  <SearchButton onClick={handleUserSearch}>검색</SearchButton>
-                </SearchSection>
-                <UserList>
-                  {searchedUsers.map(user => {
-                    const isClientManager = clientManagers.some(item => item.userId === user.userId);
-                    const isClientUser = clientUsers.some(item => item.userId === user.userId);
-                    
-                    return (
-                      <UserItem key={user.userId}>
-                        <UserInfo>
-                          <UserName>{user.name}</UserName>
-                          <UserEmail>{user.email}</UserEmail>
-                        </UserInfo>
-                        <RoleButtons>
-                          <RoleButton
-                            selected={isClientManager}
-                            onClick={() => handleUserSelection(user.userId, 'clientManager', !isClientManager)}
-                            disabled={isClientUser}
-                          >
-                            담당자
-                          </RoleButton>
-                          <RoleButton
-                            selected={isClientUser}
-                            onClick={() => handleUserSelection(user.userId, 'clientUser', !isClientUser)}
-                            disabled={isClientManager}
-                          >
-                            일반사용자
-                          </RoleButton>
-                        </RoleButtons>
-                      </UserItem>
-                    );
-                  })}
-                </UserList>
-                {searchedUsers.length === 0 && (
-                  <NoResults>검색 결과가 없습니다.</NoResults>
-                )}
-              </ModalContent>
-              <ModalFooter>
-                <ModalButton onClick={() => setShowClientUserModal(false)}>닫기</ModalButton>
-              </ModalFooter>
-            </Modal>
-          </ModalOverlay>
-        )}
+                  <ButtonGroup>
+                    <CancelButton type="button" onClick={() => navigate('/dashboard-admin')}>취소</CancelButton>
+                    <SubmitButton type="submit">프로젝트 수정</SubmitButton>
+                  </ButtonGroup>
+                </Form>
+              </FormContainer>
+            </>
+          )}
 
-        {/* 개발사 사용자 선택 모달 */}
-        {showDevUserModal && (
-          <ModalOverlay>
-            <Modal>
-              <ModalHeader>
-                <ModalTitle>개발사 사용자 선택</ModalTitle>
-                <CloseButton onClick={() => setShowDevUserModal(false)}>×</CloseButton>
-              </ModalHeader>
-              <ModalContent>
-                <SearchSection>
-                  <SearchInput
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder="이름 또는 이메일로 검색"
-                  />
-                  <SearchButton onClick={handleUserSearch}>검색</SearchButton>
-                </SearchSection>
-                <UserList>
-                  {searchedUsers.map(user => {
-                    const currentSelection = devCompanySelections.find(s => s.id === selectedDevCompany.id);
-                    const isDevManager = currentSelection?.managers.some(item => item.userId === user.userId) || false;
-                    const isDevUser = currentSelection?.users.some(item => item.userId === user.userId) || false;
-                    
-                    return (
-                      <UserItem key={user.userId}>
-                        <UserInfo>
-                          <UserName>{user.name}</UserName>
-                          <UserEmail>{user.email}</UserEmail>
-                        </UserInfo>
-                        <RoleButtons>
-                          <RoleButton
-                            selected={isDevManager}
-                            onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devManager', !isDevManager)}
-                            disabled={isDevUser}
-                          >
-                            담당자
-                          </RoleButton>
-                          <RoleButton
-                            selected={isDevUser}
-                            onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devUser', !isDevUser)}
-                            disabled={isDevManager}
-                          >
-                            일반사용자
-                          </RoleButton>
-                        </RoleButtons>
-                      </UserItem>
-                    );
-                  })}
-                </UserList>
-                {searchedUsers.length === 0 && (
-                  <NoResults>검색 결과가 없습니다.</NoResults>
-                )}
-              </ModalContent>
-              <ModalFooter>
-                <ModalButton onClick={() => setShowDevUserModal(false)}>닫기</ModalButton>
-              </ModalFooter>
-            </Modal>
-          </ModalOverlay>
-        )}
-      </MainContent>
+          {/* 고객사 선택 모달 */}
+          {showClientCompanyModal && (
+            <ModalOverlay>
+              <Modal>
+                <ModalHeader>
+                  <ModalTitle>고객사 선택</ModalTitle>
+                  <CloseButton onClick={() => setShowClientCompanyModal(false)}>×</CloseButton>
+                </ModalHeader>
+                <ModalContent>
+                  <CompanyList>
+                    {companies
+                      .filter(company => company.companyRole === 'CUSTOMER')
+                      .map(company => (
+                        <CompanyItem 
+                          key={company.id}
+                          onClick={() => handleClientCompanySelect(company)}
+                        >
+                          {company.name}
+                        </CompanyItem>
+                      ))
+                    }
+                  </CompanyList>
+                </ModalContent>
+                <ModalFooter>
+                  <ModalButton onClick={() => setShowClientCompanyModal(false)}>선택</ModalButton>
+                </ModalFooter>
+              </Modal>
+            </ModalOverlay>
+          )}
+
+          {/* 개발사 선택 모달 */}
+          {showDevCompanyModal && (
+            <ModalOverlay>
+              <Modal>
+                <ModalHeader>
+                  <ModalTitle>개발사 선택</ModalTitle>
+                  <CloseButton onClick={() => setShowDevCompanyModal(false)}>×</CloseButton>
+                </ModalHeader>
+                <ModalContent>
+                  <CompanyList>
+                    {companies
+                      .filter(company => company.companyRole === 'DEVELOPER')
+                      .filter(company => !devCompanySelections.some(selection => selection.companyId === company.id))
+                      .map(company => (
+                        <CompanyItem 
+                          key={company.id}
+                          onClick={() => handleDevCompanySelect(company)}
+                        >
+                          {company.name}
+                        </CompanyItem>
+                      ))
+                    }
+                  </CompanyList>
+                </ModalContent>
+                <ModalFooter>
+                  <ModalButton onClick={() => setShowDevCompanyModal(false)}>선택</ModalButton>
+                </ModalFooter>
+              </Modal>
+            </ModalOverlay>
+          )}
+
+          {/* 고객사 사용자 선택 모달 */}
+          {showClientUserModal && (
+            <ModalOverlay>
+              <Modal>
+                <ModalHeader>
+                  <ModalTitle>고객사 사용자 선택</ModalTitle>
+                  <CloseButton onClick={() => setShowClientUserModal(false)}>×</CloseButton>
+                </ModalHeader>
+                <ModalContent>
+                  <SearchSection>
+                    <SearchInput
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      placeholder="이름 또는 이메일로 검색"
+                    />
+                    <SearchButton onClick={handleUserSearch}>검색</SearchButton>
+                  </SearchSection>
+                  <UserList>
+                    {searchedUsers.map(user => {
+                      const isClientManager = clientManagers.some(item => item.userId === user.userId);
+                      const isClientUser = clientUsers.some(item => item.userId === user.userId);
+                      
+                      return (
+                        <UserItem key={user.userId}>
+                          <UserInfo>
+                            <UserName>{user.name}</UserName>
+                            <UserEmail>{user.email}</UserEmail>
+                          </UserInfo>
+                          <RoleButtons>
+                            <RoleButton
+                              selected={isClientManager}
+                              onClick={() => handleUserSelection(user.userId, 'clientManager', !isClientManager)}
+                              disabled={isClientUser}
+                            >
+                              담당자
+                            </RoleButton>
+                            <RoleButton
+                              selected={isClientUser}
+                              onClick={() => handleUserSelection(user.userId, 'clientUser', !isClientUser)}
+                              disabled={isClientManager}
+                            >
+                              일반사용자
+                            </RoleButton>
+                          </RoleButtons>
+                        </UserItem>
+                      );
+                    })}
+                  </UserList>
+                  {searchedUsers.length === 0 && (
+                    <NoResults>검색 결과가 없습니다.</NoResults>
+                  )}
+                </ModalContent>
+                <ModalFooter>
+                  <ModalButton onClick={() => setShowClientUserModal(false)}>닫기</ModalButton>
+                </ModalFooter>
+              </Modal>
+            </ModalOverlay>
+          )}
+
+          {/* 개발사 사용자 선택 모달 */}
+          {showDevUserModal && (
+            <ModalOverlay>
+              <Modal>
+                <ModalHeader>
+                  <ModalTitle>개발사 사용자 선택</ModalTitle>
+                  <CloseButton onClick={() => setShowDevUserModal(false)}>×</CloseButton>
+                </ModalHeader>
+                <ModalContent>
+                  <SearchSection>
+                    <SearchInput
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      placeholder="이름 또는 이메일로 검색"
+                    />
+                    <SearchButton onClick={handleUserSearch}>검색</SearchButton>
+                  </SearchSection>
+                  <UserList>
+                    {searchedUsers.map(user => {
+                      const currentSelection = devCompanySelections.find(s => s.id === selectedDevCompany.id);
+                      const isDevManager = currentSelection?.managers.some(item => item.userId === user.userId) || false;
+                      const isDevUser = currentSelection?.users.some(item => item.userId === user.userId) || false;
+                      
+                      return (
+                        <UserItem key={user.userId}>
+                          <UserInfo>
+                            <UserName>{user.name}</UserName>
+                            <UserEmail>{user.email}</UserEmail>
+                          </UserInfo>
+                          <RoleButtons>
+                            <RoleButton
+                              selected={isDevManager}
+                              onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devManager', !isDevManager)}
+                              disabled={isDevUser}
+                            >
+                              담당자
+                            </RoleButton>
+                            <RoleButton
+                              selected={isDevUser}
+                              onClick={() => handleDevUserSelection(selectedDevCompany.id, user.userId, 'devUser', !isDevUser)}
+                              disabled={isDevManager}
+                            >
+                              일반사용자
+                            </RoleButton>
+                          </RoleButtons>
+                        </UserItem>
+                      );
+                    })}
+                  </UserList>
+                  {searchedUsers.length === 0 && (
+                    <NoResults>검색 결과가 없습니다.</NoResults>
+                  )}
+                </ModalContent>
+                <ModalFooter>
+                  <ModalButton onClick={() => setShowDevUserModal(false)}>닫기</ModalButton>
+                </ModalFooter>
+              </Modal>
+            </ModalOverlay>
+          )}
+        </MainContent>
+      </ContentWrapper>
     </PageContainer>
   );
 };
@@ -1024,26 +1030,47 @@ const PageContainer = styled.div`
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-const Header = styled.div`
-  margin-bottom: 24px;
-  width: 100%;
-  max-width: 800px;
+const ContentWrapper = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 24px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const FormSection = styled.div`
+const FormContainer = styled.div`
   background: white;
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   width: 100%;
   max-width: 800px;
+`;
+
+const FormHeader = styled.div`
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
+`;
+
+const BackButton = styled.button`
+  border: none;
+  background-color: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 24px;
+  white-space: nowrap;
+  &:hover {
+    color: #2E7D32;
+  }
+`;
+
+const FormTitle = styled.h1`
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 `;
 
 const Form = styled.form`
@@ -1415,16 +1442,6 @@ const NoResults = styled.p`
   text-align: center;
   color: #64748b;
   margin: 0;
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
 const LoadingMessage = styled.div`

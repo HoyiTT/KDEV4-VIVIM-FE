@@ -138,18 +138,6 @@ const Header = styled.div`
   flex-direction: column;
   gap: 8px;
   position: relative;
-  padding-left: 16px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #10b981;
-    border-radius: 2px;
-  }
 `;
 
 const PageTitle = styled.h1`
@@ -177,6 +165,9 @@ const HeaderActions = styled.div`
 const ActionButtons = styled.div`
   display: flex;
   gap: 12px;
+  position: absolute;
+  top: 0;
+  right: 0;
 `;
 
 const ContentContainer = styled.div`
@@ -190,27 +181,30 @@ const ProjectInfoSection = styled.div`
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
+  margin-bottom: 0px;
 `;
 
 const ProjectHeader = styled.div`
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  position: relative;
+`;
+
+const ProjectTitleSection = styled.div`
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e2e8f0;
+  gap: 8px;
+  margin-bottom: 24px;
 `;
 
 const ProjectTitle = styled.h1`
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #1e293b;
-  margin: 0 0 12px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+  margin: 0;
 `;
 
 const ProjectDescription = styled.p`
@@ -230,26 +224,27 @@ const ProjectSubDescription = styled.p`
 const DateContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 16px;
   margin-bottom: 24px;
 `;
 
 const DateItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  gap: 4px;
+  padding: 12px;
   background: #f8fafc;
-  border-radius: 8px;
+  border-radius: 6px;
 `;
 
 const DateLabel = styled.span`
-  font-size: 14px;
-  color: #64748b;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
 `;
 
 const DateValue = styled.span`
-  font-size: 16px;
+  font-size: 14px;
   color: #1e293b;
   font-weight: 500;
 `;
@@ -257,6 +252,8 @@ const DateValue = styled.span`
 const StatusContainer = styled.div`
   display: flex;
   align-items: center;
+  gap: 12px;
+  margin-left: auto;
 `;
 
 const DropdownContainer = styled.div`
@@ -349,6 +346,7 @@ const StageSection = styled.div`
   overflow-x: hidden;
   box-sizing: border-box;
   padding: 0;
+  margin-bottom: 16px;
 `;
 
 const StageGrid = styled.div`
@@ -464,6 +462,7 @@ const BoardSection = styled.div`
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
 `;
 
 const BoardHeader = styled.div`
@@ -481,21 +480,18 @@ const SectionTitle = styled.h2`
 `;
 
 const CreateButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
+  padding: 8px 16px;
+  background: ${props => props.delete ? '#dc2626' : '#2E7D32'};
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 
   &:hover {
-    background: #059669;
+    background: ${props => props.delete ? '#b91c1c' : '#1B5E20'};
     transform: translateY(-1px);
   }
 `;
@@ -966,7 +962,7 @@ const ActionCard = styled.div`
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 `;
 
 const ActionHeader = styled.div`
@@ -1170,6 +1166,19 @@ const ListButton = styled.button`
   &:hover {
     background: #e2e8f0;
     color: #1e293b;
+  }
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px 0;
+  
+  &:hover {
+    color: #2E7D32;
   }
 `;
 
@@ -1576,7 +1585,6 @@ const ProjectDetail = () => {
   // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
-      // 프로젝트 상세 정보가 없으면 조회하지 않음
       if (!project) {
         console.log('프로젝트 정보가 없어 승인요청 목록을 조회하지 않습니다.');
         return;
@@ -1758,39 +1766,34 @@ const ProjectDetail = () => {
             <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
           ) : project ? (
             <ContentContainer>
-              <ActionCard>
-                <ActionHeader>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <ListButton onClick={() => navigate('/admin/projects')}>
-                      <FaArrowLeft /> 목록보기
-                    </ListButton>
-                    <ActionTitle>프로젝트 상세</ActionTitle>
-                  </div>
-                  {isAdmin && (
-                    <ActionButtons>
-                      <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
-                        <FaEdit /> 프로젝트 수정
-                      </CreateButton>
-                      <CreateButton onClick={() => handleDeleteProject()} style={{ background: '#dc2626' }}>
-                        <FaTrashAlt /> 프로젝트 삭제
-                      </CreateButton>
-                    </ActionButtons>
-                  )}
-                </ActionHeader>
-              </ActionCard>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                <BackButton onClick={() => navigate('/admin/projects')}>
+                  <span>←</span>
+                  목록으로
+                </BackButton>
+                <PageTitle style={{ margin: '0 0 0 24px' }}>프로젝트 상세</PageTitle>
+              </div>
 
               <ProjectInfoSection>
                 <ProjectHeader>
-                  <ProjectTitle>
-                    {project.name}
-                    <StatusContainer>
-                      <StatusBadge isDeleted={project?.isDeleted}>
-                        {project?.isDeleted ? '삭제됨' : '진행중'}
-                      </StatusBadge>
-                    </StatusContainer>
-                  </ProjectTitle>
-                  <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+                  <StatusBadge isDeleted={project?.isDeleted}>
+                    {project?.isDeleted ? '삭제됨' : '진행중'}
+                  </StatusBadge>
+                  {isAdmin && !project?.isDeleted && (
+                    <ActionButtons>
+                      <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
+                        수정
+                      </CreateButton>
+                      <CreateButton delete onClick={() => handleDeleteProject()}>
+                        삭제
+                      </CreateButton>
+                    </ActionButtons>
+                  )}
                 </ProjectHeader>
+                <ProjectTitleSection>
+                  <ProjectTitle>{project.name}</ProjectTitle>
+                  <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+                </ProjectTitleSection>
                 <DateContainer>
                   <DateItem>
                     <DateLabel>시작일</DateLabel>
@@ -1948,7 +1951,7 @@ const ProjectDetail = () => {
         }}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>승인요청 상세보기</ModalTitle>
+              <ModalTitle>승인요청 상세</ModalTitle>
               <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
             </ModalHeader>
             <ModalBody>

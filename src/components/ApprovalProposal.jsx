@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -891,6 +892,7 @@ const ApprovalProposal = ({
   }
 }) => {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -1074,6 +1076,11 @@ const ApprovalProposal = ({
   };
 
   const handleAddProposal = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
       return;
@@ -1145,7 +1152,12 @@ const ApprovalProposal = ({
       fetchProposals();
     } catch (error) {
       console.error('Error creating proposal:', error);
-      alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
+      if (error.response?.status === 403) {
+        alert('승인요청을 생성할 권한이 없습니다.');
+        navigate('/login');
+      } else {
+        alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
+      }
     }
   };
 
@@ -1361,6 +1373,15 @@ const ApprovalProposal = ({
     setLinks([]);
     setNewLink({ title: '', url: '' });
   };
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+  }, [user, authLoading, navigate]);
 
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
@@ -1598,7 +1619,7 @@ const ApprovalProposal = ({
         <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>승인요청 상세보기</ModalTitle>
+              <ModalTitle>승인요청 상세</ModalTitle>
               <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
             </ModalHeader>
             <ModalBody>

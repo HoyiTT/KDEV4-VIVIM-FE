@@ -77,8 +77,8 @@ const AdminProjects = () => {
       }).toString();
 
       const response = await axiosInstance.get(`/projects/all?${queryParams}`);
-      setProjects(response.data);
-      setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+      setProjects(response.data.content || response.data);
+      setTotalPages(Math.ceil((response.data.totalElements || response.data.length) / itemsPerPage));
     } catch (error) {
       console.error('프로젝트 목록을 불러오는데 실패했습니다:', error);
       setProjects([]);
@@ -129,23 +129,27 @@ const AdminProjects = () => {
     return new Date(dateString).toLocaleDateString('ko-KR').replace(/\. /g, '.').slice(0, -1);
   };
 
-  const getProjectStatus = (status) => {
-    switch (status) {
+  const getProjectStatus = (project) => {
+    if (project.isDeleted) {
+      return '삭제됨';
+    }
+    switch (project.projectStatus) {
       case 'PROGRESS':
         return '진행중';
       case 'INSPECTION':
         return '검수중';
       case 'COMPLETED':
         return '완료';
-      case 'DELETED':
-        return '삭제됨';
       default:
         return '대기중';
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
+  const getStatusColor = (project) => {
+    if (project.isDeleted) {
+      return { text: '삭제됨', color: '#64748B' };
+    }
+    switch (project.projectStatus) {
       case 'PENDING':
         return { text: '대기중', color: '#DC2626' };
       case 'IN_PROGRESS':
@@ -518,7 +522,7 @@ const AdminProjects = () => {
               </thead>
               <tbody>
                 {getCurrentPageProjects().map((project) => {
-                  const statusColor = getStatusColor(project.projectStatus);
+                  const statusColor = getStatusColor(project);
                   return (
                     <TableRow key={project.projectId}>
                       <TableCell 
@@ -531,20 +535,20 @@ const AdminProjects = () => {
                       <TableCell>{formatDate(project.endDate)}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          status={project.projectStatus}
+                          status={project.isDeleted ? 'DELETED' : project.projectStatus}
                         >
-                          {getProjectStatus(project.projectStatus)}
+                          {getProjectStatus(project)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>
-                        {project.projectStatus !== 'DELETED' && (
+                        {!project.isDeleted && (
                           <ActionButtonContainer>
                             <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
                               수정
                             </ActionButton>
                             <DeleteButton 
                               onClick={() => handleDeleteProject(project.projectId)}
-                              disabled={project.projectStatus === 'DELETED'}
+                              disabled={project.isDeleted}
                             >
                               삭제
                             </DeleteButton>
