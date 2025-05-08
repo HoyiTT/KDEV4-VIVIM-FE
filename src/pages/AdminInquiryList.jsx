@@ -150,7 +150,7 @@ const AdminInquiryList = () => {
                 {inquiries.map((inquiry) => {
                   const statusBadge = getStatusBadge(inquiry.status);
                   return (
-                    <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiries/${inquiry.id}`)}>
+                    <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiry/${inquiry.id}`)}>
                       <TableCell>{inquiry.title}</TableCell>
                       <TableCell>{inquiry.creatorName}</TableCell>
                       <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
@@ -163,7 +163,7 @@ const AdminInquiryList = () => {
                         <ActionButtonContainer>
                           <ActionButton onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/admin/inquiries/${inquiry.id}`);
+                            navigate(`/admin/inquiry/${inquiry.id}`);
                           }}>
                             상세보기
                           </ActionButton>

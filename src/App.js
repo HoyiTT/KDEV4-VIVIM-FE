@@ -35,14 +35,14 @@ const AppContent = () => {
   return (
     <AppContainer>
       {!isLoginPage && <Sidebar />}
-      <MainContentWrapper isLoginPage={isLoginPage}>
+      <MainContentWrapper $isLoginPage={isLoginPage}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard-admin" element={<ProtectedRoute><DashboardAdmin /></ProtectedRoute>} />
           <Route path="/admin/inquiries" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
-          <Route path="/admin/inquiries/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
+          <Route path="/admin/inquiry/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
           <Route path="/admin/inquiries/:id/edit" element={<ProtectedRoute><AdminInquiryEdit /></ProtectedRoute>} />
           <Route path="/projectCreate" element={<ProtectedRoute><ProjectCreate /></ProtectedRoute>} />
           <Route path="/projectModify/:projectId" element={<ProtectedRoute><ProjectModify /></ProtectedRoute>} />
@@ -57,9 +57,9 @@ const AppContent = () => {
           <Route path="/user-edit/:id" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />
           <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
           <Route path="/approval/:id" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
-          <Route path="/project-post/create/:projectId" element={<ProtectedRoute><ProjectPostCreate /></ProtectedRoute>} />
-          <Route path="/project-post/:id" element={<ProtectedRoute><ProjectPostDetail /></ProtectedRoute>} />
-          <Route path="/project-post/modify/:id" element={<ProtectedRoute><ProjectPostModify /></ProtectedRoute>} />
+          <Route path="/project/:projectId/post/create" element={<ProtectedRoute><ProjectPostCreate /></ProtectedRoute>} />
+          <Route path="/project/:projectId/post/:postId" element={<ProtectedRoute><ProjectPostDetail /></ProtectedRoute>} />
+          <Route path="/project/:projectId/post/:postId/modify" element={<ProtectedRoute><ProjectPostModify /></ProtectedRoute>} />
         </Routes>
       </MainContentWrapper>
     </AppContainer>
@@ -81,10 +81,10 @@ const AppContainer = styled.div`
 
 const MainContentWrapper = styled.div`
   flex: 1;
-  margin-left: ${props => props.isLoginPage ? '0' : '300px'};
+  margin-left: ${props => props.$isLoginPage ? '0' : '300px'};
   min-height: 100vh;
   background-color: #f5f7fa;
-  padding: ${props => props.isLoginPage ? '0' : '32px'};
+  padding: ${props => props.$isLoginPage ? '0' : '32px'};
 `;
 
 const TopBar = styled.div`

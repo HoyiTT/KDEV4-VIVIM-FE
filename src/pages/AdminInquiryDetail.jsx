@@ -1,60 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
+import MainContent from '../components/common/MainContent';
+import { FaTrashAlt } from 'react-icons/fa';
 
 const AdminInquiryDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user, isLoading: authLoading } = useAuth();
   const [inquiry, setInquiry] = useState(null);
   const [answer, setAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState([]);
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editContent, setEditContent] = useState('');
-  
-  const token = localStorage.getItem('token');
-  const isAdmin = token && JSON.parse(atob(token.split('.')[1])).role === 'ADMIN';
-  
-  const [activeMenuItem, setActiveMenuItem] = useState(isAdmin ? '관리자 문의' : '내 문의 내역');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInquiryDetail = async () => {
-      try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
-        setInquiry(data);
-      } catch (error) {
-        console.error('Error fetching inquiry:', error);
-      }
-    };
-
-    fetchInquiryDetail();
-  }, [id]);
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id));
-        console.log('Fetched comments:', data);
-        setComments(data);
-      } catch (error) {
-        console.error('Error fetching comments:', error);
-      }
-    };
-
-    if (id) {
-      fetchComments();
+    if (authLoading) return;
+    
+    if (!user || user.companyRole !== 'ADMIN') {
+      navigate('/dashboard');
+      return;
     }
-  }, [id]);
+    fetchInquiryDetail();
+    fetchComments();
+  }, [id, user, authLoading]);
+
+  const fetchInquiryDetail = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
+      setInquiry(data);
+    } catch (error) {
+      console.error('Error fetching inquiry:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id));
+      setComments(data);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
 
   const handleCompleteAnswer = async () => {
     try {
       setIsSubmitting(true);
-      const { data } = await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id));
+      await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id));
       alert('답변이 완료 처리되었습니다.');
-      window.location.reload();
+      fetchInquiryDetail();
     } catch (error) {
       console.error('Error completing answer:', error);
       alert('답변 완료 처리 중 오류가 발생했습니다.');
@@ -70,61 +71,23 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const { data } = await axiosInstance.post(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
+      await axiosInstance.post(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
         content: answer
       });
       alert('답변이 등록되었습니다.');
       setAnswer('');
-      window.location.reload();
+      fetchComments();
+      fetchInquiryDetail();
     } catch (error) {
       console.error('Error submitting answer:', error);
       alert('답변 등록 중 오류가 발생했습니다.');
     }
   };
 
-  const handleEditComment = (comment) => {
-    setEditingCommentId(comment.id);
-    setEditContent(comment.content);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCommentId(null);
-    setEditContent('');
-  };
-
-  const handleSaveEdit = async (commentId) => {
-    if (!editContent.trim()) {
-      alert('답변 내용을 입력해주세요.');
-      return;
-    }
-
-    try {
-      const { data } = await axiosInstance.put(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_EDIT(id, commentId), {
-        content: editContent
-      });
-      alert('답변이 수정되었습니다.');
-      setEditingCommentId(null);
-      setEditContent('');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating comment:', error);
-      alert('답변 수정 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleDeleteComment = (comment) => {
-    // TODO: 삭제 기능 구현
-    console.log('Delete comment:', comment);
-  };
-
-  const handleEditInquiry = () => {
-    navigate(`/admin-inquiry-list/${id}/edit`);
-  };
-
   const handleDeleteInquiry = async () => {
     if (window.confirm('정말로 이 문의를 삭제하시겠습니까?')) {
       try {
-        const { data } = await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
+        await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
         alert('문의가 삭제되었습니다.');
         navigate('/admin-inquiry-list');
       } catch (error) {
@@ -134,42 +97,59 @@ const AdminInquiryDetail = () => {
     }
   };
 
-  if (!inquiry) return null;
+  if (loading) {
+    return (
+      <PageContainer>
+        <Sidebar />
+        <MainContent>
+          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+        </MainContent>
+      </PageContainer>
+    );
+  }
+
+  if (!inquiry) {
+    return (
+      <PageContainer>
+        <Sidebar />
+        <MainContent>
+          <ErrorMessage>문의를 찾을 수 없습니다.</ErrorMessage>
+        </MainContent>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={setActiveMenuItem}
-      />
+      <Sidebar />
       <MainContent>
         <Header>
-          <BackButton onClick={() => navigate(-1)}>← 목록으로</BackButton>
-          <PageTitle>{isAdmin ? '관리자 문의 상세' : '문의 상세'}</PageTitle>
+          <BackButton onClick={() => navigate('/admin/inquiries')}>
+            <span>←</span>
+            목록으로
+          </BackButton>
+          <PageTitle style={{ margin: '0 0 0 24px' }}>문의사항 상세</PageTitle>
         </Header>
         <ContentContainer>
           <TitleSection>
             <TitleHeader>
               <div>
                 <TypeBadge type={inquiry.inquiryType}>
-                  {inquiry.inquiryType === 'NORMAL' ? '일반' :
-                   inquiry.inquiryType === 'PROJECT' ? '프로젝트' : ''}
+                  {inquiry.inquiryType === 'NORMAL' ? '일반' : '프로젝트'}
                 </TypeBadge>
-                <StatusBadge status={inquiry.inquiryStatus}>
-                  {inquiry.inquiryStatus === 'PENDING' ? '대기중' :
-                   inquiry.inquiryStatus === 'IN_PROGRESS' ? '처리중' : '완료'}
+                <StatusBadge status={inquiry.status}>
+                  {inquiry.status === 'PENDING' ? '대기중' :
+                   inquiry.status === 'IN_PROGRESS' ? '처리중' : '완료'}
                 </StatusBadge>
               </div>
-              {isAdmin && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <EditButton onClick={handleEditInquiry}>
-                    수정
-                  </EditButton>
-                  <DeleteButton onClick={handleDeleteInquiry}>
-                    삭제
-                  </DeleteButton>
-                </div>
-              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <CreateButton onClick={handleCompleteAnswer}>
+                  답변 완료하기
+                </CreateButton>
+                <CreateButton onClick={handleDeleteInquiry} style={{ background: '#dc2626' }}>
+                  <FaTrashAlt /> 문의사항 삭제
+                </CreateButton>
+              </div>
             </TitleHeader>
             <Title>{inquiry.title}</Title>
             <InfoSection>
@@ -193,16 +173,6 @@ const AdminInquiryDetail = () => {
                   }).replace(/\. /g, '.').slice(0, -1)}
                 </InfoValue>
               </InfoItem>
-              {isAdmin && (
-                <InfoItem style={{ marginLeft: 'auto' }}>
-                  <CompleteButton 
-                    onClick={handleCompleteAnswer}
-                    disabled={inquiry.inquiryStatus === 'COMPLETED' || isSubmitting}
-                  >
-                    {inquiry.inquiryStatus === 'COMPLETED' ? '답변완료' : '답변완료하기'}
-                  </CompleteButton>
-                </InfoItem>
-              )}
             </InfoSection>
           </TitleSection>
           <ContentSection>
@@ -210,8 +180,8 @@ const AdminInquiryDetail = () => {
           </ContentSection>
 
           <CommentSection>
-            <CommentTitle>답변 내역</CommentTitle>
-            {comments && comments.length > 0 ? (
+            <CommentTitle>답변 목록</CommentTitle>
+            {comments.length > 0 ? (
               comments.map((comment) => (
                 <CommentItem key={comment.id}>
                   <CommentHeader>
@@ -221,66 +191,38 @@ const AdminInquiryDetail = () => {
                         {new Date(comment.createdAt).toLocaleDateString('ko-KR', {
                           year: 'numeric',
                           month: '2-digit',
-                          day: '2-digit'
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
                         }).replace(/\. /g, '.').slice(0, -1)}
                       </CommentDate>
                     </CommentInfo>
-                    <CommentButtons>
-                      <CommentButton onClick={() => handleEditComment(comment)}>
-                        수정
-                      </CommentButton>
-                      <CommentButton className="delete" onClick={() => handleDeleteComment(comment)}>
-                        삭제
-                      </CommentButton>
-                    </CommentButtons>
                   </CommentHeader>
-                  {editingCommentId === comment.id ? (
-                    <EditContainer>
-                      <EditTextArea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        autoFocus
-                      />
-                      <EditButtons>
-                        <EditButton onClick={() => handleSaveEdit(comment.id)}>
-                          저장
-                        </EditButton>
-                        <EditButton className="cancel" onClick={handleCancelEdit}>
-                          취소
-                        </EditButton>
-                      </EditButtons>
-                    </EditContainer>
-                  ) : (
-                    <CommentContent>{comment.content}</CommentContent>
-                  )}
+                  <CommentContent>{comment.content}</CommentContent>
                 </CommentItem>
               ))
             ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                아직 답변이 없습니다.
-              </div>
+              <EmptyMessage>아직 답변이 없습니다.</EmptyMessage>
             )}
           </CommentSection>
 
-          {isAdmin && (
-            <AnswerSection>
-              <AnswerTitle>관리자 답변</AnswerTitle>
-              <AnswerInputContainer>
-                <AnswerTextArea
-                  placeholder="답변을 입력해주세요..."
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  disabled={inquiry.inquiryStatus === 'COMPLETED'}
-                />
-                <SubmitButton 
-                  onClick={handleSubmitAnswer}
-                  disabled={inquiry.inquiryStatus === 'COMPLETED' || !answer.trim()}
-                >
-                  등록
-                </SubmitButton>
-              </AnswerInputContainer>
-            </AnswerSection>
-          )}
+          <AnswerSection>
+            <AnswerTitle>답변 작성</AnswerTitle>
+            <AnswerInputContainer>
+              <AnswerTextArea
+                placeholder="답변을 입력해주세요..."
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                disabled={inquiry.status === 'COMPLETED'}
+              />
+              <SubmitButton 
+                onClick={handleSubmitAnswer}
+                disabled={inquiry.status === 'COMPLETED' || !answer.trim()}
+              >
+                등록
+              </SubmitButton>
+            </AnswerInputContainer>
+          </AnswerSection>
         </ContentContainer>
       </MainContent>
     </PageContainer>
@@ -289,19 +231,9 @@ const AdminInquiryDetail = () => {
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.main`
-  padding: 32px;
-  margin-top: 60px;
-  max-width: 1000px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
 `;
 
 const Header = styled.div`
@@ -333,8 +265,8 @@ const PageTitle = styled.h1`
 
 const ContentContainer = styled.div`
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 `;
 
@@ -348,11 +280,43 @@ const TitleHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  
-  > div {
-    display: flex;
-    gap: 8px;
-  }
+`;
+
+const TypeBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #E0F2FE;
+  color: #0369A1;
+  margin-right: 8px;
+`;
+
+const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      default: return '#64748B';
+    }
+  }};
 `;
 
 const Title = styled.h2`
@@ -364,7 +328,9 @@ const Title = styled.h2`
 
 const InfoSection = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 24px;
+  align-items: center;
 `;
 
 const InfoItem = styled.div`
@@ -374,18 +340,19 @@ const InfoItem = styled.div`
 `;
 
 const InfoLabel = styled.span`
-  color: #64748b;
   font-size: 14px;
+  color: #64748b;
 `;
 
 const InfoValue = styled.span`
-  color: #1e293b;
   font-size: 14px;
+  color: #1e293b;
   font-weight: 500;
 `;
 
 const ContentSection = styled.div`
   padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const Content = styled.div`
@@ -395,203 +362,9 @@ const Content = styled.div`
   white-space: pre-wrap;
 `;
 
-const CreatedAt = styled.div`
-  color: #64748b;
-  font-size: 14px;
-`;
-
-const TypeBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  
-  ${props => {
-    switch (props.type) {
-      case 'PROJECT':
-        return `
-          background: #EFF6FF;
-          color: #2563EB;
-        `;
-      case 'TECHNICAL':
-        return `
-          background: #F5F3FF;
-          color: #7C3AED;
-        `;
-      case 'BUSINESS':
-        return `
-          background: #FFFBEB;
-          color: #D97706;
-        `;
-      default: // NORMAL
-        return `
-          background: #F3F4F6;
-          color: #4B5563;
-        `;
-    }
-  }}
-`;
-
-const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  
-  ${props => {
-    switch (props.status) {
-      case 'COMPLETED':
-        return `
-          background: #F0FDF4;
-          color: #15803D;
-        `;
-      case 'IN_PROGRESS':
-        return `
-          background: #EFF6FF;
-          color: #2563EB;
-        `;
-      default: // PENDING
-        return `
-          background: #FEF2F2;
-          color: #DC2626;
-        `;
-    }
-  }}
-`;
-
-const EditButton = styled.button`
-  padding: 10px 20px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const CompleteButton = styled.button`
-  padding: 10px 20px;
-  background-color: ${props => props.disabled ? '#94A3B8' : '#2563EB'};
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: ${props => props.disabled ? '#94A3B8' : '#1E40AF'};
-    ${props => !props.disabled && `
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    `}
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 10px 20px;
-  background-color: #DC2626;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #B91C1C;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const AnswerSection = styled.div`
-  padding: 24px;
-  border-top: 1px solid #e2e8f0;
-  box-sizing: border-box;
-`;
-
-const AnswerTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 16px 0;
-`;
-
-const AnswerInputContainer = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const AnswerTextArea = styled.textarea`
-  width: 100%;
-  min-height: 200px;
-  padding: 16px;
-  padding-bottom: 60px; // 버튼 공간 확보
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-  resize: vertical;
-  box-sizing: border-box;
-  
-  &:focus {
-    outline: none;
-    border-color: #2563EB;
-  }
-  
-  &:disabled {
-    background-color: #f8fafc;
-    cursor: not-allowed;
-  }
-`;
-
-const SubmitButton = styled.button`
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  padding: 8px 16px;
-  background-color: #2563EB;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #1E40AF;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  &:disabled {
-    background-color: #94A3B8;
-    cursor: not-allowed;
-  }
-`;
-
 const CommentSection = styled.div`
   padding: 24px;
-  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const CommentTitle = styled.h3`
@@ -627,67 +400,48 @@ const CommentInfo = styled.div`
 
 const AdminBadge = styled.span`
   padding: 4px 8px;
-  background-color: #2563EB;
+  background: #2E7D32;
   color: white;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 const CommentDate = styled.span`
+  font-size: 13px;
   color: #64748b;
-  font-size: 14px;
 `;
 
 const CommentContent = styled.div`
-  color: #1e293b;
   font-size: 14px;
   line-height: 1.6;
+  color: #1e293b;
   white-space: pre-wrap;
 `;
 
-const CommentButtons = styled.div`
-  display: flex;
-  gap: 8px;
+const AnswerSection = styled.div`
+  padding: 24px;
 `;
 
-const CommentButton = styled.button`
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-
-  &:hover {
-    background-color: #f8fafc;
-    transform: translateY(-1px);
-  }
-
-  &.delete {
-    color: #DC2626;
-    border-color: #DC2626;
-    
-    &:hover {
-      background-color: #FEF2F2;
-    }
-  }
+const AnswerTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
 `;
 
-const EditContainer = styled.div`
+const AnswerInputContainer = styled.div`
   position: relative;
-  margin-top: 12px;
+  width: 100%;
 `;
 
-const EditTextArea = styled.textarea`
+const AnswerTextArea = styled.textarea`
   width: 100%;
-  min-height: 100px;
-  padding: 12px;
+  min-height: 200px;
+  padding: 16px;
+  padding-bottom: 60px;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 1.6;
   resize: vertical;
@@ -695,15 +449,89 @@ const EditTextArea = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: #2563EB;
+    border-color: #2E7D32;
+  }
+  
+  &:disabled {
+    background-color: #f8fafc;
+    cursor: not-allowed;
   }
 `;
 
-const EditButtons = styled.div`
+const SubmitButton = styled.button`
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 8px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  }
+  
+  &:disabled {
+    background: #94A3B8;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
+const ActionButtons = styled.div`
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+`;
+
+const CreateButton = styled.button`
+  padding: 8px 16px;
+  background: ${props => props.background || '#2E7D32'};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: ${props => props.background ? '#B91C1C' : '#1B5E20'};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  }
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
+`;
+
+const ErrorMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #DC2626;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-size: 14px;
 `;
 
 export default AdminInquiryDetail; 
