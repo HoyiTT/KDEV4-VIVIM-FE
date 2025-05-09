@@ -76,31 +76,25 @@ export const useNotifications = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await axiosInstance.patch(`${API_ENDPOINTS.NOTIFICATIONS.READ}/${notificationId}`, {}, {
+      await axiosInstance.patch(API_ENDPOINTS.NOTIFICATIONS.READ(notificationId), {}, {
         withCredentials: true
       });
-      setNotifications(prev =>
-        prev.map(notification =>
-          notification.id === notificationId
-            ? { ...notification, read: true }
-            : notification
-        )
-      );
+      await fetchNotifications();
     } catch (error) {
       console.error('알림 읽음 처리 실패:', error);
+      throw error;
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await axiosInstance.patch(API_ENDPOINTS.NOTIFICATIONS.READ_ALL, null, {
+      await axiosInstance.patch(API_ENDPOINTS.NOTIFICATIONS.READ_ALL, {}, {
         withCredentials: true
       });
-      setNotifications(prev =>
-        prev.map(notification => ({ ...notification, read: true }))
-      );
+      await fetchNotifications();
     } catch (error) {
       console.error('모든 알림 읽음 처리 실패:', error);
+      throw error;
     }
   };
 

@@ -309,7 +309,7 @@ const DashboardAdmin = () => {
   const fetchRecentPosts = async () => {
     try {
       console.log('Fetching recent posts...');
-      const { data } = await axiosInstance.get('/posts/admin/recent', {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.POST.ADMIN_RECENT, {
         withCredentials: true
       });
       console.log('Recent posts data:', data);

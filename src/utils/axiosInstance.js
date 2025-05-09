@@ -4,13 +4,32 @@ import { API_BASE_URL } from '../config/api';
 // 기본 axios 인스턴스 생성
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
   withCredentials: true
 });
+
+// 요청 인터셉터 추가
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // 모든 요청에 withCredentials 설정 추가
+    config.withCredentials = true;
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // 토큰 갱신용 별도 인스턴스 생성
 const refreshTokenInstance = axios.create({
   baseURL: API_BASE_URL,
+  headers: { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
   withCredentials: true
 });
 

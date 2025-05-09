@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import UserSidebar from '../components/UserSidebar';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
@@ -10,7 +10,6 @@ import MainContent from '../components/common/MainContent';
 const UserProjectList = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeMenuItem, setActiveMenuItem] = useState('프로젝트 관리');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,40 +23,31 @@ const UserProjectList = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const { data } = await axiosInstance.get(
-        API_ENDPOINTS.USER_PROJECTS(user.id),
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+      const { data } = await axiosInstance.get(`/api/projects?userId=${user.id}`, {
+        withCredentials: true,
+        headers: {
+          'accept': '*/*'
         }
-      );
+      });
       setProjects(data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching projects:', error);
       setError('프로젝트 목록을 불러오는데 실패했습니다.');
-      setProjects([]);
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
   const getRoleBadgeText = (role) => {
     switch (role) {
-      case 'CLIENT_USER':
-        return '고객사(일반)';
-      case 'CLIENT_MANAGER':
-        return '고객사(담당자)';
-      case 'DEVELOPER_USER':
-        return '개발자(일반)';
       case 'DEVELOPER_MANAGER':
-        return '개발자(담당자)';
+        return '개발사(담당자)';
+      case 'DEVELOPER_USER':
+        return '개발사(일반)';
+      case 'CLIENT_MANAGER':
+        return '의뢰인(담당자)';
+      case 'CLIENT_USER':
+        return '의뢰인(일반)';
       default:
         return role;
     }
@@ -66,7 +56,7 @@ const UserProjectList = () => {
   if (loading) {
     return (
       <PageContainer>
-        <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+        <UserSidebar />
         <MainContent>
           <LoadingMessage>프로젝트 목록을 불러오는 중...</LoadingMessage>
         </MainContent>
@@ -77,7 +67,7 @@ const UserProjectList = () => {
   if (error) {
     return (
       <PageContainer>
-        <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+        <UserSidebar />
         <MainContent>
           <ErrorMessage>{error}</ErrorMessage>
           <RetryButton onClick={fetchProjects}>다시 시도</RetryButton>
@@ -88,36 +78,37 @@ const UserProjectList = () => {
 
   return (
     <PageContainer>
-      <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
+      <UserSidebar />
       <MainContent>
         <Header>
           <PageTitle>프로젝트 목록</PageTitle>
         </Header>
         <ProjectGrid>
           {projects.map((project) => (
-            <ProjectCard key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
-              <ProjectTitle>{project.title}</ProjectTitle>
-              <ProjectInfo>
-                <InfoLabel>상태:</InfoLabel>
-                <StatusBadge status={project.status}>
-                  {project.status === 'IN_PROGRESS' ? '진행중' :
-                   project.status === 'COMPLETED' ? '완료' : '대기중'}
-                </StatusBadge>
-              </ProjectInfo>
+            <ProjectCard key={project.projectId} onClick={() => navigate(`/user/project/${project.projectId}`)}>
+              <ProjectTitle>{project.name}</ProjectTitle>
               <ProjectInfo>
                 <InfoLabel>역할:</InfoLabel>
-                <RoleBadge>{getRoleBadgeText(project.role)}</RoleBadge>
+                <RoleBadge>{getRoleBadgeText(project.myRole)}</RoleBadge>
               </ProjectInfo>
               <ProjectInfo>
                 <InfoLabel>시작일:</InfoLabel>
                 <InfoValue>
-                  {new Date(project.startDate).toLocaleDateString('ko-KR')}
+                  {new Date(project.startDate).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
                 </InfoValue>
               </ProjectInfo>
               <ProjectInfo>
                 <InfoLabel>종료일:</InfoLabel>
                 <InfoValue>
-                  {new Date(project.endDate).toLocaleDateString('ko-KR')}
+                  {new Date(project.endDate).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
                 </InfoValue>
               </ProjectInfo>
             </ProjectCard>

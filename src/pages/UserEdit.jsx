@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
+import MainContent from '../components/common/MainContent';
 
 // Styled components
 const PageContainer = styled.div`
@@ -12,16 +13,6 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
 const Header = styled.div`
@@ -37,6 +28,33 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
+const BackButton = styled.button`
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
+`;
+
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 800px;
+`;
+
 const FormContainer = styled.form`
   background: white;
   border-radius: 12px;
@@ -44,10 +62,13 @@ const FormContainer = styled.form`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   width: 100%;
   max-width: 800px;
+  box-sizing: border-box;
 `;
 
 const FormGroup = styled.div`
   margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const Label = styled.label`
@@ -64,6 +85,7 @@ const Input = styled.input`
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -79,6 +101,7 @@ const ReadOnlyField = styled.div`
   font-size: 14px;
   background-color: #f8fafc;
   color: #64748b;
+  box-sizing: border-box;
 `;
 
 const ButtonContainer = styled.div`
@@ -180,6 +203,7 @@ const Select = styled.select`
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -187,24 +211,52 @@ const Select = styled.select`
   }
 `;
 
+const TableCell = styled.td`
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+  white-space: ${props => props.nowrap === 'true' ? 'nowrap' : 'normal'};
+`;
+
+const RoleBadge = styled.span`
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return '#E3F2FD';
+      case 'CUSTOMER':
+        return '#E8F5E9';
+      case 'DEVELOPER':
+        return '#FFF3E0';
+      default:
+        return '#F5F5F5';
+    }
+  }};
+  color: ${props => {
+    switch (props.role) {
+      case 'ADMIN':
+        return '#1976D2';
+      case 'CUSTOMER':
+        return '#2E7D32';
+      case 'DEVELOPER':
+        return '#F57C00';
+      default:
+        return '#757575';
+    }
+  }};
+`;
+
 const UserEdit = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
+  const { user } = useAuth();
   
-  // Add token decoding logic
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-
-  const [activeMenuItem, setActiveMenuItem] = useState('사용자 관리');
   const [userData, setUserData] = useState({
     name: '',
     email: '',
@@ -220,91 +272,77 @@ const UserEdit = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.USER_DETAIL(userId));
+        console.log('Fetching user data for ID:', userId);
+        const { data } = await axiosInstance.get(API_ENDPOINTS.USER_DETAIL(userId), {
+          withCredentials: true,
+          headers: {
+            'accept': '*/*'
+          }
+        });
+        
+        console.log('User data response:', data);
         
         if (data.statusCode === 200 && data.data) {
-          // Store the user data first
           const userDataFromApi = data.data;
+          console.log('Setting user data:', userDataFromApi);
           setUserData(userDataFromApi);
           
-          // Then fetch companies to find the matching company
-          const { data: companiesData } = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+          console.log('Fetching companies...');
+          const { data: companiesData } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
+            withCredentials: true,
+            headers: {
+              'accept': '*/*'
+            }
+          });
+          console.log('Companies data:', companiesData);
           setCompanies(companiesData || []);
           
-          // Find the company that matches the user's company name
           const matchingCompany = companiesData.find(
             company => company.name === userDataFromApi.companyName
           );
           
           if (matchingCompany) {
-            // Update the userData with the matching company ID
+            console.log('Found matching company:', matchingCompany);
             setUserData(prevState => ({
               ...prevState,
               companyId: matchingCompany.id
             }));
           }
         } else {
+          console.error('Invalid response format:', data);
           throw new Error(data.statusMessage || 'Failed to fetch user data');
         }
         
         setLoading(false);
       } catch (error) {
         console.error('Error fetching user:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response,
+          status: error.response?.status
+        });
         alert('사용자 정보를 불러오는데 실패했습니다.');
         setLoading(false);
       }
     };
 
-    if (userId) {
+    if (userId && user) {
+      console.log('Starting data fetch with userId:', userId, 'user:', user);
       fetchUserData();
+    } else {
+      console.log('Missing userId or user:', { userId, user });
+      setLoading(false);
     }
-  }, [userId]);
+  }, [userId, user]);
 
-  // Add a new useEffect to fetch companies
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
-        setCompanies(data || []);
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-        setCompanies([]);
-      }
-    };
-
-    fetchCompanies();
-  }, []);
-
-  // Update handleChange to fetch the company role when company changes
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setUserData(prevState => ({
       ...prevState,
       [name]: value
     }));
-
-    // If company is changed, fetch the company details to get the role
-    if (name === 'companyId' && value) {
-      const fetchCompanyRole = async () => {
-        try {
-          const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_DETAIL(value));
-          
-          // Update the company name and role
-          setUserData(prevState => ({
-            ...prevState,
-            companyName: data.name,
-            companyRole: data.companyRole
-          }));
-        } catch (error) {
-          console.error('Error fetching company details:', error);
-        }
-      };
-      
-      fetchCompanyRole();
-    }
   }, []);
 
-  // Update handleSubmit to include all required fields
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
@@ -314,6 +352,12 @@ const UserEdit = () => {
         email: userData.email,
         companyId: userData.companyId,
         modifiedAt: new Date().toISOString()
+      }, {
+        withCredentials: true,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json'
+        }
       });
 
       if (data.statusCode === 200) {
@@ -335,7 +379,12 @@ const UserEdit = () => {
     }
     
     try {
-      const { data } = await axiosInstance.put(API_ENDPOINTS.USER_PASSWORD_MODIFY(userId, newPassword));
+      const { data } = await axiosInstance.put(API_ENDPOINTS.USER_PASSWORD_MODIFY(userId, newPassword), null, {
+        withCredentials: true,
+        headers: {
+          'accept': '*/*'
+        }
+      });
 
       if (data.statusCode === 200) {
         alert('비밀번호가 성공적으로 변경되었습니다.');
@@ -349,19 +398,30 @@ const UserEdit = () => {
     }
   }, [userId, newPassword]);
 
-  const handleMenuClick = useCallback((menuItem) => {
-    setActiveMenuItem(menuItem);
-  }, []);
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const getRoleText = (role) => {
+    switch (role) {
+      case 'ADMIN':
+        return '관리자';
+      case 'CUSTOMER':
+        return '고객사';
+      case 'DEVELOPER':
+        return '개발사';
+      default:
+        return '역할 없음';
+    }
+  };
 
   if (loading) {
     return (
       <PageContainer>
-        <Navbar 
-          activeMenuItem={activeMenuItem} 
-          handleMenuClick={handleMenuClick} 
-        />
         <MainContent>
-          <div>데이터를 불러오는 중...</div>
+          <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+            <div>데이터를 불러오는 중...</div>
+          </div>
         </MainContent>
       </PageContainer>
     );
@@ -369,70 +429,69 @@ const UserEdit = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
       <MainContent>
-        <Header>
-          <PageTitle>사용자 수정</PageTitle>
-        </Header>
+        <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+          <HeaderContainer>
+            <PageTitle>사용자 수정</PageTitle>
+            <BackButton onClick={handleBack}>
+              돌아가기
+            </BackButton>
+          </HeaderContainer>
 
-        <FormContainer onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label>이름</Label>
-            <Input 
-              type="text" 
-              name="name"
-              value={userData.name || ''}
-              onChange={handleChange}
-              placeholder="이름을 입력하세요" 
-              required
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <Label>이메일</Label>
-            <Input 
-              type="email" 
-              name="email"
-              value={userData.email || ''}
-              onChange={handleChange}
-              placeholder="이메일을 입력하세요" 
-              required
-            />
-          </FormGroup>
-          
-          <FormGroup>
-            <Label>비밀번호</Label>
-            <PasswordContainer>
-              <PasswordInput 
-                type="password" 
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="새 비밀번호를 입력하세요"
+          <FormContainer onSubmit={handleSubmit}>
+            <FormGroup>
+              <Label>이름</Label>
+              <Input 
+                type="text" 
+                name="name"
+                value={userData.name || ''}
+                onChange={handleChange}
+                placeholder="이름을 입력하세요" 
+                required
               />
-              <PasswordButton type="button" onClick={handlePasswordChange}>
-                비밀번호 변경
-              </PasswordButton>
-            </PasswordContainer>
-          </FormGroup>
+            </FormGroup>
 
-          <FormGroup>
-            <Label>전화번호</Label>
-            <Input 
-              type="text" 
-              name="phone"
-              value={userData.phone || ''}
-              onChange={handleChange}
-              placeholder="전화번호를 입력하세요" 
-              required
-            />
-          </FormGroup>
+            <FormGroup>
+              <Label>이메일</Label>
+              <Input 
+                type="email" 
+                name="email"
+                value={userData.email || ''}
+                onChange={handleChange}
+                placeholder="이메일을 입력하세요" 
+                required
+              />
+            </FormGroup>
+            
+            <FormGroup>
+              <Label>비밀번호</Label>
+              <PasswordContainer>
+                <PasswordInput 
+                  type="password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="새 비밀번호를 입력하세요"
+                />
+                <PasswordButton type="button" onClick={handlePasswordChange}>
+                  비밀번호 변경
+                </PasswordButton>
+              </PasswordContainer>
+            </FormGroup>
 
-          <FormGroup>
-            <Label>소속 회사</Label>
-            {isAdmin ? (
+            <FormGroup>
+              <Label>전화번호</Label>
+              <Input 
+                type="text" 
+                name="phone"
+                value={userData.phone || ''}
+                onChange={handleChange}
+                placeholder="전화번호를 입력하세요" 
+                required
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>소속 회사</Label>
               <Select
                 name="companyId"
                 value={userData.companyId || ''}
@@ -446,32 +505,27 @@ const UserEdit = () => {
                   </option>
                 ))}
               </Select>
-            ) : (
+            </FormGroup>
+
+            <FormGroup>
+              <Label>해당 회사 역할</Label>
               <ReadOnlyField>
-                {userData.companyName}
+                <RoleBadge role={userData.companyRole}>
+                  {getRoleText(userData.companyRole)}
+                </RoleBadge>
               </ReadOnlyField>
-            )}
-          </FormGroup>
+            </FormGroup>
 
-          <FormGroup>
-            <Label>해당 회사 역할</Label>
-            <ReadOnlyField>
-              {userData.companyRole === 'ADMIN' ? '관리자' : 
-               userData.companyRole === 'CUSTOMER' ? '고객사' : 
-               userData.companyRole === 'DEVELOPER' ? '개발사' : 
-               '역할 없음'}
-            </ReadOnlyField>
-          </FormGroup>
-
-          <ButtonContainer>
-            <CancelButton type="button" onClick={() => navigate('/user-management')}>
-              취소
-            </CancelButton>
-            <SubmitButton type="submit">
-              수정하기
-            </SubmitButton>
-          </ButtonContainer>
-        </FormContainer>
+            <ButtonContainer>
+              <CancelButton type="button" onClick={() => navigate('/user-management')}>
+                취소
+              </CancelButton>
+              <SubmitButton type="submit">
+                수정하기
+              </SubmitButton>
+            </ButtonContainer>
+          </FormContainer>
+        </div>
       </MainContent>
     </PageContainer>
   );

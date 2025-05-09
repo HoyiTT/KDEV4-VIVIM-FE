@@ -966,7 +966,9 @@ const ApprovalProposal = ({
         return;
       }
 
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
+        withCredentials: true
+      });
       setProjectUsers(data);
     } catch (error) {
       console.error('프로젝트 사용자 목록 조회 중 오류 발생:', error);
@@ -997,7 +999,9 @@ const ApprovalProposal = ({
     // 직원 목록이 캐시에 없으면 API 호출하여 가져오기
     if (!companyEmployees[company.id]) {
       try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id));
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+          withCredentials: true
+        });
         const empList = data.data ?? data.employees ?? data.items ?? (Array.isArray(data) ? data : []);
         
         // 프로젝트에 참여하는 직원만 필터링
@@ -1071,8 +1075,33 @@ const ApprovalProposal = ({
     }
   };
 
-  const handleProposalClick = (proposal) => {
-    navigate(`/approval/${proposal.id}`);
+  const handleProposalClick = async (proposal) => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id), {
+        withCredentials: true
+      });
+      
+      if (!data) {
+        throw new Error('승인요청 상세 정보를 찾을 수 없습니다.');
+      }
+
+      if (data.isDeleted) {
+        alert('삭제된 승인요청입니다.');
+        return;
+      }
+      
+      setSelectedProposal(data);
+      setIsProposalModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching proposal detail:', error);
+      if (error.response?.status === 403) {
+        alert('승인요청 상세 정보를 조회할 권한이 없습니다.');
+      } else if (error.response?.status === 404) {
+        alert('삭제된 승인요청입니다.');
+      } else {
+        alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+      }
+    }
   };
 
   const handleAddProposal = async () => {

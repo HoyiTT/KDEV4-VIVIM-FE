@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
+import { useAuth } from '../hooks/useAuth';
 
 // Move all styled components outside the component function
 const PageContainer = styled.div`
@@ -66,10 +67,12 @@ const FormContainer = styled.form`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   width: 100%;
   max-width: 800px;
+  box-sizing: border-box;
 `;
 
 const FormGroup = styled.div`
   margin-bottom: 20px;
+  width: 100%;
 `;
 
 const Label = styled.label`
@@ -86,6 +89,7 @@ const Input = styled.input`
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -100,6 +104,7 @@ const Select = styled.select`
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -157,6 +162,7 @@ const SubmitButton = styled.button`
 const CompanyEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     businessNumber: '',
@@ -167,17 +173,15 @@ const CompanyEdit = () => {
     coOwner: ''
   });
 
-  // Move fetchCompanyData inside useEffect to avoid dependency issues
   useEffect(() => {
     const fetchCompanyData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_DETAIL(id), {
+          withCredentials: true,
           headers: {
-            'Authorization': token
+            'accept': '*/*'
           }
         });
-        const data = await response.json();
         setFormData(data);
       } catch (error) {
         console.error('Error fetching company:', error);
@@ -185,23 +189,23 @@ const CompanyEdit = () => {
       }
     };
 
-    fetchCompanyData();
-  }, [id]);
+    if (user) {
+      fetchCompanyData();
+    }
+  }, [id, user]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
-        method: 'PUT',
+      const { data } = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), formData, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify(formData)
+          'accept': '*/*'
+        }
       });
 
-      if (response.ok) {
+      if (data) {
         alert('회사 정보가 수정되었습니다.');
         navigate('/company-management');
       } else {

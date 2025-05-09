@@ -80,7 +80,8 @@ export const API_ENDPOINTS = {
   // Posts
   POST: {
     LIST: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
-    RECENT: `${API_BASE_URL}/posts/admin/recent`,
+    RECENT: `${API_BASE_URL}/posts/user/recent`,
+    ADMIN_RECENT: `${API_BASE_URL}/posts/admin/recent`,
     DETAIL: (id) => `${API_BASE_URL}/posts/${id}`,
     CREATE: `${API_BASE_URL}/posts`,
     MODIFY: (id) => `${API_BASE_URL}/posts/${id}`,

@@ -27,11 +27,9 @@ const Sidebar = () => {
   const unreadCount = notifications.filter(notification => !notification.read).length;
 
   const menuItems = [
-    { path: '/dashboard', label: '대시보드', icon: '📊' },
-    { path: '/projects', label: '프로젝트', icon: '📁' },
-    { path: '/inquiries', label: '문의사항', icon: '💬' },
-    { path: '/posts', label: '게시판', icon: '📝' },
-    { path: '/approvals', label: '승인관리', icon: '✅' },
+    { path: '/dashboard', label: '대시보드', icon: '' },
+    { path: '/user/projects', label: '프로젝트 관리', icon: '📁' },
+    { path: '/inquiries', label: '관리자에게 문의하기', icon: '💬' },
   ];
 
   const adminMenuItems = [
@@ -89,6 +87,10 @@ const Sidebar = () => {
       navigate(`/approval/${typeId}`);
     } else if (type.startsWith('DECISION_')) {
       navigate(`/approval/${typeId}`);
+    } else if (type.startsWith('POST_')) {
+      navigate(`/post/${typeId}`);
+    } else if (type.startsWith('INQUIRY_')) {
+      navigate(`/inquiry/${typeId}`);
     }
   };
 
@@ -164,7 +166,11 @@ const Sidebar = () => {
           $active={showNotifications.toString()}
         >
           알림
-          {unreadCount > 0 && <NotificationBadge data-active={showNotifications.toString()}>{unreadCount}</NotificationBadge>}
+          {unreadCount > 0 && (
+            <NotificationCount data-active={showNotifications.toString()}>
+              {unreadCount}
+            </NotificationCount>
+          )}
         </NotificationButton>
       </LogoSection>
 
@@ -248,8 +254,9 @@ const Sidebar = () => {
                 <NotificationItem
                   key={notification.id}
                   unread={!notification.read}
+                  onClick={() => handleNotificationClick(notification)}
                 >
-                  <NotificationContent onClick={() => handleNotificationClick(notification)}>
+                  <NotificationContent>
                     <NotificationTypeIcon unread={!notification.read}>
                       {(() => {
                         const { icon, label } = getNotificationTypeInfo(notification.type);
@@ -334,7 +341,6 @@ const NotificationButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -344,8 +350,8 @@ const NotificationButton = styled.button`
   }
 `;
 
-const NotificationBadge = styled.div`
-  background-color: ${props => props['data-active'] === 'true' ? '#ef4444' : '#94a3b8'};
+const NotificationCount = styled.span`
+  background-color: #ef4444;
   color: white;
   font-size: 12px;
   font-weight: 600;
