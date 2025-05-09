@@ -20,16 +20,6 @@ const ProtectedRoute = ({ children, authRequired = true }) => {
     return <LoadingContainer>로딩 중...</LoadingContainer>;
   }
 
-  // 인증된 사용자가 로그인 페이지에 접근하면 대시보드로 리다이렉트
-  if (location.pathname === '/login' && isAuthenticated) {
-    return <Navigate to={isAdmin ? "/dashboard-admin" : "/dashboard"} replace />;
-  }
-
-  // 인증이 필요한 페이지에 인증되지 않은 사용자가 접근하면 로그인 페이지로 리다이렉트
-  if (!isAuthenticated && authRequired) {
-    return <Navigate to="/login" replace />;
-  }
-
   return children;
 };
 

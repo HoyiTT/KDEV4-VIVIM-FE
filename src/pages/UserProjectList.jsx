@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import UserSidebar from '../components/Sidebar';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
-import { NotificationProvider } from '../contexts/NotificationContext';
+import MainContent from '../components/common/MainContent';
 
 const StatusBadge = styled.span`
   display: inline-flex;
@@ -14,6 +13,7 @@ const StatusBadge = styled.span`
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
   background-color: ${props => {
     if (props.status === 'DELETED') {
       return 'rgba(185, 28, 28, 0.1)';
@@ -142,13 +142,6 @@ const ProjectsTable = styled.table`
   margin-top: 24px;
 `;
 
-const PageContainer = styled.div`
-  display: flex;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
 const SearchSection = styled.div`
   display: flex;
   gap: 12px;
@@ -274,11 +267,11 @@ const ActionButton = styled.button`
   }
 `;
 
-const ContentArea = styled.div`
-  flex: 1;
-  padding: 24px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #ef4444;
+  font-size: 16px;
 `;
 
 const UserProjectList = () => {
@@ -291,24 +284,28 @@ const UserProjectList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  console.log('UserProjectList rendered', { user, loading, error, projects });
-
   useEffect(() => {
-    if (authLoading) return;
+    console.log('UserProjectList useEffect triggered', { authLoading, isAuthenticated, user });
+    
+    if (authLoading) {
+      console.log('Auth is still loading');
+      return;
+    }
     
     if (!isAuthenticated || !user) {
+      console.log('User is not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
     
-    console.log('UserProjectList mounted, user:', user);
-      fetchProjects();
-  }, [user, isAuthenticated, authLoading]);
+    console.log('Fetching projects for user:', user);
+    fetchProjects();
+  }, [user, isAuthenticated, authLoading, navigate]);
 
   const fetchProjects = async () => {
     try {
-      console.log('Fetching projects...');
       setLoading(true);
+      console.log('Starting to fetch projects...');
       
       let endpoint;
       if (user.companyRole === 'ADMIN') {
@@ -317,21 +314,25 @@ const UserProjectList = () => {
         endpoint = API_ENDPOINTS.USER_PROJECTS(user.id);
       }
       
+      console.log('Fetching projects from endpoint:', endpoint);
       const response = await axiosInstance.get(endpoint);
-      console.log('Projects fetched:', response.data);
-      setProjects(response.data);
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        setProjects(response.data);
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        setProjects(response.data.data);
+      } else {
+        console.error('Unexpected response data structure:', response.data);
+        setError('프로젝트 데이터 형식이 올바르지 않습니다.');
+      }
     } catch (err) {
       console.error('Error fetching projects:', err);
-      console.error('Error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        headers: err.response?.headers
-      });
       if (err.response?.status === 403) {
         setError('접근 권한이 없습니다.');
       } else {
-      setError('프로젝트 목록을 불러오는데 실패했습니다.');
+        setError('프로젝트 목록을 불러오는데 실패했습니다.');
       }
     } finally {
       setLoading(false);
@@ -382,12 +383,10 @@ const UserProjectList = () => {
     }
   };
 
-  // 검색어로 필터링된 프로젝트 목록
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 현재 페이지의 프로젝트만 표시
   const getCurrentPageProjects = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -398,157 +397,96 @@ const UserProjectList = () => {
 
   if (loading) {
     return (
-      <PageContainer>
-        <UserSidebar />
-        <ContentArea>
-          <LoadingMessage>프로젝트 목록을 불러오는 중...</LoadingMessage>
-        </ContentArea>
-      </PageContainer>
+      <MainContent>
+        <LoadingMessage>로딩 중...</LoadingMessage>
+      </MainContent>
     );
   }
 
   if (error) {
     return (
-      <PageContainer>
-        <UserSidebar />
-        <ContentArea>
-          <ErrorMessage>{error}</ErrorMessage>
-          <RetryButton onClick={fetchProjects}>다시 시도</RetryButton>
-        </ContentArea>
-      </PageContainer>
+      <MainContent>
+        <ErrorMessage>{error}</ErrorMessage>
+      </MainContent>
     );
   }
 
   return (
-    <NotificationProvider>
-    <PageContainer>
-      <UserSidebar />
-        <ContentArea>
-        <Header>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-              <PageTitle>내 프로젝트</PageTitle>
-              <SearchSection>
-                <SearchInput
-                  type="text"
-                  placeholder="프로젝트명 검색"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                />
-                <SearchButton onClick={handleSearch}>
-                  검색
-                </SearchButton>
-              </SearchSection>
-            </div>
-        </Header>
+    <MainContent>
+      <Header>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+          <PageTitle>내 프로젝트</PageTitle>
+          <SearchSection>
+            <SearchInput
+              type="text"
+              placeholder="프로젝트명 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+            <SearchButton onClick={handleSearch}>
+              검색
+            </SearchButton>
+          </SearchSection>
+        </div>
+      </Header>
 
-          {loading ? (
-            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-          ) : error ? (
-            <LoadingMessage>{error}</LoadingMessage>
-          ) : (
-            <>
-              <ProjectsTable>
-                <thead>
-                  <tr>
-                    <TableHeaderCell>프로젝트명</TableHeaderCell>
-                    <TableHeaderCell>시작일</TableHeaderCell>
-                    <TableHeaderCell>종료일</TableHeaderCell>
-                    <TableHeaderCell>상태</TableHeaderCell>
-                    <TableHeaderCell>역할</TableHeaderCell>
-                    <TableHeaderCell>액션</TableHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getCurrentPageProjects().map((project) => (
-                    <TableRow 
+      <ProjectsTable>
+        <thead>
+          <tr>
+            <TableHeaderCell>프로젝트명</TableHeaderCell>
+            <TableHeaderCell>시작일</TableHeaderCell>
+            <TableHeaderCell>종료일</TableHeaderCell>
+            <TableHeaderCell>상태</TableHeaderCell>
+            <TableHeaderCell>역할</TableHeaderCell>
+          </tr>
+        </thead>
+        <tbody>
+          {getCurrentPageProjects().map((project) => (
+            <TableRow 
               key={project.projectId} 
-                      onClick={() => handleProjectClick(project.projectId)}
-                    >
-                      <TableCell>{project.name}</TableCell>
-                      <TableCell>{formatDate(project.startDate)}</TableCell>
-                      <TableCell>{formatDate(project.endDate)}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={project.deleted ? 'DELETED' : project.projectStatus}>
+              onClick={() => handleProjectClick(project.projectId)}
+            >
+              <TableCell>{project.name}</TableCell>
+              <TableCell>{formatDate(project.startDate)}</TableCell>
+              <TableCell>{formatDate(project.endDate)}</TableCell>
+              <TableCell>
+                <StatusBadge status={project.deleted ? 'DELETED' : project.projectStatus}>
                   {getProjectStatus(project)}
                 </StatusBadge>
-                      </TableCell>
-                      <TableCell>{project.myRole}</TableCell>
-                      <TableCell>
-                        <ActionButtonContainer>
-                          {(project.myRole === 'DEVELOPER' || user.companyRole === 'ADMIN') && 
-                           !project.deleted && 
-                           project.projectStatus !== 'COMPLETED' && (
-                            <ActionButton onClick={(e) => handleApprovalRequest(e, project.projectId)}>
-                              승인요청
-                            </ActionButton>
-                          )}
-                          {project.myRole === 'CLIENT' && !project.deleted && (
-                            <ActionButton onClick={(e) => handleApprovalResponse(e, project.projectId)}>
-                              승인응답
-                            </ActionButton>
-                          )}
-                        </ActionButtonContainer>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </ProjectsTable>
-              {filteredProjects.length > 0 && (
-                <PaginationContainer>
-                  <PaginationButton 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    이전
-                  </PaginationButton>
-                  {[...Array(totalPages)].map((_, index) => (
-                    <PaginationNumber
-                      key={index + 1}
-                      active={currentPage === index + 1}
-                      onClick={() => setCurrentPage(index + 1)}
-                    >
-                      {index + 1}
-                    </PaginationNumber>
-                  ))}
-                  <PaginationButton
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                  >
-                    다음
-                  </PaginationButton>
-                </PaginationContainer>
-              )}
-            </>
-          )}
-        </ContentArea>
-    </PageContainer>
-    </NotificationProvider>
+              </TableCell>
+              <TableCell>{project.myRole}</TableCell>
+            </TableRow>
+          ))}
+        </tbody>
+      </ProjectsTable>
+      {filteredProjects.length > 0 && (
+        <PaginationContainer>
+          <PaginationButton 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            이전
+          </PaginationButton>
+          {[...Array(totalPages)].map((_, index) => (
+            <PaginationNumber
+              key={index + 1}
+              active={currentPage === index + 1}
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </PaginationNumber>
+          ))}
+          <PaginationButton
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            다음
+          </PaginationButton>
+        </PaginationContainer>
+      )}
+    </MainContent>
   );
 };
-
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 40px;
-  color: #ef4444;
-  font-size: 16px;
-`;
-
-const RetryButton = styled.button`
-  display: block;
-  margin: 16px auto;
-  padding: 8px 16px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #1b5e20;
-  }
-`;
 
 export default UserProjectList;

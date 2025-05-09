@@ -25,6 +25,9 @@ import AdminInquiry from './pages/AdminInquiry';
 import AdminInquiryList from './pages/AdminInquiryList';
 import AdminInquiryDetail from './pages/AdminInquiryDetail';
 import AdminInquiryEdit from './pages/AdminInquiryEdit';
+import UserInquiryList from './pages/UserInquiryList';
+import UserInquiryCreate from './pages/UserInquiryCreate';
+import UserInquiryDetail from './pages/UserInquiryDetail';
 import styled from 'styled-components';
 
 const AppContent = () => {
@@ -41,9 +44,11 @@ const AppContent = () => {
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard-admin" element={<ProtectedRoute><DashboardAdmin /></ProtectedRoute>} />
+          <Route path="/user/inquiries" element={<ProtectedRoute><UserInquiryList /></ProtectedRoute>} />
+          <Route path="/user/inquiries/create" element={<ProtectedRoute><UserInquiryCreate /></ProtectedRoute>} />
+          <Route path="/user/inquiries/:id" element={<ProtectedRoute><UserInquiryDetail /></ProtectedRoute>} />
           <Route path="/admin/inquiries" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
-          <Route path="/admin/inquiry/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
-          <Route path="/admin/inquiries/:id/edit" element={<ProtectedRoute><AdminInquiryEdit /></ProtectedRoute>} />
+          <Route path="/admin/inquiries/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
           <Route path="/projectCreate" element={<ProtectedRoute><ProjectCreate /></ProtectedRoute>} />
           <Route path="/projectModify/:projectId" element={<ProtectedRoute><ProjectModify /></ProtectedRoute>} />
           <Route path="/company-management" element={<ProtectedRoute><CompanyManagement /></ProtectedRoute>} />
@@ -51,7 +56,7 @@ const AppContent = () => {
           <Route path="/company-create" element={<ProtectedRoute><CompanyCreate /></ProtectedRoute>} />
           <Route path="/user-create" element={<ProtectedRoute><UserCreate /></ProtectedRoute>} />
           <Route path="/company-edit/:id" element={<ProtectedRoute><CompanyEdit /></ProtectedRoute>} />
-          <Route path="/project-list" element={<ProtectedRoute><UserProjectList /></ProtectedRoute>} />
+          <Route path="/user/projects" element={<ProtectedRoute><UserProjectList /></ProtectedRoute>} />
           <Route path="/admin/projects" element={<ProtectedRoute><AdminProjects /></ProtectedRoute>} />
           <Route path="/project/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
           <Route path="/user-edit/:id" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />

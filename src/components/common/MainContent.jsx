@@ -4,18 +4,20 @@ const MainContent = styled.div`
   flex: 1;
   padding: 30px 80px;
   overflow-y: auto;
-  max-width: 1400px;
-  margin: 0 auto;
   width: 90%;
   box-sizing: border-box;
 
-@media (max-width: 1200px) {
-    max-width: 1100px;
+  @media (min-width: 1000px) {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 999px) {
+    max-width: 100%;
     padding: 30px 40px;
   }
 
   @media (max-width: 800px) {
-    max-width: 500px;
     padding: 30px 20px;
   }
 `;

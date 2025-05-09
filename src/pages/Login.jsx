@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
+import ErrorMessage from '../components/ErrorMessage';
 
 const LoginContainer = styled.div`
   display: flex;
@@ -327,7 +328,14 @@ const Login = () => {
     try {
       await login({ email, password });
     } catch (err) {
-      setError(err.message || '로그인에 실패했습니다.');
+      console.error('Login error:', err);
+      if (err.response?.status === 401) {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -394,6 +402,7 @@ const Login = () => {
         </DemoCredentials>
 
         <Form onSubmit={handleSubmit}>
+          {error && <ErrorMessage message={error} />}
           <InputGroup>
             <Label>이메일</Label>
             <Input
