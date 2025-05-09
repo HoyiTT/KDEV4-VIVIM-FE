@@ -340,11 +340,10 @@ const AdminProjects = () => {
 
   const SearchSection = styled.div`
     display: flex;
-    gap: 16px;
+    gap: 12px;
     align-items: center;
     flex-wrap: wrap;
-    flex: 1;
-    justify-content: flex-end;
+    width: 100%;
   `;
 
   const SearchInput = styled.input`
@@ -352,13 +351,34 @@ const AdminProjects = () => {
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
-    width: 240px;
+    width: 200px;
     transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     
     &::placeholder {
       color: #94a3b8;
     }
+    
+    &:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    &:focus {
+      outline: none;
+      border-color: #2E7D32;
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    }
+  `;
+
+  const StyledSelect = styled(Select)`
+    width: 120px;
+    padding: 10px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     
     &:hover {
       border-color: #cbd5e1;
@@ -505,6 +525,10 @@ const AdminProjects = () => {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   `;
 
+  const handleProjectClick = (projectId) => {
+    navigate(`/project/${projectId}`);
+  };
+
   return (
     <PageContainer>
       <Sidebar />
@@ -526,7 +550,7 @@ const AdminProjects = () => {
                 onKeyPress={handleKeyPress}
                 name="name"
               />
-              <Select
+              <StyledSelect
                 value={searchParams.projectStatus}
                 onChange={(e) => handleFilterChange({ target: { name: 'projectStatus', value: e.target.value } })}
               >
@@ -535,7 +559,7 @@ const AdminProjects = () => {
                 <option value="IN_PROGRESS">진행중</option>
                 <option value="UNDER_INSPECTION">검수중</option>
                 <option value="COMPLETED">완료</option>
-              </Select>
+              </StyledSelect>
               <SearchCheckbox>
                 <input
                   type="checkbox"
@@ -570,13 +594,11 @@ const AdminProjects = () => {
                 {getCurrentPageProjects().map((project) => {
                   const statusColor = getStatusColor(project);
                   return (
-                    <TableRow key={project.projectId}>
-                      <TableCell 
-                        onClick={() => navigate(`/project/${project.projectId}`)}
-                        style={{ cursor: 'pointer', color: '#1e293b' }}
-                      >
-                        {project.name}
-                      </TableCell>
+                    <TableRow 
+                      key={project.projectId}
+                      onClick={() => handleProjectClick(project.projectId)}
+                    >
+                      <TableCell>{project.name}</TableCell>
                       <TableCell>{formatDate(project.startDate)}</TableCell>
                       <TableCell>{formatDate(project.endDate)}</TableCell>
                       <TableCell>
@@ -593,7 +615,10 @@ const AdminProjects = () => {
                               수정
                             </ActionButton>
                             <DeleteButton 
-                              onClick={() => handleDeleteProject(project.projectId)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProject(project.projectId);
+                              }}
                               disabled={project.isDeleted}
                             >
                               삭제

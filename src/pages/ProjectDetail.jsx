@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes, FaGripVertical } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes, FaGripVertical, FaInfoCircle } from 'react-icons/fa';
 import ProjectStageProgress from '../components/ProjectStage';
 import approvalUtils from '../utils/approvalStatus';
 import { ApprovalProposalStatus } from '../constants/enums';
@@ -15,6 +15,16 @@ import { CSS } from '@dnd-kit/utilities';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
+import SortableItem from '../components/SortableItem';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+} from '@chakra-ui/react';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -31,6 +41,7 @@ const PROGRESS_STAGE_MAP = {
 const StatusBadge = styled.div`
   padding: 4px 12px;
   border-radius: 4px;
+  font-size: 14px;
     font-size: 14px;
   font-weight: 500;
   background-color: ${props => props.$isDeleted ? '#ef4444' : '#2E7D32'};
@@ -572,168 +583,6 @@ const StageSplitLayout = styled.div`
   flex-direction: column;
 `;
 
-// 모달 관련 스타일 컴포넌트 추가
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background-color: white;
-  padding: 24px;
-  border-radius: 12px;
-  width: 600px;
-  max-width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  
-  h3 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-    color: #1e293b;
-  }
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #64748b;
-  
-  &:hover {
-    color: #334155;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 16px;
-  width: 100%;
-  box-sizing: border-box;
-`;
-
-const ModalFooter = styled.div`
-  padding: 16px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-`;
-
-const ModalButton = styled.button`
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-
-  &:hover {
-    background: #e2e8f0;
-  }
-`;
-
-const ContentSection = styled.div`
-  font-size: 14px;
-  color: #475569;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  white-space: pre-wrap;
-`;
-
-const ProposalSubtitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
-  ${props => props.withMargin && `
-    margin-top: 32px;
-  `}
-`;
-
-// 날짜 포맷팅 함수
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-const ApprovalDetailModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalSection = styled.div`
-  margin-bottom: 20px;
-  
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #475569;
-  }
-  
-  p {
-    margin: 8px 0;
-    line-height: 1.5;
-  }
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #1e293b;
-`;
-
-const ProposalTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #1e293b;
-`;
-
-const ProposalInfo = styled.div`
-  margin-bottom: 20px;
-  padding: 16px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-`;
-
-const ApprovalDecision = styled.div`
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
-`;
-
 const StageProgressHeader = styled.div`
   margin-bottom: 20px;
 `;
@@ -837,7 +686,6 @@ const ProgressFill = styled.div`
   border-radius: 2px;
 `;
 
-// 새로 추가된 스타일 컴포넌트
 const StageHeaderActions = styled.div`
   display: flex;
   align-items: center;
@@ -948,14 +796,17 @@ const ActionTitle = styled.h2`
   }
 `;
 
-const EmptyStageMessage = styled.div`
-  text-align: center;
-  padding: 40px 20px;
-  color: #6b7280;
+const EmptyStage = styled.div`
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+  font-size: 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #e2e8f0;
 `;
 
 const AddStageButton = styled.button`
@@ -1032,33 +883,6 @@ const StageList = styled.div`
   flex-direction: column;
   gap: 8px;
 `;
-
-const SortableItem = ({ id, name, position }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <SortableStageItem ref={setNodeRef} style={style}>
-      <DragHandle {...attributes} {...listeners}>
-        <FaGripVertical />
-      </DragHandle>
-      <StageItemContent>
-        <StageItemName>{name}</StageItemName>
-        <StageItemPosition>{position}번째</StageItemPosition>
-      </StageItemContent>
-    </SortableStageItem>
-  );
-};
 
 const SortableStageItem = styled.div`
   display: flex;
@@ -1252,6 +1076,62 @@ const NotificationPanel = styled(ModalContent)`
   transition: transform 0.3s ease-in-out;
 `;
 
+const ApprovalDetailModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalSection = styled.div`
+  margin-bottom: 20px;
+  
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #475569;
+  }
+  
+  p {
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1e293b;
+`;
+
+const ProposalTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1e293b;
+`;
+
+const ProposalInfo = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+`;
+
+const ApprovalDecision = styled.div`
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+`;
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1266,15 +1146,6 @@ const ProjectDetail = () => {
   const [showAll, setShowAll] = useState(false);
   const [progressList, setProgressList] = useState([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [selectedProposal, setSelectedProposal] = useState(null);
-  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
-  const [selectedApproval, setSelectedApproval] = useState(null);
-  const [approvalRequestsForStage, setApprovalRequestsForStage] = useState([]);
-  const [showStageModal, setShowStageModal] = useState(false);
-  const [stageAction, setStageAction] = useState('');
-  const [editingStage, setEditingStage] = useState(null);
-  const [stageName, setStageName] = useState('');
-  const [showPositionModal, setShowPositionModal] = useState(false);
   const [statusSummary, setStatusSummary] = useState(null);
   const [approvalRequests, setApprovalRequests] = useState([]);
   const [projectProgress, setProjectProgress] = useState({
@@ -1310,6 +1181,16 @@ const ProjectDetail = () => {
   const [devUserInfo, setDevUserInfo] = useState(null);
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showPositionModal, setShowPositionModal] = useState(false);
+  const [isStageModalOpen, setIsStageModalOpen] = useState(false);
+  const [currentStageAction, setCurrentStageAction] = useState(null);
+  const [currentStage, setCurrentStage] = useState(null);
+
+  const openStageModal = (action, stage = null) => {
+    setCurrentStageAction(action);
+    setCurrentStage(stage);
+    setIsStageModalOpen(true);
+  };
 
   useEffect(() => {
     if (progressList) {
@@ -1480,15 +1361,15 @@ const ProjectDetail = () => {
 
   const fetchProjectProgress = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}/progress`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`, {
         withCredentials: true
       });
-      console.log('Progress 조회 응답:', data);
+      console.log('Progress 조회 응답:', response.data);
       
       // 새로 추가된 단계의 isCompleted 값을 false로 설정
-      const updatedProgressList = data.progressList.map(progress => ({
+      const updatedProgressList = response.data.progressList.map(progress => ({
         ...progress,
-        isCompleted: progress.isCompleted && progress.id !== data.progressList[data.progressList.length - 1]?.id
+        isCompleted: progress.isCompleted && progress.id !== response.data.progressList[response.data.progressList.length - 1]?.id
       }));
       
       setProgressList(updatedProgressList);
@@ -1499,15 +1380,15 @@ const ProjectDetail = () => {
 
   const fetchProjectDetail = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}`, {
+      const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(id), {
         withCredentials: true
       });
-      setProject(data);
+      setProject(response.data);
       
       // 현재 진행 단계 설정
-      if (data.currentProgress && progressList.length > 0) {
+      if (response.data.currentProgress && progressList.length > 0) {
         const currentStageIndex = progressList.findIndex(
-          stage => stage.position === data.currentProgress
+          stage => stage.position === response.data.currentProgress
         );
         if (currentStageIndex !== -1) {
           setCurrentStageIndex(currentStageIndex);
@@ -1523,90 +1404,615 @@ const ProjectDetail = () => {
 
   const fetchProjectPosts = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}/posts`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/posts`, {
         withCredentials: true
       });
-      setPosts(data);
+      setPosts(response.data);
     } catch (error) {
       console.error('Error fetching posts:', error);
     }
   };
 
-  const fetchProjectOverallProgress = async () => {
-    try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}/progress/overall-progress`, {
-        withCredentials: true
-      });
-      setProjectProgress(data);
-    } catch (error) {
-      console.error('전체 진행률 조회 실패:', error);
-      if (error.response?.status === 403) {
-        console.log('권한이 없습니다. 로그인이 필요합니다.');
-      }
+  const handleNextStage = () => {
+    if (currentStageIndex < progressList.length - 1) {
+      setCurrentStageIndex(prev => prev + 1);
+    }
+  };
+  
+  const handlePrevStage = () => {
+    if (currentStageIndex > 0) {
+      setCurrentStageIndex(prev => prev - 1);
     }
   };
 
-  const fetchProgressStatus = async () => {
-    try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}/progress/status`, {
-        withCredentials: true
-      });
-      setProgressStatus(data);
-    } catch (error) {
-      console.error('상태별 진행률 조회 실패:', error);
-      if (error.response?.status === 403) {
-        console.log('권한이 없습니다. 로그인이 필요합니다.');
-      }
-    }
+  // 승인요청 항목 클릭 시 처리하는 함수
+  const handleApprovalClick = (approval) => {
+    navigate(`/project/${id}/approval/${approval.id}`);
   };
 
+  // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${id}/approval-requests`, {
+      if (!project) {
+        console.log('프로젝트 정보가 없어 승인요청 목록을 조회하지 않습니다.');
+        return;
+      }
+
+      // 사용자 권한 확인
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('접근 권한이 없습니다.');
+        return;
+      }
+
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/approvals`, {
         withCredentials: true
       });
       setApprovalRequests(data);
+      
+      // 승인요청 상태가 변경되면 진행률 다시 조회
+      await Promise.all([
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
     } catch (error) {
-      console.error('Error fetching approval requests:', error);
+      console.error('승인요청 목록 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('승인요청 목록 조회 권한이 없습니다.');
+      }
+      // 에러 발생 시 빈 배열로 설정
+      setApprovalRequests([]);
+    }
+  };
+  
+  // 프로젝트 진행률 조회
+  const fetchProjectOverallProgress = async () => {
+    try {
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/overall-progress`, {
+        withCredentials: true
+      });
+      
+      // 현재 단계의 승인요청들을 필터링
+      const currentStageApprovals = approvalRequests.filter(
+        req => req.stageId === progressList[currentStageIndex]?.id
+      );
+      
+      // 현재 단계의 승인요청 중 최종 승인된 것의 비율 계산
+      let currentStageProgress = 0;
+      if (currentStageApprovals.length > 0) {
+        const approvedCount = currentStageApprovals.filter(
+          req => req.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED
+        ).length;
+        currentStageProgress = (approvedCount / currentStageApprovals.length) * 100;
+      }
+      
+      // 진행률 데이터 업데이트
+      setProjectProgress({
+        totalStageCount: data.totalStageCount || 0,
+        completedStageCount: data.completedStageCount || 0,
+        currentStageProgressRate: currentStageProgress,
+        overallProgressRate: data.overallProgressRate || 0
+      });
+      
+    } catch (error) {
+      console.error('프로젝트 진행률 조회 중 오류 발생:', error);
+      // 에러 발생 시 기본값 설정
+      setProjectProgress({
+        totalStageCount: 0,
+        completedStageCount: 0,
+        currentStageProgressRate: 0,
+        overallProgressRate: 0
+      });
     }
   };
 
+  // 프로젝트 단계별 승인요청 진척도 조회
+  const fetchProgressStatus = async () => {
+    try {
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/status`, {
+        withCredentials: true
+      });
+
+      // 각 단계의 완료 여부는 단계 승급 버튼을 눌러야만 설정되도록 수정
+      const updatedProgressList = data.progressList.map(progress => ({
+        ...progress,
+        isCompleted: progress.isCompleted || false // 기존 isCompleted 값 유지
+      }));
+
+      setProgressStatus({
+        ...data,
+        progressList: updatedProgressList
+      });
+
+      // 완료된 단계 수 계산
+      const completedStages = updatedProgressList.reduce((count, status) => {
+        return status.isCompleted ? count + 1 : count;
+      }, 0);
+
+      // 전체 진행률 업데이트 (단계 단위로)
+      const totalStages = updatedProgressList.length;
+      const overallProgress = totalStages > 0 ? (completedStages / totalStages) * 100 : 0;
+
+      setProjectProgress(prev => ({
+        ...prev,
+        completedStageCount: completedStages,
+        totalStageCount: totalStages,
+        overallProgressRate: overallProgress
+      }));
+
+    } catch (error) {
+      console.error('단계별 진척도 조회 중 오류 발생:', error);
+    }
+  };
+  
+  // 단계 승급 처리 함수 추가
+  const handleIncreaseProgress = async () => {
+    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
+    
+    // 확인 메시지 추가
+    if (!window.confirm('현재 단계를 승급하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      setIsIncreasing(true); // 진행 중 상태로 설정
+      await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {}, {
+        withCredentials: true
+      });
+
+      // 승급 후 데이터 새로고침 순서 변경
+      await Promise.all([
+        fetchProjectDetail(), // 프로젝트 정보 다시 가져오기
+        fetchProjectProgress(),
+        fetchProjectOverallProgress(),
+        fetchProgressStatus()
+      ]);
+      
+      // 현재 단계 인덱스 업데이트
+      setCurrentStageIndex(prev => prev + 1);
+      
+      alert('단계가 승급되었습니다.');
+    } catch (error) {
+      console.error('Error increasing progress:', error);
+      alert('단계 승급 중 오류가 발생했습니다.');
+    } finally {
+      setIsIncreasing(false); // 진행 중 상태 해제
+    }
+  };
+
+  // 단계 순서 변경 저장
+  const handleSavePositions = async () => {
+    try {
+      // 위치 값 검증
+      const invalidStage = stages.find(stage => !stage.position || stage.position < 0);
+      if (invalidStage) {
+        alert('단계 위치 값이 유효하지 않습니다. 모든 단계는 0 이상의 위치 값을 가져야 합니다.');
+        return;
+      }
+
+      console.log('현재 stages 상태:', stages);
+
+      // 모든 단계의 위치를 순차적으로 업데이트
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        console.log(`단계 ID: ${stage.id}, 이름: ${stage.name}, 위치: ${i}`);
+        await axiosInstance.put(
+          `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}/positioning`,
+          { targetIndex: i },
+          {
+            withCredentials: true
+          }
+        );
+      }
+      
+      alert('단계 순서가 성공적으로 변경되었습니다.');
+      setShowPositionModal(false);
+      fetchProjectProgress(); // 단계 목록 새로고침
+    } catch (error) {
+      console.error('단계 순서 변경 중 오류 발생:', error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('단계 순서 변경에 실패했습니다.');
+      }
+    }
+  };
+
+  // 회사 정보 조회
   const fetchCompanyInfo = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.COMPANY_INFO}`, {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('회사 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/company-info`, {
         withCredentials: true
       });
-      setCompanyInfo(data);
+      setCompanyInfo(response.data);
     } catch (error) {
-      console.error('Error fetching company info:', error);
+      console.error('회사 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('회사 정보 조회 권한이 없습니다.');
+      }
     }
   };
 
+  // 고객사 사용자 정보 조회
   const fetchClientUserInfo = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.CLIENT_USER_INFO}`, {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/client-users`, {
         withCredentials: true
       });
-      setClientUserInfo(data);
+      setClientUserInfo(response.data);
     } catch (error) {
-      console.error('Error fetching client user info:', error);
+      console.error('고객사 사용자 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
+      }
     }
   };
 
+  // 개발사 사용자 정보 조회
   const fetchDevUserInfo = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.DEVELOPER_USER_INFO}`, {
+      // 권한 체크
+      if (!isAdmin && !isClient && !isDeveloperManager) {
+        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
+        return;
+      }
+
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/dev-users`, {
         withCredentials: true
       });
-      setDevUserInfo(data);
+      setDevUserInfo(response.data);
     } catch (error) {
-      console.error('Error fetching developer user info:', error);
+      console.error('개발사 사용자 정보 조회 중 오류 발생:', error);
+      if (error.response?.status === 403) {
+        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
+      }
     }
+  };
+
+  // 토글 헤더 클릭 핸들러 수정
+  const handleCompanyInfoToggle = () => {
+    if (!companyInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchCompanyInfo();
+    }
+    setShowCompanyInfo(!showCompanyInfo);
+  };
+
+  const handleClientInfoToggle = () => {
+    if (!clientUserInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchClientUserInfo();
+    }
+    setShowClientInfo(!showClientInfo);
+  };
+
+  const handleDevInfoToggle = () => {
+    if (!devUserInfo && (isAdmin || isClient || isDeveloperManager)) {
+      fetchDevUserInfo();
+    }
+    setShowDevInfo(!showDevInfo);
+  };
+
+  // progressList가 변경될 때도 현재 진행 단계 업데이트
+  useEffect(() => {
+    if (project?.currentProgress && progressList.length > 0) {
+      const currentStageIndex = progressList.findIndex(
+        stage => stage.position === project.currentProgress
+      );
+      if (currentStageIndex !== -1) {
+        setCurrentStageIndex(currentStageIndex);
+      }
+    }
+  }, [progressList, project?.currentProgress]);
+
+  // 현재 단계의 모든 승인요청이 APPROVED 상태인지 확인하는 함수
+  const isAllApprovalsApproved = (stageId) => {
+    const stageApprovals = approvalRequests.filter(req => req.stageId === stageId);
+    return stageApprovals.length > 0 && stageApprovals.every(req => 
+      req.approvalProposalStatus === ApprovalProposalStatus.FINAL_APPROVED
+    );
   };
 
   return (
     <PageContainer>
-      {/* Rest of the component content remains unchanged */}
+      <ContentWrapper>
+        <MainContent>
+          {loading ? (
+            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+          ) : project ? (
+            <ContentContainer>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                <BackButton onClick={() => navigate('/admin/projects')}>
+                  <span>←</span>
+                  목록으로
+                </BackButton>
+                <PageTitle style={{ margin: '0 0 0 24px' }}>프로젝트 상세</PageTitle>
+              </div>
+              <ProjectInfoSection>
+                <ProjectHeader>
+                  <StatusBadge $isDeleted={project?.isDeleted}>
+                    {project?.isDeleted ? '삭제됨' : '진행중'}
+                  </StatusBadge>
+                  {isAdmin && !project?.isDeleted && (
+                    <ActionButtons>
+                      <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
+                        수정
+                      </CreateButton>
+                      <CreateButton $delete onClick={() => handleDeleteProject()}>
+                        삭제
+                      </CreateButton>
+                    </ActionButtons>
+                  )}
+                </ProjectHeader>
+                <ProjectTitleSection>
+                  <ProjectTitle>{project.name}</ProjectTitle>
+                  <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+                </ProjectTitleSection>
+                <DateContainer>
+                  <DateItem>
+                    <DateLabel>시작일</DateLabel>
+                    <DateValue>{project.startDate}</DateValue>
+                  </DateItem>
+                  <DateItem>
+                    <DateLabel>종료일</DateLabel>
+                    <DateValue>{project.endDate}</DateValue>
+                  </DateItem>
+                  <DateItem>
+                    <DateLabel>계약금</DateLabel>
+                    <DateValue>{project.projectFee?.toLocaleString()}원</DateValue>
+                  </DateItem>
+                </DateContainer>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleCompanyInfoToggle}
+                    $isOpen={showCompanyInfo}
+                  >
+                    <ToggleTitle>회사 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showCompanyInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : companyInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>고객사</ToggleLabel>
+                          <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>개발사</ToggleLabel>
+                          <ToggleValue>
+                            {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleClientInfoToggle}
+                    $isOpen={showClientInfo}
+                  >
+                    <ToggleTitle>고객사 사용자 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showClientInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : clientUserInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>고객사 담당자</ToggleLabel>
+                          <ToggleValue>
+                            {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>고객사 사용자</ToggleLabel>
+                          <ToggleValue>
+                            {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
+
+                <ToggleSection>
+                  <ToggleHeader 
+                    onClick={handleDevInfoToggle}
+                    $isOpen={showDevInfo}
+                  >
+                    <ToggleTitle>개발사 사용자 정보</ToggleTitle>
+                    <span>▼</span>
+                  </ToggleHeader>
+                  <ToggleContent $isOpen={showDevInfo}>
+                    {!isAdmin && !isClient && !isDeveloperManager ? (
+                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                    ) : devUserInfo ? (
+                      <>
+                        <ToggleItem>
+                          <ToggleLabel>개발사 담당자</ToggleLabel>
+                          <ToggleValue>
+                            {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                        <ToggleItem>
+                          <ToggleLabel>개발사 사용자</ToggleLabel>
+                          <ToggleValue>
+                            {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                          </ToggleValue>
+                        </ToggleItem>
+                      </>
+                    ) : (
+                      <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
+                    )}
+                  </ToggleContent>
+                </ToggleSection>
+              </ProjectInfoSection>
+
+              <StageSection>
+                <StageSplitLayout>
+                  <ProjectStageProgress 
+                    progressList={progressList}
+                    currentStageIndex={currentStageIndex}
+                    setCurrentStageIndex={setCurrentStageIndex}
+                    title="프로젝트 진행 단계"
+                    isAdmin={isAdmin}
+                    isDeveloperManager={isDeveloperManager}
+                    openStageModal={openStageModal}
+                    projectProgress={projectProgress}
+                    progressStatus={progressStatus}
+                    onIncreaseProgress={handleIncreaseProgress}
+                    currentProgress={project?.currentProgress}
+                    projectId={project?.id}
+                  >
+                    {progressList.length > 0 ? (
+                      progressList
+                    .sort((a, b) => a.position - b.position)
+                      .map((stage, index) => (
+                        <StageContainer 
+                          key={stage.id} 
+                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+                        >
+                          <StageItem 
+                            ref={el => stageRefs.current[index] = el} 
+                          >
+                            <StageHeader>
+                              <StageTitle title={stage.name} />
+                              {!isAllApprovalsApproved(stage.id) && (
+                                <StageHeaderActions>
+                                  <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
+                                    <FaPlus /> 승인요청 추가
+                                  </StageActionButton>
+                                  <StageActionButton onClick={() => openStageModal('editPosition')}>
+                                    <FaGripVertical /> 단계 순서 변경
+                                  </StageActionButton>
+                                </StageHeaderActions>
+                              )}
+                            </StageHeader>
+                          </StageItem>
+                        </StageContainer>
+                      ))
+                    ) : (
+                      <EmptyStage>
+                        <FaInfoCircle /> 진행 단계가 없습니다.
+                      </EmptyStage>
+                    )}
+                  </ProjectStageProgress>
+                </StageSplitLayout>
+              </StageSection>
+
+              <StageSection>
+                <StageSplitLayout>
+                  <ProjectStageProgress 
+                    progressList={progressList}
+                    currentStageIndex={currentStageIndex}
+                    setCurrentStageIndex={setCurrentStageIndex}
+                    title="프로젝트 진행 단계"
+                    isAdmin={isAdmin}
+                    isDeveloperManager={isDeveloperManager}
+                    openStageModal={openStageModal}
+                  >
+                    {progressList.length > 0 ? (
+                      progressList
+                    .sort((a, b) => a.position - b.position)
+                      .map((stage, index) => (
+                        <StageContainer 
+                          key={stage.id} 
+                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
+                        >
+                          <StageItem 
+                            ref={el => stageRefs.current[index] = el} 
+                          >
+                            <StageHeader>
+                              <StageTitle title={stage.name} />
+                              {!isAllApprovalsApproved(stage.id) && (
+                                <StageHeaderActions>
+                                  <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
+                                    <FaPlus /> 승인요청 추가
+                                  </StageActionButton>
+                                  <StageActionButton onClick={() => openStageModal('editPosition')}>
+                                    <FaGripVertical /> 단계 순서 변경
+                                  </StageActionButton>
+                                </StageHeaderActions>
+                              )}
+                            </StageHeader>
+                          </StageItem>
+                        </StageContainer>
+                      ))
+                    ) : (
+                      <EmptyStage>
+                        <FaInfoCircle /> 진행 단계가 없습니다.
+                      </EmptyStage>
+                    )}
+                  </ProjectStageProgress>
+                </StageSplitLayout>
+              </StageSection>
+
+              {showPositionModal && (
+                <ModalOverlay>
+                  <StageModalContent>
+                    <ModalHeader>
+                      <h2>단계 순서 변경</h2>
+                    </ModalHeader>
+                    <ModalBody>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={progressList.map(item => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <StageList>
+                            {progressList.map((stage) => (
+                              <SortableItem
+                                key={stage.id}
+                                id={stage.id}
+                                name={stage.name}
+                                position={stage.position}
+                                component={SortableStageItem}
+                              />
+                            ))}
+                          </StageList>
+                        </SortableContext>
+                      </DndContext>
+                    </ModalBody>
+                    <ModalFooter>
+                      <ActionButton onClick={handleSavePositions}>
+                        순서 저장
+                      </ActionButton>
+                      <CancelButton onClick={() => setShowPositionModal(false)}>
+                        취소
+                      </CancelButton>
+                    </ModalFooter>
+                  </StageModalContent>
+                </ModalOverlay>
+              )}
+            </ContentContainer>
+          ) : (
+            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+          )}
+        </MainContent>
+      </ContentWrapper>
     </PageContainer>
   );
 };

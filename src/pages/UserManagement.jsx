@@ -70,7 +70,7 @@ const TableCell = styled.td`
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
   vertical-align: middle;
-  white-space: ${props => props.nowrap ? 'nowrap' : 'normal'};
+  white-space: ${props => props.$nowrap ? 'nowrap' : 'normal'};
 `;
 
   const TableHeaderCell = styled.th`
@@ -85,10 +85,10 @@ const TableCell = styled.td`
 
   const TableRow = styled.tr`
     cursor: pointer;
-    transition: all 0.2s;
-
+    transition: background-color 0.2s;
+    
     &:hover {
-      background: #f8fafc;
+      background-color: #f8fafc;
     }
   `;
 
@@ -182,19 +182,19 @@ const TableCell = styled.td`
   const PaginationNumber = styled.button`
     width: 32px;
     height: 32px;
-  display: flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    background: ${props => props.active ? '#2E7D32' : 'white'};
-    border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
+    background: ${props => props.$active ? '#2E7D32' : 'white'};
+    border: 1px solid ${props => props.$active ? '#2E7D32' : '#e2e8f0'};
     border-radius: 6px;
-    color: ${props => props.active ? 'white' : '#1e293b'};
+    color: ${props => props.$active ? 'white' : '#1e293b'};
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover:not(:disabled) {
-      background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
+      background: ${props => props.$active ? '#2E7D32' : '#f8fafc'};
     }
   `;
 
@@ -506,6 +506,11 @@ const UserManagement = () => {
     }
   };
 
+  const handleRowClick = (userId) => {
+    console.log('Navigating to user edit page with ID:', userId);
+    navigate(`/user-edit/${userId}`);
+  };
+
   return (
     <PageContainer>
       <Sidebar />
@@ -601,24 +606,36 @@ const UserManagement = () => {
                 {users.map((user) => {
                   const roleBadge = getRoleBadge(user.companyRole);
                   return (
-                    <TableRow key={user.id}>
-                      <TableCell nowrap>{user.name}</TableCell>
-                      <TableCell nowrap>{user.email}</TableCell>
-                      <TableCell nowrap>{user.phone}</TableCell>
-                      <TableCell nowrap>{user.companyName}</TableCell>
-                      <TableCell nowrap>
+                    <TableRow 
+                      key={user.id} 
+                      onClick={() => handleRowClick(user.id)}
+                    >
+                      <TableCell $nowrap>{user.name}</TableCell>
+                      <TableCell $nowrap>{user.email}</TableCell>
+                      <TableCell $nowrap>{user.phone}</TableCell>
+                      <TableCell $nowrap>{user.companyName}</TableCell>
+                      <TableCell $nowrap>
                         <StatusBadge status={user.status}>
                           {roleBadge.text}
                         </StatusBadge>
                       </TableCell>
-                      <TableCell nowrap>
+                      <TableCell $nowrap>
                         {!user.isDeleted && (
                           <ActionButtonContainer>
-                            <ActionButton onClick={() => navigate(`/user-edit/${user.id}`)}>
+                            <ActionButton 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Edit button clicked for user:', user.id);
+                                handleRowClick(user.id);
+                              }}
+                            >
                               수정
                             </ActionButton>
                             <DeleteButton 
-                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteUser(user.id, user.name);
+                              }}
                               disabled={user.isDeleted}
                             >
                               삭제
@@ -642,7 +659,7 @@ const UserManagement = () => {
                 {[...Array(totalPages)].map((_, index) => (
                   <PaginationNumber
                     key={index + 1}
-                    active={currentPage === index + 1}
+                    $active={currentPage === index + 1}
                     onClick={() => setCurrentPage(index + 1)}
                   >
                     {index + 1}

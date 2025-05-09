@@ -53,6 +53,22 @@ const UserProjectList = () => {
     }
   };
 
+  const getProjectStatus = (project) => {
+    if (project.isDeleted) {
+      return '삭제됨';
+    }
+    switch (project.projectStatus) {
+      case 'PROGRESS':
+        return '진행중';
+      case 'INSPECTION':
+        return '검수중';
+      case 'COMPLETED':
+        return '완료';
+      default:
+        return '대기중';
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -85,8 +101,23 @@ const UserProjectList = () => {
         </Header>
         <ProjectGrid>
           {projects.map((project) => (
-            <ProjectCard key={project.projectId} onClick={() => navigate(`/user/project/${project.projectId}`)}>
-              <ProjectTitle>{project.name}</ProjectTitle>
+            <ProjectCard 
+              key={project.projectId} 
+              onClick={() => navigate(`/user/project/${project.projectId}`)}
+              isDeleted={project.isDeleted}
+            >
+              <ProjectTitle style={{ 
+                textDecoration: project.isDeleted ? 'line-through' : 'none',
+                color: project.isDeleted ? '#B91C1C' : '#1e293b'
+              }}>
+                {project.name}
+              </ProjectTitle>
+              <ProjectInfo>
+                <InfoLabel>상태:</InfoLabel>
+                <StatusBadge status={project.isDeleted ? 'DELETED' : project.projectStatus}>
+                  {getProjectStatus(project)}
+                </StatusBadge>
+              </ProjectInfo>
               <ProjectInfo>
                 <InfoLabel>역할:</InfoLabel>
                 <RoleBadge>{getRoleBadgeText(project.myRole)}</RoleBadge>
@@ -144,7 +175,7 @@ const ProjectGrid = styled.div`
 `;
 
 const ProjectCard = styled.div`
-  background: white;
+  background: ${props => props.isDeleted ? '#FEE2E2' : 'white'};
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -191,6 +222,7 @@ const StatusBadge = styled.span`
   letter-spacing: -0.02em;
   transition: all 0.15s ease;
   background: ${props => {
+    if (props.status === 'DELETED') return '#FEE2E2';
     switch (props.status) {
       case 'PENDING': return '#FEF3C7';
       case 'IN_PROGRESS': return '#DBEAFE';
@@ -200,6 +232,7 @@ const StatusBadge = styled.span`
     }
   }};
   color: ${props => {
+    if (props.status === 'DELETED') return '#B91C1C';
     switch (props.status) {
       case 'PENDING': return '#D97706';
       case 'IN_PROGRESS': return '#2563EB';

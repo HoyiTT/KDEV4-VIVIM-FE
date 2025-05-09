@@ -127,7 +127,7 @@ const CancelButton = styled.button`
 
 const SubmitButton = styled.button`
   padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
+  background: #2E7D32;
   color: white;
   border: none;
   border-radius: 12px;
@@ -138,22 +138,22 @@ const SubmitButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 6px rgba(46, 125, 50, 0.3);
   }
 
   &:active {
     transform: translateY(0);
-    background: #2563eb;
+    background: #1B5E20;
   }
 `;
 
 const PasswordButton = styled.button`
   padding: 10px 16px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
+  background: #2E7D32;
   color: white;
   border: none;
   border-radius: 12px;
@@ -162,16 +162,16 @@ const PasswordButton = styled.button`
   cursor: pointer;
   margin-top: 8px;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 6px rgba(46, 125, 50, 0.3);
   }
 
   &:active {
     transform: translateY(0);
-    background: #2563eb;
+    background: #1B5E20;
   }
 `;
 
@@ -229,11 +229,11 @@ const RoleBadge = styled.span`
   background-color: ${props => {
     switch (props.role) {
       case 'ADMIN':
-        return '#E3F2FD';
-      case 'CUSTOMER':
         return '#E8F5E9';
+      case 'CUSTOMER':
+        return '#C8E6C9';
       case 'DEVELOPER':
-        return '#FFF3E0';
+        return '#A5D6A7';
       default:
         return '#F5F5F5';
     }
@@ -241,11 +241,11 @@ const RoleBadge = styled.span`
   color: ${props => {
     switch (props.role) {
       case 'ADMIN':
-        return '#1976D2';
-      case 'CUSTOMER':
         return '#2E7D32';
+      case 'CUSTOMER':
+        return '#1B5E20';
       case 'DEVELOPER':
-        return '#F57C00';
+        return '#1B5E20';
       default:
         return '#757575';
     }
@@ -254,8 +254,8 @@ const RoleBadge = styled.span`
 
 const UserEdit = () => {
   const navigate = useNavigate();
-  const { userId } = useParams();
-  const { user } = useAuth();
+  const { id: userId } = useParams();
+  const { user, isLoading: authLoading } = useAuth();
   
   const [userData, setUserData] = useState({
     name: '',
@@ -268,72 +268,91 @@ const UserEdit = () => {
   const [newPassword, setNewPassword] = useState('');
   const [companies, setCompanies] = useState([]);
 
-  // Fetch user data
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!user || user.companyRole !== 'ADMIN') {
+      navigate('/dashboard');
+      return;
+    }
+
     const fetchUserData = async () => {
+      if (!userId) {
+        console.error('No userId provided');
+        navigate('/user-management');
+        return;
+      }
+
       try {
+        setLoading(true);
         console.log('Fetching user data for ID:', userId);
-        const { data } = await axiosInstance.get(API_ENDPOINTS.USER_DETAIL(userId), {
+        
+        // 사용자 정보 가져오기
+        const { data: userResponse } = await axiosInstance.get(API_ENDPOINTS.USER_DETAIL(userId), {
           withCredentials: true,
           headers: {
-            'accept': '*/*'
+            'accept': '*/*',
+            'Content-Type': 'application/json'
           }
         });
         
-        console.log('User data response:', data);
+        console.log('User data response:', userResponse);
         
-        if (data.statusCode === 200 && data.data) {
-          const userDataFromApi = data.data;
+        if (userResponse.statusCode === 200 && userResponse.data) {
+          const userDataFromApi = userResponse.data;
           console.log('Setting user data:', userDataFromApi);
-          setUserData(userDataFromApi);
           
-          console.log('Fetching companies...');
-          const { data: companiesData } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
+          // 회사 목록 가져오기
+          const { data: companiesResponse } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
             withCredentials: true,
             headers: {
-              'accept': '*/*'
+              'accept': '*/*',
+              'Content-Type': 'application/json'
             }
           });
-          console.log('Companies data:', companiesData);
-          setCompanies(companiesData || []);
           
-          const matchingCompany = companiesData.find(
+          console.log('Companies data:', companiesResponse);
+          setCompanies(companiesResponse || []);
+          
+          // 현재 사용자의 회사 ID 찾기
+          const matchingCompany = companiesResponse.find(
             company => company.name === userDataFromApi.companyName
           );
           
           if (matchingCompany) {
             console.log('Found matching company:', matchingCompany);
-            setUserData(prevState => ({
-              ...prevState,
+            setUserData({
+              ...userDataFromApi,
               companyId: matchingCompany.id
-            }));
+            });
+          } else {
+            setUserData(userDataFromApi);
           }
         } else {
-          console.error('Invalid response format:', data);
-          throw new Error(data.statusMessage || 'Failed to fetch user data');
+          throw new Error(userResponse.statusMessage || 'Failed to fetch user data');
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching user:', error);
         console.error('Error details:', {
           message: error.message,
           response: error.response,
-          status: error.response?.status
+          status: error.response?.status,
+          code: error.code
         });
-        alert('사용자 정보를 불러오는데 실패했습니다.');
+        
+        if (error.code === 403) {
+          alert('접근 권한이 없습니다. 관리자에게 문의하세요.');
+        } else {
+          alert('사용자 정보를 불러오는데 실패했습니다.');
+        }
+        navigate('/user-management');
+      } finally {
         setLoading(false);
       }
     };
 
-    if (userId && user) {
-      console.log('Starting data fetch with userId:', userId, 'user:', user);
-      fetchUserData();
-    } else {
-      console.log('Missing userId or user:', { userId, user });
-      setLoading(false);
-    }
-  }, [userId, user]);
+    fetchUserData();
+  }, [userId, navigate, user, authLoading]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -360,12 +379,8 @@ const UserEdit = () => {
         }
       });
 
-      if (data.statusCode === 200) {
-        alert('사용자 정보가 수정되었습니다.');
-        navigate('/user-management');
-      } else {
-        alert('사용자 수정에 실패했습니다.');
-      }
+      // API가 200 OK를 반환하면 성공으로 처리
+      navigate('/user-management');
     } catch (error) {
       console.error('Error updating user:', error);
       alert('사용자 수정 중 오류가 발생했습니다.');
@@ -382,7 +397,8 @@ const UserEdit = () => {
       const { data } = await axiosInstance.put(API_ENDPOINTS.USER_PASSWORD_MODIFY(userId, newPassword), null, {
         withCredentials: true,
         headers: {
-          'accept': '*/*'
+          'accept': '*/*',
+          'Content-Type': 'application/json'
         }
       });
 
@@ -434,7 +450,7 @@ const UserEdit = () => {
           <HeaderContainer>
             <PageTitle>사용자 수정</PageTitle>
             <BackButton onClick={handleBack}>
-              돌아가기
+              ← 돌아가기
             </BackButton>
           </HeaderContainer>
 
