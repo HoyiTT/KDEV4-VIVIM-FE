@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
 import { FaHome, FaProjectDiagram, FaBell } from 'react-icons/fa';
-import axiosInstance from '../services/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 
 const Sidebar = () => {
@@ -28,17 +27,17 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: '' },
-    { path: '/user/projects', label: '프로젝트 관리', icon: '📁' },
-    { path: '/inquiries', label: '관리자에게 문의하기', icon: '💬' },
+    { path: '/user/projects', label: '프로젝트 관리' },
+    { path: '/user/inquiries', label: '관리자에게 문의하기'},
   ];
 
   const adminMenuItems = [
-    { path: '/dashboard-admin', label: '관리자 대시보드', icon: '👑' },
-    { path: '/admin/projects', label: '프로젝트 관리', icon: '' },
-    { path: '/company-management', label: '회사 관리', icon: '🏢' },
-    { path: '/user-management', label: '사용자 관리', icon: '👥' },
-    { path: '/admin/inquiries', label: '문의사항 관리', icon: '💬' },
-    { path: '/audit-log', label: '로그 기록', icon: '📜' },
+    { path: '/dashboard-admin', label: '관리자 대시보드'},
+    { path: '/admin/projects', label: '프로젝트 관리'},
+    { path: '/company-management', label: '회사 관리' },
+    { path: '/user-management', label: '사용자 관리'},
+    { path: '/admin/inquiries', label: '문의사항 관리' },
+    { path: '/audit-log', label: '로그 기록'},
   ];
 
   const handleLogout = () => {
