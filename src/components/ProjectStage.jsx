@@ -475,10 +475,10 @@ const ProjectStageProgress = ({
     
     const currentStageName = REVERSE_PROGRESS_STAGE_MAP[currentProgress] || '';
     const isCurrent = !stageStatus.isCompleted && stage.name === currentStageName;
-    const isCompleted = stageStatus.isCompleted || 
-      (currentProgress === 'COMPLETED') || 
-      (Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) > 
-       Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(Object.keys(REVERSE_PROGRESS_STAGE_MAP).find(key => REVERSE_PROGRESS_STAGE_MAP[key] === stage.name)));
+    
+    // 승인요청이 1개 이상이고, 모든 승인요청이 완료된 경우 완료 상태로 설정
+    const isCompleted = stageStatus.totalApprovalCount > 0 && 
+                       stageStatus.approvedApprovalCount === stageStatus.totalApprovalCount;
     
     return { isCurrent, isCompleted };
   };

@@ -16,15 +16,6 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import SortableItem from '../components/SortableItem';
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-} from '@chakra-ui/react';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -52,11 +43,11 @@ const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1400px;
-  padding: 10px;
-  margin: 20px auto;
-  box-sizing: border-box;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 20px;
 `;
 
 const InfoGrid = styled.div`
@@ -92,12 +83,16 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f8fafc;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  position: fixed;
-  left: 270px;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  overflow-y: auto;
+  box-sizing: border-box;
+  margin-left: 270px;
+  width: calc(100% - 270px);
+  overflow-x: hidden;
+  padding: 0;
+
+  @media (max-width: 800px) {
+    margin-left: 0;
+    width: 100%;
+  }
 `;
 
 const Header = styled.div`
@@ -149,6 +144,8 @@ const ProjectInfoSection = styled.div`
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 0px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const ProjectHeader = styled.div`
@@ -310,7 +307,6 @@ const EmptyStateDescription = styled.p`
 const StageSection = styled.div`
   background: transparent;
   width: 100%;
-  overflow-x: hidden;
   box-sizing: border-box;
   padding: 0;
   margin-bottom: 16px;
@@ -323,6 +319,7 @@ const StageGrid = styled.div`
   width: 100%;
   height: 600px;
   overflow: hidden;
+  box-sizing: border-box;
 `;
 
 const StageItem = styled.div`
@@ -333,33 +330,14 @@ const StageItem = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 100%;
   height: 550px;
   max-height: 550px;
   overflow-y: auto;
   overflow-x: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
   margin: 0 auto;
   box-sizing: border-box;
-  
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
 `;
 
 const StageHeader = styled.div`
@@ -370,6 +348,10 @@ const StageHeader = styled.div`
   padding: 0;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const StageEditActions = styled.div`
@@ -430,6 +412,8 @@ const BoardSection = styled.div`
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const BoardHeader = styled.div`
@@ -467,6 +451,8 @@ const BoardTable = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  table-layout: fixed;
+  box-sizing: border-box;
 `;
 
 const BoardHeaderCell = styled.th`
@@ -477,6 +463,12 @@ const BoardHeaderCell = styled.th`
   color: #64748b;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
+  box-sizing: border-box;
+
+  &:nth-child(1) { width: 40%; }
+  &:nth-child(2) { width: 20%; }
+  &:nth-child(3) { width: 20%; }
+  &:nth-child(4) { width: 20%; }
 `;
 
 const BoardCell = styled.td`
@@ -490,11 +482,12 @@ const BoardCell = styled.td`
   background: transparent;
   vertical-align: middle;
   line-height: 1.5;
+  box-sizing: border-box;
 
   &.title-cell {
     display: table-cell;
     align-items: center;
-    max-width: 400px;
+    width: 40%;
     font-weight: 500;
   }
 
@@ -554,6 +547,9 @@ const StageTitle = styled.h3`
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
   
   &::before {
     content: '${props => props.title || ''}';
@@ -689,263 +685,107 @@ const ProgressFill = styled.div`
 const StageHeaderActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 8px;
+  box-sizing: border-box;
 `;
 
 const StageActionButton = styled.button`
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 4px 8px;
   background-color: #2563eb;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
   transition: background-color 0.2s;
+  min-width: 0;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #1d4ed8;
   }
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
-const StageActionIcon = styled.button`
+const StageModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+`;
+
+const ModalBody = styled.div`
+  margin-bottom: 20px;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+`;
+
+const ModalCloseButton = styled.button`
   background: none;
   border: none;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    background-color: #f3f4f6;
-    color: #4f46e5;
-  }
-`;
-
-const StageModalContent = styled(ModalContent)`
-  max-width: 500px;
-`;
-
-const ModalForm = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const FormField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const FormLabel = styled.label`
-  font-weight: 500;
-  color: #374151;
-`;
-
-const FormInput = styled.input`
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 16px;
-  
-  &:focus {
-    outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
-  }
-`;
-
-const ActionCard = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 16px;
-`;
-
-const ActionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-`;
-
-const ActionTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-  position: relative;
-  padding-left: 16px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #2E7D32;
-    border-radius: 2px;
-  }
-`;
-
-const EmptyStage = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px;
   color: #64748b;
-  font-size: 14px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px dashed #e2e8f0;
-`;
-
-const AddStageButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  font-size: 15px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
-
-const ActionButton = styled.button`
-  padding: 10px 16px;
-  background-color: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #4338ca;
-  }
+  padding: 8px 0;
   
-  &.delete {
-    background-color: #ef4444;
-    
-    &:hover {
-      background-color: #dc2626;
-    }
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 10px 16px;
-  background-color: #f3f4f6;
-  color: #374151;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-
   &:hover {
-    background-color: #e5e7eb;
-  }
-`;
-
-const DeleteConfirmMessage = styled.div`
-  padding: 16px;
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border-radius: 4px;
-  margin: 16px 0;
-  text-align: center;
-  font-weight: 500;
-`;
-
-const DragInstructions = styled.p`
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 16px;
-`;
-
-const StageList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const SortableStageItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: grab;
-  
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const DragHandle = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  cursor: grab;
-  padding: 8px;
-  
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const StageItemContent = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const StageItemName = styled.div`
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-const StageItemPosition = styled.div`
-  color: #64748b;
-  font-size: 14px;
-`;
-
-const ListButton = styled.button`
-  padding: 8px 16px;
-  background: #f1f5f9;
-  color: #475569;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  &:hover {
-    background: #e2e8f0;
-    color: #1e293b;
+    color: #2E7D32;
   }
 `;
 
@@ -1056,80 +896,68 @@ const ToggleValue = styled.span`
   word-break: break-word;
 `;
 
-const NotificationOverlay = styled(ModalOverlay)`
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-`;
-
-const NotificationPanel = styled(ModalContent)`
-  position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 400px;
-  max-width: 90vw;
-  height: 100vh;
-  border-radius: 0;
-  margin: 0;
-  padding: 0;
-  transform: translateX(${props => props.$isOpen ? '0' : '100%'});
-  transition: transform 0.3s ease-in-out;
-`;
-
-const ApprovalDetailModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+const EmptyStage = styled.div`
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-`;
-
-const ModalSection = styled.div`
-  margin-bottom: 20px;
-  
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #475569;
-  }
-  
-  p {
-    margin: 8px 0;
-    line-height: 1.5;
-  }
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #1e293b;
-`;
-
-const ProposalTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #1e293b;
-`;
-
-const ProposalInfo = styled.div`
-  margin-bottom: 20px;
-  padding: 16px;
-  background-color: #f8fafc;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+  font-size: 14px;
+  background: #f8fafc;
   border-radius: 8px;
+  border: 1px dashed #e2e8f0;
 `;
 
-const ApprovalDecision = styled.div`
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
+const StageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const SortableStageItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const ActionButton = styled.button`
+  padding: 10px 16px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #4338ca;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 10px 16px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
 `;
 
 const ProjectDetail = () => {
@@ -1185,11 +1013,51 @@ const ProjectDetail = () => {
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
   const [currentStageAction, setCurrentStageAction] = useState(null);
   const [currentStage, setCurrentStage] = useState(null);
+  const [newStageName, setNewStageName] = useState('');
+
+  const [comments, setComments] = useState({});
 
   const openStageModal = (action, stage = null) => {
     setCurrentStageAction(action);
     setCurrentStage(stage);
     setIsStageModalOpen(true);
+  };
+
+  const handleCloseStageModal = () => {
+    setIsStageModalOpen(false);
+    setCurrentStageAction(null);
+    setCurrentStage(null);
+    setNewStageName('');
+  };
+
+  const handleAddStage = async () => {
+    if (!newStageName.trim()) {
+      alert('단계 이름을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.post(
+        `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress`,
+        {
+          name: newStageName,
+          position: progressList.length + 1,
+          isCompleted: false  // 명시적으로 미완료 상태로 설정
+        },
+        {
+          withCredentials: true
+        }
+      );
+
+      if (response.data) {
+        // 새로 추가된 단계를 포함한 전체 목록을 다시 가져옴
+        await fetchProjectProgress();
+        handleCloseStageModal();
+      }
+    } catch (error) {
+      console.error('Error adding stage:', error);
+      alert('단계 추가 중 오류가 발생했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -1366,11 +1234,15 @@ const ProjectDetail = () => {
       });
       console.log('Progress 조회 응답:', response.data);
       
-      // 새로 추가된 단계의 isCompleted 값을 false로 설정
-      const updatedProgressList = response.data.progressList.map(progress => ({
-        ...progress,
-        isCompleted: progress.isCompleted && progress.id !== response.data.progressList[response.data.progressList.length - 1]?.id
-      }));
+      // 새로 추가된 단계는 항상 미완료 상태로 설정
+      const updatedProgressList = response.data.progressList.map((progress, index, arr) => {
+        // position이 가장 큰 단계(마지막에 추가된 단계)는 항상 미완료 상태로 설정
+        const isLastStage = progress.position === Math.max(...arr.map(p => p.position));
+        return {
+          ...progress,
+          isCompleted: isLastStage ? false : progress.isCompleted
+        };
+      }).sort((a, b) => a.position - b.position);  // position 기준으로 정렬
       
       setProgressList(updatedProgressList);
     } catch (error) {
@@ -1722,298 +1594,381 @@ const ProjectDetail = () => {
     );
   };
 
+  // 댓글 목록 조회 함수
+  const fetchComments = async (postId) => {
+    try {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.POSTS}/${postId}/comments`, {
+        withCredentials: true
+      });
+      setComments(prev => ({
+        ...prev,
+        [postId]: response.data
+      }));
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  // 게시글 클릭 핸들러 수정
+  const handlePostClick = (post) => {
+    // 댓글 목록 조회
+    fetchComments(post.postId);
+    // 게시글 상세 페이지로 이동
+    navigate(`/project/${id}/post/${post.postId}`);
+  };
+
+  // 날짜 포맷 함수 추가
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+
   return (
-    <PageContainer>
+    <MainContent>
       <ContentWrapper>
-        <MainContent>
-          {loading ? (
-            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-          ) : project ? (
-            <ContentContainer>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-                <BackButton onClick={() => navigate('/admin/projects')}>
-                  <span>←</span>
-                  목록으로
-                </BackButton>
-                <PageTitle style={{ margin: '0 0 0 24px' }}>프로젝트 상세</PageTitle>
-              </div>
-              <ProjectInfoSection>
-                <ProjectHeader>
-                  <StatusBadge $isDeleted={project?.isDeleted}>
-                    {project?.isDeleted ? '삭제됨' : '진행중'}
-                  </StatusBadge>
-                  {isAdmin && !project?.isDeleted && (
-                    <ActionButtons>
-                      <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
-                        수정
-                      </CreateButton>
-                      <CreateButton $delete onClick={() => handleDeleteProject()}>
-                        삭제
-                      </CreateButton>
-                    </ActionButtons>
+        {loading ? (
+          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+        ) : project ? (
+          <ContentContainer>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+              <BackButton onClick={() => navigate('/admin/projects')}>
+                <span>←</span>
+                목록으로
+              </BackButton>
+              <PageTitle style={{ margin: '0 0 0 24px' }}>프로젝트 상세</PageTitle>
+            </div>
+            <ProjectInfoSection>
+              <ProjectHeader>
+                <StatusBadge $isDeleted={project?.isDeleted}>
+                  {project?.isDeleted ? '삭제됨' : '진행중'}
+                </StatusBadge>
+                {isAdmin && !project?.isDeleted && (
+                  <ActionButtons>
+                    <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
+                      수정
+                    </CreateButton>
+                    <CreateButton $delete onClick={() => handleDeleteProject()}>
+                      삭제
+                    </CreateButton>
+                  </ActionButtons>
+                )}
+              </ProjectHeader>
+              <ProjectTitleSection>
+                <ProjectTitle>{project.name}</ProjectTitle>
+                <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+              </ProjectTitleSection>
+              <DateContainer>
+                <DateItem>
+                  <DateLabel>시작일</DateLabel>
+                  <DateValue>{project.startDate}</DateValue>
+                </DateItem>
+                <DateItem>
+                  <DateLabel>종료일</DateLabel>
+                  <DateValue>{project.endDate}</DateValue>
+                </DateItem>
+                <DateItem>
+                  <DateLabel>계약금</DateLabel>
+                  <DateValue>{project.projectFee?.toLocaleString()}원</DateValue>
+                </DateItem>
+              </DateContainer>
+
+              <ToggleSection>
+                <ToggleHeader 
+                  onClick={handleCompanyInfoToggle}
+                  $isOpen={showCompanyInfo}
+                >
+                  <ToggleTitle>회사 정보</ToggleTitle>
+                  <span>▼</span>
+                </ToggleHeader>
+                <ToggleContent $isOpen={showCompanyInfo}>
+                  {!isAdmin && !isClient && !isDeveloperManager ? (
+                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                  ) : companyInfo ? (
+                    <>
+                      <ToggleItem>
+                        <ToggleLabel>고객사</ToggleLabel>
+                        <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
+                      </ToggleItem>
+                      <ToggleItem>
+                        <ToggleLabel>개발사</ToggleLabel>
+                        <ToggleValue>
+                          {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
+                        </ToggleValue>
+                      </ToggleItem>
+                    </>
+                  ) : (
+                    <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
                   )}
-                </ProjectHeader>
-                <ProjectTitleSection>
-                  <ProjectTitle>{project.name}</ProjectTitle>
-                  <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
-                </ProjectTitleSection>
-                <DateContainer>
-                  <DateItem>
-                    <DateLabel>시작일</DateLabel>
-                    <DateValue>{project.startDate}</DateValue>
-                  </DateItem>
-                  <DateItem>
-                    <DateLabel>종료일</DateLabel>
-                    <DateValue>{project.endDate}</DateValue>
-                  </DateItem>
-                  <DateItem>
-                    <DateLabel>계약금</DateLabel>
-                    <DateValue>{project.projectFee?.toLocaleString()}원</DateValue>
-                  </DateItem>
-                </DateContainer>
+                </ToggleContent>
+              </ToggleSection>
 
-                <ToggleSection>
-                  <ToggleHeader 
-                    onClick={handleCompanyInfoToggle}
-                    $isOpen={showCompanyInfo}
-                  >
-                    <ToggleTitle>회사 정보</ToggleTitle>
-                    <span>▼</span>
-                  </ToggleHeader>
-                  <ToggleContent $isOpen={showCompanyInfo}>
-                    {!isAdmin && !isClient && !isDeveloperManager ? (
-                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                    ) : companyInfo ? (
-                      <>
-                        <ToggleItem>
-                          <ToggleLabel>고객사</ToggleLabel>
-                          <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>개발사</ToggleLabel>
-                          <ToggleValue>
-                            {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                      </>
-                    ) : (
-                      <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-                    )}
-                  </ToggleContent>
-                </ToggleSection>
+              <ToggleSection>
+                <ToggleHeader 
+                  onClick={handleClientInfoToggle}
+                  $isOpen={showClientInfo}
+                >
+                  <ToggleTitle>고객사 사용자 정보</ToggleTitle>
+                  <span>▼</span>
+                </ToggleHeader>
+                <ToggleContent $isOpen={showClientInfo}>
+                  {!isAdmin && !isClient && !isDeveloperManager ? (
+                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                  ) : clientUserInfo ? (
+                    <>
+                      <ToggleItem>
+                        <ToggleLabel>고객사 담당자</ToggleLabel>
+                        <ToggleValue>
+                          {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                        </ToggleValue>
+                      </ToggleItem>
+                      <ToggleItem>
+                        <ToggleLabel>고객사 사용자</ToggleLabel>
+                        <ToggleValue>
+                          {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                        </ToggleValue>
+                      </ToggleItem>
+                    </>
+                  ) : (
+                    <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
+                  )}
+                </ToggleContent>
+              </ToggleSection>
 
-                <ToggleSection>
-                  <ToggleHeader 
-                    onClick={handleClientInfoToggle}
-                    $isOpen={showClientInfo}
-                  >
-                    <ToggleTitle>고객사 사용자 정보</ToggleTitle>
-                    <span>▼</span>
-                  </ToggleHeader>
-                  <ToggleContent $isOpen={showClientInfo}>
-                    {!isAdmin && !isClient && !isDeveloperManager ? (
-                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                    ) : clientUserInfo ? (
-                      <>
-                        <ToggleItem>
-                          <ToggleLabel>고객사 담당자</ToggleLabel>
-                          <ToggleValue>
-                            {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>고객사 사용자</ToggleLabel>
-                          <ToggleValue>
-                            {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                      </>
-                    ) : (
-                      <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
-                    )}
-                  </ToggleContent>
-                </ToggleSection>
+              <ToggleSection>
+                <ToggleHeader 
+                  onClick={handleDevInfoToggle}
+                  $isOpen={showDevInfo}
+                >
+                  <ToggleTitle>개발사 사용자 정보</ToggleTitle>
+                  <span>▼</span>
+                </ToggleHeader>
+                <ToggleContent $isOpen={showDevInfo}>
+                  {!isAdmin && !isClient && !isDeveloperManager ? (
+                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
+                  ) : devUserInfo ? (
+                    <>
+                      <ToggleItem>
+                        <ToggleLabel>개발사 담당자</ToggleLabel>
+                        <ToggleValue>
+                          {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
+                        </ToggleValue>
+                      </ToggleItem>
+                      <ToggleItem>
+                        <ToggleLabel>개발사 사용자</ToggleLabel>
+                        <ToggleValue>
+                          {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
+                        </ToggleValue>
+                      </ToggleItem>
+                    </>
+                  ) : (
+                    <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
+                  )}
+                </ToggleContent>
+              </ToggleSection>
+            </ProjectInfoSection>
 
-                <ToggleSection>
-                  <ToggleHeader 
-                    onClick={handleDevInfoToggle}
-                    $isOpen={showDevInfo}
-                  >
-                    <ToggleTitle>개발사 사용자 정보</ToggleTitle>
-                    <span>▼</span>
-                  </ToggleHeader>
-                  <ToggleContent $isOpen={showDevInfo}>
-                    {!isAdmin && !isClient && !isDeveloperManager ? (
-                      <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                    ) : devUserInfo ? (
-                      <>
-                        <ToggleItem>
-                          <ToggleLabel>개발사 담당자</ToggleLabel>
-                          <ToggleValue>
-                            {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>개발사 사용자</ToggleLabel>
-                          <ToggleValue>
-                            {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                      </>
-                    ) : (
-                      <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
-                    )}
-                  </ToggleContent>
-                </ToggleSection>
-              </ProjectInfoSection>
-
-              <StageSection>
-                <StageSplitLayout>
-                  <ProjectStageProgress 
-                    progressList={progressList}
-                    currentStageIndex={currentStageIndex}
-                    setCurrentStageIndex={setCurrentStageIndex}
-                    title="프로젝트 진행 단계"
-                    isAdmin={isAdmin}
-                    isDeveloperManager={isDeveloperManager}
-                    openStageModal={openStageModal}
-                    projectProgress={projectProgress}
-                    progressStatus={progressStatus}
-                    onIncreaseProgress={handleIncreaseProgress}
-                    currentProgress={project?.currentProgress}
-                    projectId={project?.id}
-                  >
-                    {progressList.length > 0 ? (
-                      progressList
-                    .sort((a, b) => a.position - b.position)
-                      .map((stage, index) => (
-                        <StageContainer 
-                          key={stage.id} 
-                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
-                        >
-                          <StageItem 
-                            ref={el => stageRefs.current[index] = el} 
-                          >
-                            <StageHeader>
-                              <StageTitle title={stage.name} />
-                              {!isAllApprovalsApproved(stage.id) && (
-                                <StageHeaderActions>
-                                  <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
-                                    <FaPlus /> 승인요청 추가
-                                  </StageActionButton>
-                                  <StageActionButton onClick={() => openStageModal('editPosition')}>
-                                    <FaGripVertical /> 단계 순서 변경
-                                  </StageActionButton>
-                                </StageHeaderActions>
-                              )}
-                            </StageHeader>
-                          </StageItem>
-                        </StageContainer>
-                      ))
-                    ) : (
-                      <EmptyStage>
-                        <FaInfoCircle /> 진행 단계가 없습니다.
-                      </EmptyStage>
-                    )}
-                  </ProjectStageProgress>
-                </StageSplitLayout>
-              </StageSection>
-
-              <StageSection>
-                <StageSplitLayout>
-                  <ProjectStageProgress 
-                    progressList={progressList}
-                    currentStageIndex={currentStageIndex}
-                    setCurrentStageIndex={setCurrentStageIndex}
-                    title="프로젝트 진행 단계"
-                    isAdmin={isAdmin}
-                    isDeveloperManager={isDeveloperManager}
-                    openStageModal={openStageModal}
-                  >
-                    {progressList.length > 0 ? (
-                      progressList
-                    .sort((a, b) => a.position - b.position)
-                      .map((stage, index) => (
-                        <StageContainer 
-                          key={stage.id} 
-                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
-                        >
-                          <StageItem 
-                            ref={el => stageRefs.current[index] = el} 
-                          >
-                            <StageHeader>
-                              <StageTitle title={stage.name} />
-                              {!isAllApprovalsApproved(stage.id) && (
-                                <StageHeaderActions>
-                                  <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
-                                    <FaPlus /> 승인요청 추가
-                                  </StageActionButton>
-                                  <StageActionButton onClick={() => openStageModal('editPosition')}>
-                                    <FaGripVertical /> 단계 순서 변경
-                                  </StageActionButton>
-                                </StageHeaderActions>
-                              )}
-                            </StageHeader>
-                          </StageItem>
-                        </StageContainer>
-                      ))
-                    ) : (
-                      <EmptyStage>
-                        <FaInfoCircle /> 진행 단계가 없습니다.
-                      </EmptyStage>
-                    )}
-                  </ProjectStageProgress>
-                </StageSplitLayout>
-              </StageSection>
-
-              {showPositionModal && (
-                <ModalOverlay>
-                  <StageModalContent>
-                    <ModalHeader>
-                      <h2>단계 순서 변경</h2>
-                    </ModalHeader>
-                    <ModalBody>
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
+            <StageSection>
+              <StageSplitLayout>
+                <ProjectStageProgress 
+                  progressList={progressList}
+                  currentStageIndex={currentStageIndex}
+                  setCurrentStageIndex={setCurrentStageIndex}
+                  title="프로젝트 진행 단계"
+                  isAdmin={isAdmin}
+                  isDeveloperManager={isDeveloperManager}
+                  openStageModal={openStageModal}
+                  projectProgress={projectProgress}
+                  progressStatus={progressStatus}
+                  onIncreaseProgress={handleIncreaseProgress}
+                  currentProgress={project?.currentProgress}
+                  projectId={project?.id}
+                >
+                  {progressList.length > 0 ? (
+                    progressList
+                  .sort((a, b) => a.position - b.position)
+                    .map((stage, index) => (
+                      <StageContainer 
+                        key={stage.id} 
+                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
                       >
-                        <SortableContext
-                          items={progressList.map(item => item.id)}
-                          strategy={verticalListSortingStrategy}
+                        <StageItem 
+                          ref={el => stageRefs.current[index] = el} 
                         >
-                          <StageList>
-                            {progressList.map((stage) => (
-                              <SortableItem
-                                key={stage.id}
-                                id={stage.id}
-                                name={stage.name}
-                                position={stage.position}
-                                component={SortableStageItem}
-                              />
-                            ))}
-                          </StageList>
-                        </SortableContext>
-                      </DndContext>
-                    </ModalBody>
-                    <ModalFooter>
-                      <ActionButton onClick={handleSavePositions}>
-                        순서 저장
-                      </ActionButton>
-                      <CancelButton onClick={() => setShowPositionModal(false)}>
-                        취소
-                      </CancelButton>
-                    </ModalFooter>
-                  </StageModalContent>
-                </ModalOverlay>
-              )}
-            </ContentContainer>
-          ) : (
-            <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
-          )}
-        </MainContent>
+                          <StageHeader>
+                            <StageTitle title={stage.name} />
+                            {!isAllApprovalsApproved(stage.id) && !stage.isCompleted && (
+                              <StageHeaderActions>
+                                <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
+                                  <FaPlus /> 승인요청 추가
+                                </StageActionButton>
+                                <StageActionButton onClick={() => openStageModal('editPosition')}>
+                                  <FaGripVertical /> 단계 순서 변경
+                                </StageActionButton>
+                              </StageHeaderActions>
+                            )}
+                          </StageHeader>
+                        </StageItem>
+                      </StageContainer>
+                    ))
+                  ) : (
+                    <EmptyStage>
+                      <FaInfoCircle /> 진행 단계가 없습니다.
+                    </EmptyStage>
+                  )}
+                </ProjectStageProgress>
+              </StageSplitLayout>
+            </StageSection>
+
+            <BoardSection>
+              <BoardHeader>
+                <SectionTitle>게시글</SectionTitle>
+                <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                  게시글 작성
+                </CreateButton>
+              </BoardHeader>
+              <BoardTable>
+                <thead>
+                  <tr>
+                    <BoardHeaderCell>제목</BoardHeaderCell>
+                    <BoardHeaderCell>작성자</BoardHeaderCell>
+                    <BoardHeaderCell>작성일</BoardHeaderCell>
+                    <BoardHeaderCell>댓글</BoardHeaderCell>
+                  </tr>
+                </thead>
+                <tbody>
+                  {posts.length > 0 ? (
+                    posts.map((post) => (
+                      <BoardRow key={post.postId} onClick={() => handlePostClick(post)}>
+                        <BoardCell className="title-cell">
+                          {post.title}
+                          {post.replyCount > 0 && (
+                            <ReplyIndicator>
+                              [{post.replyCount}]
+                            </ReplyIndicator>
+                          )}
+                        </BoardCell>
+                        <BoardCell>{post.creatorName}</BoardCell>
+                        <BoardCell>{formatDate(post.createdAt)}</BoardCell>
+                        <BoardCell>
+                          {comments[post.postId]?.length || 0}
+                        </BoardCell>
+                      </BoardRow>
+                    ))
+                  ) : (
+                    <tr>
+                      <EmptyBoardCell colSpan="4">
+                        <EmptyStateContainer>
+                          <EmptyStateTitle>게시글이 없습니다</EmptyStateTitle>
+                          <EmptyStateDescription>
+                            첫 게시글을 작성해보세요.
+                          </EmptyStateDescription>
+                        </EmptyStateContainer>
+                      </EmptyBoardCell>
+                    </tr>
+                  )}
+                </tbody>
+              </BoardTable>
+            </BoardSection>
+
+            {showPositionModal && (
+              <ModalOverlay>
+                <ModalContent>
+                  <ModalHeader>
+                    <h2>단계 순서 변경</h2>
+                  </ModalHeader>
+                  <ModalBody>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={progressList.map(item => item.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <StageList>
+                          {progressList.map((stage) => (
+                            <SortableItem
+                              key={stage.id}
+                              id={stage.id}
+                              name={stage.name}
+                              position={stage.position}
+                              component={SortableStageItem}
+                            />
+                          ))}
+                        </StageList>
+                      </SortableContext>
+                    </DndContext>
+                  </ModalBody>
+                  <ModalFooter>
+                    <ActionButton onClick={handleSavePositions}>
+                      순서 저장
+                    </ActionButton>
+                    <CancelButton onClick={() => setShowPositionModal(false)}>
+                      취소
+                    </CancelButton>
+                  </ModalFooter>
+                </ModalContent>
+              </ModalOverlay>
+            )}
+
+            {isStageModalOpen && (
+              <ModalOverlay>
+                <ModalContent>
+                  <ModalHeader>
+                    <h2>
+                      {currentStageAction === 'add' && '새 단계 추가'}
+                      {currentStageAction === 'edit' && '단계 수정'}
+                      {currentStageAction === 'delete' && '단계 삭제'}
+                      {currentStageAction === 'editPosition' && '단계 순서 변경'}
+                    </h2>
+                    <ModalCloseButton onClick={handleCloseStageModal}>×</ModalCloseButton>
+                  </ModalHeader>
+                  <ModalBody>
+                    {currentStageAction === 'add' && (
+                      <div>
+                        <label htmlFor="stageName">단계 이름</label>
+                        <input
+                          type="text"
+                          id="stageName"
+                          value={newStageName}
+                          onChange={(e) => setNewStageName(e.target.value)}
+                          placeholder="새 단계 이름을 입력하세요"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            marginTop: '8px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </ModalBody>
+                  <ModalFooter>
+                    {currentStageAction === 'add' && (
+                      <>
+                        <ActionButton onClick={handleAddStage}>추가</ActionButton>
+                        <CancelButton onClick={handleCloseStageModal}>취소</CancelButton>
+                      </>
+                    )}
+                  </ModalFooter>
+                </ModalContent>
+              </ModalOverlay>
+            )}
+          </ContentContainer>
+        ) : (
+          <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
+        )}
       </ContentWrapper>
-    </PageContainer>
+    </MainContent>
   );
 };
 
