@@ -1,30 +1,35 @@
-import React, { useState, useEffect } from 'react';  // useEffect 추가
+import React, { useState, useEffect } from 'react';  
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
+import MainContent from '../components/common/MainContent';
+import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
+import axios from 'axios'; 
 
-
-
-// 파일 크기 제한 상수 추가 (상단에 추가)
+// 파일 크기 제한 상수 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+// 반드시 컴포넌트 함수 바깥에서 선언!
+const RoleTag = styled.span`
+  // 스타일 정의
+`;
+
 const ProjectPostModify = () => {
-  const { projectId, postId } = useParams();  // postId 추가
+  const { projectId, postId } = useParams(); 
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const parentPost = state?.parentPost;  // 라우터의 state에서 parentPost 가져오기
   const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
   
-  // Form states (removed links state)
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postStatus, setPostStatus] = useState('NORMAL');
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [fileError, setFileError] = useState('');
-  // Change the initial loading state from true to false
-  const [loading, setLoading] = useState(false);  // Changed from useState(true)
+  const [loading, setLoading] = useState(false); 
   const [newFiles, setNewFiles] = useState([]);
   const [filesToDelete, setFilesToDelete] = useState([]);
   const [linksToDelete, setLinksToDelete] = useState([]);
@@ -35,16 +40,9 @@ const ProjectPostModify = () => {
   useEffect(() => {
     const fetchPostDetail = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-          headers: {
-            'Authorization': `${token}`
-          }
+        const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
+          withCredentials: true
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch post details');
-        }
-        const data = await response.json();
         setTitle(data?.title || '');
         setContent(data?.content || '');
         setPostStatus(data?.projectPostStatus || 'NORMAL');
@@ -122,13 +120,9 @@ const ProjectPostModify = () => {
   };
   const fetchFiles = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
-        headers: {
-          'Authorization': token
-        }
+      const { data } = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/files`, {
+        withCredentials: true
       });
-      const data = await response.json();
       setExistingFiles(data.map(file => ({
         id: file.id,
         name: file.fileName
@@ -140,15 +134,11 @@ const ProjectPostModify = () => {
   // Update fetchLinks function
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
-        headers: {
-          'Authorization': token
-        }
+      const { data } = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/links`, {
+        withCredentials: true
       });
-      const data = await response.json();
       setExistingLinks(data.map(link => ({
-        id: link.id,  // Changed from linkId to id
+        id: link.id,
         title: link.title,
         url: link.url
       })));
@@ -158,13 +148,30 @@ const ProjectPostModify = () => {
   };
 
   // Update handleAddLink
-  const handleAddLink = () => {
+  const handleAddLink = async (postId, linkData) => {
+    if (!isAuthenticated || !user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
-    
-    if (linkTitle && linkUrl) {
-      setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
-      setLinkTitle('');
-      setLinkUrl('');
+    try {
+      const response = await axiosInstance.post(`${API_BASE_URL}/posts/${postId}/link`, linkData, {
+        withCredentials: true
+      });
+
+      // 응답 데이터가 null이어도 statusCode로 성공 여부 판단
+      if (response.data?.statusCode === 201) {
+        alert('링크가 등록되었습니다.');
+        // 필요하다면 링크 목록 새로고침 등 후처리
+      } else {
+        alert('링크 등록에 실패했습니다.');
+      }
+    } catch (error) {
+      if (error.response?.status === 403) {
+        alert('권한이 없습니다.');
+      } else {
+        alert('링크 등록 중 오류가 발생했습니다.');
+      }
     }
   };
   
@@ -184,7 +191,11 @@ const ProjectPostModify = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 제목과 내용의 공백 검증
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+
     if (!title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -197,138 +208,91 @@ const ProjectPostModify = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
-      // 게시글 수정
       const postData = {
-        title: title.trim(),  // 앞뒤 공백 제거
-        content: content.trim(),  // 앞뒤 공백 제거
+        title: title.trim(),
+        content: content.trim(),
         projectPostStatus: postStatus
       };
 
-      const postResponse = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(postData)
+      await axiosInstance.put(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, postData, {
+        withCredentials: true
       });
-  
-      if (!postResponse.ok) {
-        throw new Error(`게시글 수정 실패: ${postResponse.status}`);
-      }
-  
+
       // Delete links that were marked for deletion
       for (const linkId of linksToDelete) {
-        const deleteLinkResponse = await fetch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `${token}`
-          }
+        await axiosInstance.patch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {}, {
+          withCredentials: true
         });
-  
-        if (!deleteLinkResponse.ok) {
-          throw new Error(`링크 삭제 실패: ${deleteLinkResponse.status}`);
-        }
       }
-      for (const fileId of filesToDelete) {
-        const deleteFileResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `${token}`
-          }
-        });
 
-        if (!deleteFileResponse.ok) {
-          throw new Error(`파일 삭제 실패: ${deleteFileResponse.status}`);
-        }
+      for (const fileId of filesToDelete) {
+        await axiosInstance.patch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {}, {
+          withCredentials: true
+        });
       }
-  
+
       // Add new links
       for (const link of newLinks) {
-        const linkData = {
-          title: link.title,
-          url: link.url
-        };
-  
-        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, postId), {
-          method: 'POST',
-          headers: {
-            'Authorization': `${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(linkData)
-        });
-  
-        if (!linkResponse.ok) {
-          throw new Error(`링크 추가 실패: ${linkResponse.status}`);
-        }
+        await handleAddLink(postId, { title: link.title, url: link.url });
       }
-  
-      // Inside handleSubmit function, after handling links
+
       // Add new files
       for (const file of newFiles) {
+        if (!isAuthenticated || !user) {
+          alert('로그인이 필요합니다.');
+          return;
+        }
         try {
-          // 1. presigned URL 요청
-          const presignedUrlResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, postId), {
-            method: 'POST',
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+          const response = await axiosInstance.post(
+            `/posts/${postId}/file/presigned`,
+            {
               fileName: file.name,
               fileSize: file.size,
               contentType: file.type
-            })
-          });
+            }
+          );
+          const preSignedUrl = response.data.preSignedUrl || (response.data.data && response.data.data.preSignedUrl);
 
-          if (!presignedUrlResponse.ok) {
-            throw new Error(`presignedURL 생성 실패: ${presignedUrlResponse.status}`);
+          if (!preSignedUrl) {
+            alert('presigned URL을 받아오지 못했습니다.');
+            return;
           }
 
-          const { preSignedUrl } = await presignedUrlResponse.json();
-
-          // 2. presigned URL을 사용하여 S3에 파일 업로드
-          const uploadResponse = await fetch(preSignedUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': file.type
-            },
-            body: file
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${uploadResponse.status}`);
-          }
-
+          await axios.put(preSignedUrl, file);
         } catch (error) {
-          console.error('파일 업로드 중 오류 발생:', error);
+          if (error.response?.status === 403) {
+            alert('파일 업로드 권한이 없습니다.');
+          } else {
+            alert('파일 업로드 중 오류가 발생했습니다.');
+          }
           throw error;
         }
       }
-  
+
       navigate(`/project/${projectId}/post/${postId}`);
     } catch (error) {
       console.error('오류:', error);
-      alert('게시글 수정 중 오류가 발생했습니다: ' + error.message);
+      if (error.response?.status === 403) {
+        alert('권한이 없습니다.');
+      } else {
+        alert('게시글 수정 중 오류가 발생했습니다: ' + error.message);
+      }
     } finally {
-      setLoading(false);  // Make sure loading is set to false when everything is done
+      setLoading(false);
     }
   };
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={(menuItem) => setActiveMenuItem(menuItem)}
-      />
       <MainContent>
         <ContentContainer>
-          <Header>
+          <HeaderContainer>
+            <BackButton onClick={() => navigate(`/project/${projectId}/post/${postId}`)}>
+              <span>←</span>
+              뒤로가기
+            </BackButton>
             <PageTitle>게시글 수정</PageTitle>
-          </Header>
+          </HeaderContainer>
 
           <FormContainer onSubmit={handleSubmit}>
             <InputGroup>
@@ -418,7 +382,7 @@ const ProjectPostModify = () => {
       </LinkInputGroup>
       <AddButton
         type="button"
-        onClick={handleAddLink}
+        onClick={() => handleAddLink(postId, { title: linkTitle, url: linkUrl })}
         disabled={!linkTitle || !linkUrl}
       >
         추가
@@ -625,15 +589,18 @@ const FileItem = styled.li`
 `;
 
 const DeleteButton = styled.button`
-  background: none;
+  padding: 8px 16px;
+  background-color: #2E7D32;   // 시그니처 초록색
+  color: white;
   border: none;
-  color: #94a3b8;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  padding: 4px;
-  font-size: 16px;
-  
+  transition: all 0.2s;
+
   &:hover {
-    color: #ef4444;
+    background-color: #1B5E20; // 더 진한 초록색
   }
 `;
 
@@ -675,20 +642,28 @@ const PageContainer = styled.div`
   background-color: #f5f7fa;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-top: 60px;
-`;
-
 const ContentContainer = styled.div`
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
 `;
 
-const Header = styled.div`
-  margin-bottom: 24px;
+const HeaderContainer = styled.div`
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const PageTitle = styled.h1`
@@ -702,6 +677,10 @@ const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background-color: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 

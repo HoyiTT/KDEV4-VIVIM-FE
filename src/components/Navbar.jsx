@@ -3,11 +3,12 @@ import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import Sidebar from './Sidebar';
 
 const NavbarContainer = styled.nav`
   position: fixed;
   top: 0;
-  left: 0;
+  left: 240px;
   right: 0;
   height: 80px;
   background: white;
@@ -22,7 +23,6 @@ const NavbarContainer = styled.nav`
 const LeftSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 32px;
 `;
 
 const Logo = styled.div`
@@ -30,39 +30,7 @@ const Logo = styled.div`
   font-weight: 700;
   color: #2E7D32;
   cursor: pointer;
-`;
-
-const MenuList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: 16px;
-`;
-
-const MenuItem = styled.li`
-  margin: 0;
-  padding: 0;
-`;
-
-const MenuButton = styled.button`
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: ${props => props.active ? '#2E7D32' : '#64748b'};
-  font-size: 15px;
-  font-weight: ${props => props.active ? '600' : '500'};
-  cursor: pointer;
-  transition: all 0.2s;
-  border-radius: 8px;
-
-  &:hover {
-    background: #f8fafc;
-    color: #2E7D32;
-  }
+  white-space: nowrap;
 `;
 
 const RightSection = styled.div`
@@ -102,14 +70,16 @@ const Avatar = styled.div`
 
 const UserInfo = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 `;
 
 const UserName = styled.div`
   font-size: 14px;
   font-weight: 600;
   color: #1e293b;
+  white-space: nowrap;
 `;
 
 const UserRole = styled.div`
@@ -120,6 +90,7 @@ const UserRole = styled.div`
   border-radius: 4px;
   display: inline-block;
   font-weight: 500;
+  white-space: nowrap;
 `;
 
 const NotificationIcon = styled.div`
@@ -330,6 +301,7 @@ const LogoutButton = styled.button`
   color: #666;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 
   &:hover {
     background-color: #e0e0e0;
@@ -348,12 +320,105 @@ const NewNotificationBadge = styled.div`
   margin: 8px;
 `;
 
+const HamburgerButton = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #64748b;
+  transition: all 0.2s;
+
+  @media (max-width: 850px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:hover {
+    color: #2E7D32;
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
+const MobileMenuPanel = styled.div`
+  display: none;
+  position: fixed;
+  top: 80px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+
+  @media (max-width: 850px) {
+    display: ${props => props.show ? 'block' : 'none'};
+  }
+`;
+
+const MobileMenuList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const MobileMenuItem = styled.li`
+  margin: 0;
+  padding: 0;
+`;
+
+const MobileMenuButton = styled.button`
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: ${props => props.active ? '#2E7D32' : '#64748b'};
+  font-size: 15px;
+  font-weight: ${props => props.active ? '600' : '500'};
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+  text-align: left;
+
+  &:hover {
+    background: #f8fafc;
+    color: #2E7D32;
+  }
+`;
+
+const MobileMenuContent = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 240px;
+  height: 100%;
+  background: white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const notificationPanelRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const { 
     notifications, 
     unreadCount,
@@ -371,6 +436,9 @@ const Navbar = () => {
       if (notificationPanelRef.current && !notificationPanelRef.current.contains(event.target)) {
         setShowNotifications(false);
         setNewNotifications(new Set());
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setShowMobileMenu(false);
       }
     };
 
@@ -435,13 +503,6 @@ const Navbar = () => {
     markAsRead(notificationId);
   };
 
-  const menuItems = [
-    { path: '/dashboard', label: '대시보드' },
-    { path: '/project-list', label: '프로젝트 목록' },
-    { path: '/admin-inquiry-list', label: '문의 관리' },
-    { path: '/user-list', label: '사용자 관리' }
-  ];
-
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -499,32 +560,35 @@ const Navbar = () => {
   };
 
   return (
-    <NavbarContainer>
-      <LeftSection>
-        <Logo onClick={() => navigate('/dashboard')}>
-          비빔
-        </Logo>
-        <MenuList>
-          {menuItems.map(item => (
-            <MenuItem key={item.path}>
-              <MenuButton
-                active={location.pathname === item.path}
-                onClick={() => navigate(item.path)}
-              >
-                {item.label}
-              </MenuButton>
-            </MenuItem>
-          ))}
-        </MenuList>
-      </LeftSection>
-      <RightSection>
-        <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          {unreadCount > 0 && <NotificationBadge />}
-        </NotificationIcon>
-        <NotificationPanel ref={notificationPanelRef} show={showNotifications}>
+    <>
+      <NavbarContainer>
+        <LeftSection>
+          <Logo onClick={() => navigate('/dashboard')}>
+            비빔
+          </Logo>
+        </LeftSection>
+        <RightSection>
+          <NotificationIcon onClick={() => setShowNotifications(!showNotifications)}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {unreadCount > 0 && <NotificationBadge />}
+          </NotificationIcon>
+          <UserProfile onClick={handleProfileClick}>
+            <Avatar>{user?.name?.[0]}</Avatar>
+            <UserInfo>
+              <UserName>{user?.name}</UserName>
+              <UserRole>{user?.position || (user?.companyRole === 'ADMIN' ? '관리자' : '사용자')}</UserRole>
+            </UserInfo>
+          </UserProfile>
+          <LogoutButton onClick={handleLogout}>
+            로그아웃
+          </LogoutButton>
+        </RightSection>
+      </NavbarContainer>
+      <Sidebar />
+      {showNotifications && (
+        <NotificationPanel ref={notificationPanelRef}>
           <NotificationHeader>
             <NotificationTitle>알림</NotificationTitle>
             {unreadCount > 0 && (
@@ -597,18 +661,8 @@ const Navbar = () => {
             )}
           </NotificationList>
         </NotificationPanel>
-        <UserProfile onClick={handleProfileClick}>
-          <Avatar>{user?.name?.[0]}</Avatar>
-          <UserInfo>
-            <UserName>{user?.name}</UserName>
-            <UserRole>{user?.position || (user?.companyRole === 'ADMIN' ? '관리자' : '사용자')}</UserRole>
-          </UserInfo>
-        </UserProfile>
-        <LogoutButton onClick={handleLogout}>
-          로그아웃
-        </LogoutButton>
-      </RightSection>
-    </NavbarContainer>
+      )}
+    </>
   );
 };
 

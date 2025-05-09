@@ -1,10 +1,90 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { API_ENDPOINTS } from '../config/api';
-import CustomNotification from '../components/CustomNotification';
 import axiosInstance from '../utils/axiosInstance';
+import styled from 'styled-components';
 
 const NotificationContext = createContext();
+
+const NotificationPanel = styled.div`
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transform: translateX(${props => props.isOpen ? '0' : '100%'});
+  transition: transform 0.3s ease;
+  padding: 24px;
+  overflow-y: auto;
+`;
+
+const NotificationHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const NotificationTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 20px;
+  line-height: 1;
+  
+  &:hover {
+    color: #1e293b;
+  }
+`;
+
+const NotificationList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const NotificationItem = styled.div`
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid ${props => {
+    switch (props.type) {
+      case 'success':
+        return '#2E7D32';
+      case 'error':
+        return '#D32F2F';
+      case 'warning':
+        return '#F59E0B';
+      default:
+        return '#64748B';
+    }
+  }};
+`;
+
+const NotificationContent = styled.div`
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 8px;
+`;
+
+const NotificationTime = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
@@ -18,7 +98,7 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [showReadNotifications, setShowReadNotifications] = useState(true);
-  const [activeNotification, setActiveNotification] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
   
   const isInitializedRef = useRef(false);
   const isConnectingRef = useRef(false);
@@ -28,38 +108,10 @@ export const NotificationProvider = ({ children }) => {
   // 읽지 않은 알림 개수 계산
   const unreadCount = notifications.filter(notification => !notification.read).length;
 
-  // 커스텀 알림 표시 함수
-  const showNotification = (notification) => {
-    console.log('🔔 알림 수신:', notification);
-
-    if (!notification.title && !notification.content) {
-      console.log('⚠️ 알림 내용이 비어있습니다');
-      return;
-    }
-
-    // 알림 아이콘의 위치를 찾아서 알림 위치 계산
-    const notificationIcon = document.querySelector('.notification-icon');
-    if (notificationIcon) {
-      const rect = notificationIcon.getBoundingClientRect();
-      const notificationElement = document.querySelector('.custom-notification');
-      if (notificationElement) {
-        notificationElement.style.top = `${rect.bottom + 10}px`;
-        notificationElement.style.right = `${window.innerWidth - rect.right}px`;
-      }
-    }
-
-    setActiveNotification(notification);
-    
-    // 5초 후 자동으로 알림 닫기
-    setTimeout(() => {
-      setActiveNotification(null);
-    }, 5000);
-  };
-
-  // 알림 닫기 함수
-  const closeNotification = () => {
-    setActiveNotification(null);
-  };
+  // 알림 패널 토글
+  const togglePanel = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
 
   // SSE 연결 함수
   const connectSSE = useCallback(async () => {
@@ -114,7 +166,6 @@ export const NotificationProvider = ({ children }) => {
             const notification = JSON.parse(event.data);
             console.log('알림 데이터 파싱 성공:', notification);
             setNotifications(prev => [notification, ...prev]);
-            showNotification(notification);
           } catch (error) {
             console.error('알림 데이터 처리 실패:', error);
           }
@@ -246,19 +297,28 @@ export const NotificationProvider = ({ children }) => {
     getFilteredNotifications,
     showReadNotifications,
     setShowReadNotifications,
-    disconnectSSE
+    disconnectSSE,
+    isOpen,
+    togglePanel
   };
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      {activeNotification && (
-        <CustomNotification
-          notification={activeNotification}
-          onClose={closeNotification}
-        />
-      )}
+      <NotificationPanel isOpen={isOpen}>
+        <NotificationHeader>
+          <NotificationTitle>알림</NotificationTitle>
+          <CloseButton onClick={togglePanel}>&times;</CloseButton>
+        </NotificationHeader>
+        <NotificationList>
+          {getFilteredNotifications().map(notification => (
+            <NotificationItem key={notification.id} type={notification.type}>
+              <NotificationContent>{notification.content}</NotificationContent>
+              <NotificationTime>{new Date(notification.createdAt).toLocaleTimeString('ko-KR')}</NotificationTime>
+            </NotificationItem>
+          ))}
+        </NotificationList>
+      </NotificationPanel>
     </NotificationContext.Provider>
   );
-}; 
 }; 

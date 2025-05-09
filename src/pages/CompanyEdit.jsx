@@ -1,32 +1,56 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import { useAuth } from '../hooks/useAuth';
 
 // Move all styled components outside the component function
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 20px;
 `;
 
 const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
   width: 100%;
   max-width: 800px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const HeaderButtonsContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+`;
+
+const BackButton = styled.button`
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -43,10 +67,12 @@ const FormContainer = styled.form`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   width: 100%;
   max-width: 800px;
+  box-sizing: border-box;
 `;
 
 const FormGroup = styled.div`
   margin-bottom: 20px;
+  width: 100%;
 `;
 
 const Label = styled.label`
@@ -63,6 +89,7 @@ const Input = styled.input`
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -77,6 +104,7 @@ const Select = styled.select`
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -134,7 +162,7 @@ const SubmitButton = styled.button`
 const CompanyEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [activeMenuItem, setActiveMenuItem] = useState('회사 관리');
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     businessNumber: '',
@@ -145,17 +173,15 @@ const CompanyEdit = () => {
     coOwner: ''
   });
 
-  // Move fetchCompanyData inside useEffect to avoid dependency issues
   useEffect(() => {
     const fetchCompanyData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_DETAIL(id), {
+          withCredentials: true,
           headers: {
-            'Authorization': token
+            'accept': '*/*'
           }
         });
-        const data = await response.json();
         setFormData(data);
       } catch (error) {
         console.error('Error fetching company:', error);
@@ -163,23 +189,23 @@ const CompanyEdit = () => {
       }
     };
 
-    fetchCompanyData();
-  }, [id]);
+    if (user) {
+      fetchCompanyData();
+    }
+  }, [id, user]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(id), {
-        method: 'PUT',
+      const { data } = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), formData, {
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify(formData)
+          'accept': '*/*'
+        }
       });
 
-      if (response.ok) {
+      if (data) {
         alert('회사 정보가 수정되었습니다.');
         navigate('/company-management');
       } else {
@@ -199,20 +225,23 @@ const CompanyEdit = () => {
     }));
   }, []);
 
-  const handleMenuClick = useCallback((menuItem) => {
-    setActiveMenuItem(menuItem);
-  }, []);
+  const handleBack = () => {
+    navigate(-1);
+  };
 
-  // Make sure the component always returns JSX
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
       <MainContent>
+        <div style={{ width: '100%', maxWidth: '800px' }}>
         <Header>
+            <HeaderLeft>
           <PageTitle>회사 수정</PageTitle>
+            </HeaderLeft>
+            <HeaderButtonsContainer>
+              <BackButton onClick={handleBack}>
+                ← 돌아가기
+              </BackButton>
+            </HeaderButtonsContainer>
         </Header>
 
         <FormContainer onSubmit={handleSubmit}>
@@ -311,6 +340,7 @@ const CompanyEdit = () => {
             </SubmitButton>
           </ButtonContainer>
         </FormContainer>
+        </div>
       </MainContent>
     </PageContainer>
   );

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
 
 const AdminInquiry = () => {
   const navigate = useNavigate();
@@ -169,19 +170,9 @@ const AdminInquiry = () => {
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-`;
-
-const MainContent = styled.main`
-  padding: 24px;
-  margin-top: 60px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
 `;
 
 const Header = styled.div`

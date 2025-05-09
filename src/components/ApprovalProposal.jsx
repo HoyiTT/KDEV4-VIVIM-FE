@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -891,6 +892,7 @@ const ApprovalProposal = ({
   }
 }) => {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -964,7 +966,9 @@ const ApprovalProposal = ({
         return;
       }
 
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
+        withCredentials: true
+      });
       setProjectUsers(data);
     } catch (error) {
       console.error('프로젝트 사용자 목록 조회 중 오류 발생:', error);
@@ -995,7 +999,9 @@ const ApprovalProposal = ({
     // 직원 목록이 캐시에 없으면 API 호출하여 가져오기
     if (!companyEmployees[company.id]) {
       try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id));
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
+          withCredentials: true
+        });
         const empList = data.data ?? data.employees ?? data.items ?? (Array.isArray(data) ? data : []);
         
         // 프로젝트에 참여하는 직원만 필터링
@@ -1069,11 +1075,41 @@ const ApprovalProposal = ({
     }
   };
 
-  const handleProposalClick = (proposal) => {
-    navigate(`/approval/${proposal.id}`);
+  const handleProposalClick = async (proposal) => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id), {
+        withCredentials: true
+      });
+      
+      if (!data) {
+        throw new Error('승인요청 상세 정보를 찾을 수 없습니다.');
+      }
+
+      if (data.isDeleted) {
+        alert('삭제된 승인요청입니다.');
+        return;
+      }
+      
+      setSelectedProposal(data);
+      setIsProposalModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching proposal detail:', error);
+      if (error.response?.status === 403) {
+        alert('승인요청 상세 정보를 조회할 권한이 없습니다.');
+      } else if (error.response?.status === 404) {
+        alert('삭제된 승인요청입니다.');
+      } else {
+        alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+      }
+    }
   };
 
   const handleAddProposal = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
       return;
@@ -1145,7 +1181,12 @@ const ApprovalProposal = ({
       fetchProposals();
     } catch (error) {
       console.error('Error creating proposal:', error);
-      alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
+      if (error.response?.status === 403) {
+        alert('승인요청을 생성할 권한이 없습니다.');
+        navigate('/login');
+      } else {
+        alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
+      }
     }
   };
 
@@ -1361,6 +1402,15 @@ const ApprovalProposal = ({
     setLinks([]);
     setNewLink({ title: '', url: '' });
   };
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+  }, [user, authLoading, navigate]);
 
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
@@ -1598,7 +1648,7 @@ const ApprovalProposal = ({
         <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>승인요청 상세보기</ModalTitle>
+              <ModalTitle>승인요청 상세</ModalTitle>
               <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
             </ModalHeader>
             <ModalBody>

@@ -4,9 +4,7 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
-
-
-
+import MainContent from '../components/common/MainContent';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
@@ -406,15 +404,9 @@ const ErrorMessage = styled.span`
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-top: 60px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
 const ContentContainer = styled.div`

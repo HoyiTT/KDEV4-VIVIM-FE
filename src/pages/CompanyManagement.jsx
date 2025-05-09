@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import Select from '../components/common/Select';
+import { FaSearch } from 'react-icons/fa';
 
 const CompanyManagement = () => {
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('회사 관리');
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(0);
@@ -19,6 +20,9 @@ const CompanyManagement = () => {
     email: '',
     isDeleted: false
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -109,10 +113,6 @@ const CompanyManagement = () => {
     }));
   };
 
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
-
   const getRoleName = (role) => {
     switch (role) {
       case 'ADMIN':
@@ -128,159 +128,146 @@ const CompanyManagement = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <MainContent>
-        <Header>
-          <PageTitle>회사 관리</PageTitle>
-          <AddButton onClick={() => navigate('/company-create')}>
-            새 회사 등록
-          </AddButton>
-        </Header>
+        <Card>
+          <Header>
+            <PageTitle>회사 관리</PageTitle>
+            <ButtonContainer>
+              <SearchCheckbox>
+                <input
+                  type="checkbox"
+                  checked={showDeleted}
+                  onChange={(e) => setShowDeleted(e.target.checked)}
+                />
+                삭제된 회사만 검색
+              </SearchCheckbox>
+              <SearchButton onClick={handleSearch}>
+                검색
+              </SearchButton>
+              <AddButton onClick={() => navigate('/company-create')}>
+                새 회사 등록
+              </AddButton>
+            </ButtonContainer>
+          </Header>
 
-        <SearchSection>
-          <SearchInput
-            type="text"
-            name="name"
-            placeholder="회사명 검색"
-            value={filters.name}
-            onChange={handleFilterChange}
-          />
-          <SearchInput
-            type="text"
-            name="businessNumber"
-            placeholder="사업자등록번호 검색"
-            value={filters.businessNumber}
-            onChange={handleFilterChange}
-          />
-          <SearchInput
-            type="text"
-            name="email"
-            placeholder="이메일 검색"
-            value={filters.email}
-            onChange={handleFilterChange}
-          />
-          <SearchCheckbox>
-            <input
-              type="checkbox"
-              name="isDeleted"
-              checked={filters.isDeleted}
-              onChange={handleFilterChange}
+          <SearchSection>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">전체</option>
+              <option value="ACTIVE">활성</option>
+              <option value="INACTIVE">비활성</option>
+            </Select>
+            <SearchInput
+              type="text"
+              placeholder="회사명 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <span>삭제된 회사 포함</span>
-          </SearchCheckbox>
-          <SearchButton onClick={handleSearch}>
-            검색
-          </SearchButton>
-        </SearchSection>
+          </SearchSection>
+        </Card>
 
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
-          <CompanyTable>
-            <thead>
-              <tr>
-                <TableHeaderCell>회사명</TableHeaderCell>
-                <TableHeaderCell>사업자등록번호</TableHeaderCell>
-                <TableHeaderCell>대표자</TableHeaderCell>
-                <TableHeaderCell>연락처</TableHeaderCell>
-                <TableHeaderCell>역할</TableHeaderCell>
-                <TableHeaderCell>관리</TableHeaderCell>
-              </tr>
-            </thead>
-            <tbody>
-              {companies && companies.length > 0 ? (
-                companies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell 
-                      onClick={() => navigate(`/company-edit/${company.id}`)}
-                      style={{ cursor: 'pointer', color: '#1e293b' }}
-                    >
-                      {company.name}
-                    </TableCell>
-                    <TableCell>{company.businessNumber}</TableCell>
-                    <TableCell>{company.coOwner}</TableCell>
-                    <TableCell>{company.phone}</TableCell>
-                    <TableCell>
-                      <RoleBadge role={company.companyRole}>
-                        {getRoleName(company.companyRole)}
-                      </RoleBadge>
-                    </TableCell>
-                    <TableCell>
-                      <ActionButtonContainer>
-                        <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
-                          수정
-                        </ActionButton>
-                        <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
-                          삭제
-                        </DeleteButton>
-                      </ActionButtonContainer>
+          <>
+            <CompanyTable>
+              <TableHeader>
+                <TableRow>
+                  <TableHeaderCell>회사명</TableHeaderCell>
+                  <TableHeaderCell>사업자등록번호</TableHeaderCell>
+                  <TableHeaderCell>대표자</TableHeaderCell>
+                  <TableHeaderCell>연락처</TableHeaderCell>
+                  <TableHeaderCell>역할</TableHeaderCell>
+                  <TableHeaderCell>관리</TableHeaderCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {companies && companies.length > 0 ? (
+                  companies.map((company) => (
+                    <TableRow key={company.id}>
+                      <TableCell 
+                        onClick={() => navigate(`/company-edit/${company.id}`)}
+                        style={{ cursor: 'pointer', color: '#1e293b' }}
+                      >
+                        {company.name}
+                      </TableCell>
+                      <TableCell>{company.businessNumber}</TableCell>
+                      <TableCell>{company.coOwner}</TableCell>
+                      <TableCell>{company.phone}</TableCell>
+                      <TableCell>
+                        <RoleBadge role={company.companyRole}>
+                          {getRoleName(company.companyRole)}
+                        </RoleBadge>
+                      </TableCell>
+                      <TableCell>
+                        <ActionButtonContainer>
+                          <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
+                            수정
+                          </ActionButton>
+                          <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
+                            삭제
+                          </DeleteButton>
+                        </ActionButtonContainer>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="6" style={{ textAlign: 'center' }}>
+                      등록된 회사가 없습니다.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan="6" style={{ textAlign: 'center' }}>
-                    등록된 회사가 없습니다.
-                  </TableCell>
-                </TableRow>
-              )}
-            </tbody>
-          </CompanyTable>
+                )}
+              </TableBody>
+            </CompanyTable>
+
+            <PaginationContainer>
+              <PaginationButton 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+                disabled={currentPage === 0}
+              >
+                이전
+              </PaginationButton>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <PaginationButton
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  active={currentPage === i}
+                >
+                  {i + 1}
+                </PaginationButton>
+              ))}
+              <PaginationButton 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+                disabled={currentPage === totalPages - 1}
+              >
+                다음
+              </PaginationButton>
+            </PaginationContainer>
+          </>
         )}
-        
-        <PaginationContainer>
-          <PaginationButton 
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
-            disabled={currentPage === 0}
-          >
-            이전
-          </PaginationButton>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <PaginationButton
-              key={i}
-              onClick={() => setCurrentPage(i)}
-              active={currentPage === i}
-            >
-              {i + 1}
-            </PaginationButton>
-          ))}
-          <PaginationButton
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
-            disabled={currentPage === totalPages - 1}
-          >
-            다음
-          </PaginationButton>
-        </PaginationContainer>
       </MainContent>
     </PageContainer>
   );
 };
 
-// DashboardContainer를 PageContainer로 변경하고 flex-direction을 column으로 설정
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-  font-family: 'SUIT', sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
-// MainContent 스타일 수정
-const MainContent = styled.div`
-  flex: 1;
+const Card = styled.div`
+  background: white;
   padding: 24px;
-  overflow-y: auto;
-  margin-top: 60px;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
 `;
 
-// 기존 스타일 컴포넌트 유지
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -289,42 +276,145 @@ const Header = styled.div`
 `;
 
 const PageTitle = styled.h1`
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
   margin: 0;
-  font-family: 'SUIT', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 20px;
+    background: #2E7D32;
+    border-radius: 1.5px;
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
 `;
 
 const AddButton = styled.button`
-  padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
+  padding: 8px 16px;
+  background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
   
   &:before {
     content: '+';
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 400;
   }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
 
   &:active {
     transform: translateY(0);
-    background: #2563eb;
+  }
+`;
+
+const SearchSection = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-start;
+  margin-bottom: 24px;
+`;
+
+const SearchInput = styled.input`
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 240px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  &::placeholder {
+    color: #94a3b8;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+  }
+`;
+
+const SearchCheckbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+  
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #2E7D32;
+  }
+`;
+
+const SearchButton = styled.button`
+  padding: 10px 16px;
+  background: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+
+  &:hover {
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -339,48 +429,18 @@ const CompanyTable = styled.table`
   margin: 0 auto;
 `;
 
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-  font-family: 'SUIT', sans-serif;
+const TableHeader = styled.thead`
+  background: white;
 `;
 
-// 기타 필요한 스타일 컴포넌트들...
-
-export default CompanyManagement;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const DeleteButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'SUIT', sans-serif;
-
-  &:hover {
-    background: rgba(220, 38, 38, 0.1);
-  }
-`;
+const TableBody = styled.tbody``;
 
 const TableHeaderCell = styled.th`
   padding: 16px 24px;
   text-align: left;
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
-  background: #f8fafc;
+  color: #0F172A;
   border-bottom: 1px solid #e2e8f0;
   font-family: 'SUIT', sans-serif;
 `;
@@ -396,135 +456,104 @@ const TableRow = styled.tr`
 const TableCell = styled.td`
   padding: 16px 24px;
   font-size: 14px;
-  color: #1e293b;
+  color: #0F172A;
   border-bottom: 1px solid #e2e8f0;
   font-family: 'SUIT', sans-serif;
 `;
 
 const RoleBadge = styled.span`
-  display: inline-block;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  background-color: ${props => {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
     switch (props.role) {
-      case 'ADMIN':
-        return 'rgba(79, 106, 255, 0.1)';
-      case 'DEVELOPER':
-        return 'rgba(255, 107, 107, 0.1)';
-      case 'CUSTOMER':
-        return 'rgba(76, 175, 80, 0.1)';
-      default:
-        return '#f1f5f9';
+      case 'ADMIN': return '#E2E8F0';
+      case 'DEVELOPER': return '#E0F2FE';
+      case 'CUSTOMER': return '#F0FDF4';
+      default: return '#F1F5F9';
     }
   }};
   color: ${props => {
     switch (props.role) {
-      case 'ADMIN':
-        return '#4F6AFF';
-      case 'DEVELOPER':
-        return '#FF6B6B';
-      case 'CUSTOMER':
-        return '#4CAF50';
-      default:
-        return '#64748b';
+      case 'ADMIN': return '#475569';
+      case 'DEVELOPER': return '#0369A1';
+      case 'CUSTOMER': return '#15803D';
+      default: return '#64748B';
     }
   }};
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
+  }
+`;
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
 `;
 
 const ActionButton = styled.button`
-  padding: 6px 12px;
-  background: transparent;
-  color: #4F6AFF;
-  border: 1px solid #4F6AFF;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'SUIT', sans-serif;
-
-  &:hover {
-    background: rgba(79, 106, 255, 0.1);
-  }
-`;
-
-const ChartsContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
-`;
-
-const ChartSection = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-`;
-
-const StatisticsTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 16px;
-  font-family: 'SUIT', sans-serif;
-`;
-
-const ChartContainer = styled.div`
-  height: 300px;
-  margin-top: 16px;
-`;
-
-const SearchSection = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-`;
-
-const SearchInput = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 200px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-  }
-`;
-
-const SearchCheckbox = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  
-  input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-  }
-`;
-
-const SearchButton = styled.button`
   padding: 8px 16px;
-  background: #3b82f6;
+  background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
-    background: #2563eb;
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 16px;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #C51111;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
 `;
 
 const PaginationContainer = styled.div`
@@ -536,24 +565,24 @@ const PaginationContainer = styled.div`
 `;
 
 const PaginationButton = styled.button`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  background: ${props => props.active ? '#2E7D32' : 'white'};
+  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
   border-radius: 6px;
-  background-color: ${props => props.active ? '#3b82f6' : 'white'};
-  color: ${props => props.active ? 'white' : '#64748b'};
+  color: ${props => props.active ? 'white' : '#1e293b'};
   font-size: 14px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
-  min-width: 36px;
-  
-  &:hover {
-    background-color: ${props => props.active ? '#3b82f6' : '#f8fafc'};
-    border-color: ${props => props.active ? '#3b82f6' : '#cbd5e1'};
+
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
   }
-  
+
   &:disabled {
-    background-color: #f1f5f9;
+    background: #f1f5f9;
     color: #94a3b8;
     border-color: #e2e8f0;
   }
 `;
+
+export default CompanyManagement;

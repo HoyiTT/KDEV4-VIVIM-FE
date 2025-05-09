@@ -80,7 +80,8 @@ export const API_ENDPOINTS = {
   // Posts
   POST: {
     LIST: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
-    RECENT: `${API_BASE_URL}/posts/admin/recent`,
+    RECENT: `${API_BASE_URL}/posts/user/recent`,
+    ADMIN_RECENT: `${API_BASE_URL}/posts/admin/recent`,
     DETAIL: (id) => `${API_BASE_URL}/posts/${id}`,
     CREATE: `${API_BASE_URL}/posts`,
     MODIFY: (id) => `${API_BASE_URL}/posts/${id}`,
@@ -90,7 +91,8 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     LIST: `${API_BASE_URL}/notifications`,
     SUBSCRIBE: `${API_BASE_URL}/notifications/subscribe`,
-    READ: `${API_BASE_URL}/notifications/read`,
-    READ_ALL: `${API_BASE_URL}/notifications/read-all`
+    READ: (id) => `${API_BASE_URL}/notifications/${id}/read`,
+    READ_ALL: `${API_BASE_URL}/notifications/read-all`,
+    UNREAD_COUNT: `${API_BASE_URL}/notifications/unread/count`
   }
 };

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
-import Navbar from '../components/Navbar';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import Select from '../components/common/Select';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
@@ -29,12 +31,10 @@ const AuditLog = () => {
     try {
       setLoading(true);
       
-      // 쿼리 파라미터 구성
       const queryParams = new URLSearchParams();
       queryParams.append('page', page);
       queryParams.append('size', pageSize);
 
-      // 필터가 있는 경우에만 쿼리 파라미터에 추가
       if (filters.actionType) queryParams.append('actionType', filters.actionType);
       if (filters.entityType) queryParams.append('entityType', filters.entityType);
       if (filters.startDate) queryParams.append('startDate', filters.startDate);
@@ -75,14 +75,14 @@ const AuditLog = () => {
   const getActionTypeColor = (actionType) => {
     switch (actionType) {
       case 'CREATE':
-        return '#4CAF50';
+        return '#2E7D32';
       case 'UPDATE':
       case 'MODIFY':
-        return '#2196F3';
+        return '#2563eb';
       case 'DELETE':
-        return '#F44336';
+        return '#EF4444';
       default:
-        return '#9E9E9E';
+        return '#64748b';
     }
   };
 
@@ -91,7 +91,6 @@ const AuditLog = () => {
     setShowModal(true);
   };
 
-  // 검색 버튼 클릭 시 페이지를 0으로 초기화하고 검색
   const handleSearch = () => {
     setPage(0);
     fetchLogs();
@@ -99,22 +98,17 @@ const AuditLog = () => {
 
   return (
     <PageContainer>
-      <Navbar />
       <MainContent>
         <Header>
-          <Title>감사 로그</Title>
-          <FilterContainer>
-            <FilterGroup>
-              <Label>액션 타입</Label>
+          <HeaderLeft>
+            <PageTitle>로그 기록</PageTitle>
+            <FilterContainer>
               <Select name="actionType" value={filters.actionType} onChange={handleFilterChange}>
                 <option value="">전체</option>
                 <option value="CREATE">생성</option>
                 <option value="MODIFY">수정</option>
                 <option value="DELETE">삭제</option>
               </Select>
-            </FilterGroup>
-            <FilterGroup>
-              <Label>엔티티 타입</Label>
               <Select name="entityType" value={filters.entityType} onChange={handleFilterChange}>
                 <option value="">전체</option>
                 <option value="PROJECT">프로젝트</option>
@@ -122,53 +116,46 @@ const AuditLog = () => {
                 <option value="POST">게시글</option>
                 <option value="COMMENT">댓글</option>
               </Select>
-            </FilterGroup>
-            <FilterGroup>
-              <Label>시작일</Label>
               <Input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
-            </FilterGroup>
-            <FilterGroup>
-              <Label>종료일</Label>
               <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
-            </FilterGroup>
-            <FilterGroup>
-              <Label>사용자 ID</Label>
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
-            </FilterGroup>
+            </FilterContainer>
+          </HeaderLeft>
+          <HeaderRight>
             <SearchButton onClick={handleSearch}>검색</SearchButton>
-          </FilterContainer>
+          </HeaderRight>
         </Header>
 
         {loading ? (
-          <Loading>로딩중...</Loading>
+          <LoadingMessage>로딩중...</LoadingMessage>
         ) : logs.length === 0 ? (
-          <Loading>데이터가 없습니다.</Loading>
+          <LoadingMessage>데이터가 없습니다.</LoadingMessage>
         ) : (
           <>
             <LogTable>
               <thead>
                 <tr>
-                  <th>시간</th>
-                  <th>사용자 ID</th>
-                  <th>액션</th>
-                  <th>대상 타입</th>
-                  <th>대상 ID</th>
-                  <th>상세 정보</th>
+                  <TableHeaderCell>시간</TableHeaderCell>
+                  <TableHeaderCell>사용자 ID</TableHeaderCell>
+                  <TableHeaderCell>액션</TableHeaderCell>
+                  <TableHeaderCell>대상 타입</TableHeaderCell>
+                  <TableHeaderCell>대상 ID</TableHeaderCell>
+                  <TableHeaderCell>상세 정보</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <LogRow key={log.id}>
-                    <td>{formatDate(log.loggedAt)}</td>
-                    <td>{log.actorId}</td>
-                    <td>
-                      <ActionBadge color={getActionTypeColor(log.actionType)}>
+                  <TableRow key={log.id}>
+                    <TableCell>{formatDate(log.loggedAt)}</TableCell>
+                    <TableCell>{log.actorId}</TableCell>
+                    <TableCell>
+                      <ActionBadge status={log.actionType}>
                         {log.actionType}
                       </ActionBadge>
-                    </td>
-                    <td>{log.targetType}</td>
-                    <td>{log.targetId}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{log.targetType}</TableCell>
+                    <TableCell>{log.targetId}</TableCell>
+                    <TableCell>
                       {log.details && log.details.length > 0 ? (
                         <DetailsButton onClick={() => handleLogClick(log)}>
                           상세보기
@@ -176,24 +163,24 @@ const AuditLog = () => {
                       ) : (
                         '-'
                       )}
-                    </td>
-                  </LogRow>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </tbody>
             </LogTable>
-            <Pagination>
-              <PageButton 
+            <PaginationContainer>
+              <PaginationButton 
                 onClick={() => handlePageChange(0)} 
                 disabled={page === 0}
               >
                 처음
-              </PageButton>
-              <PageButton 
+              </PaginationButton>
+              <PaginationButton 
                 onClick={() => handlePageChange(page - 1)} 
                 disabled={page === 0}
               >
                 이전
-              </PageButton>
+              </PaginationButton>
               {(() => {
                 const buttons = [];
                 const startPage = Math.max(0, page - 5);
@@ -201,30 +188,30 @@ const AuditLog = () => {
 
                 for (let i = startPage; i <= endPage; i++) {
                   buttons.push(
-                    <PageButton
+                    <PaginationButton
                       key={i}
                       onClick={() => handlePageChange(i)}
                       active={page === i}
                     >
                       {i + 1}
-                    </PageButton>
+                    </PaginationButton>
                   );
                 }
                 return buttons;
               })()}
-              <PageButton 
+              <PaginationButton 
                 onClick={() => handlePageChange(page + 1)} 
                 disabled={page === totalPages - 1}
               >
                 다음
-              </PageButton>
-              <PageButton 
+              </PaginationButton>
+              <PaginationButton 
                 onClick={() => handlePageChange(totalPages - 1)} 
                 disabled={page === totalPages - 1}
               >
                 마지막
-              </PageButton>
-            </Pagination>
+              </PaginationButton>
+            </PaginationContainer>
           </>
         )}
 
@@ -264,159 +251,242 @@ const PageContainer = styled.div`
   display: flex;
   min-height: 100vh;
   background-color: #f5f7fa;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px 80px;
-  margin-top: 60px;
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 `;
 
 const Header = styled.div`
   margin-bottom: 24px;
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 `;
 
-const Title = styled.h1`
-  font-size: 24px;
+const HeaderLeft = styled.div`
+  flex: 1;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: center;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 16px;
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 20px;
+    background: #2E7D32;
+    border-radius: 1.5px;
+  }
 `;
 
 const FilterContainer = styled.div`
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const Label = styled.label`
-  font-size: 14px;
-  color: #64748b;
-`;
-
-const Select = styled.select`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  min-width: 120px;
+  align-items: center;
 `;
 
 const Input = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
   min-width: 120px;
-`;
-
-const LogTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-  th, td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-  }
-
-  th {
-    background-color: #f8fafc;
-    font-weight: 600;
-    color: #1e293b;
-  }
-`;
-
-const LogRow = styled.tr`
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
   &:hover {
-    background-color: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
-`;
-
-const ActionBadge = styled.span`
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-  background-color: ${props => props.color};
-`;
-
-const Loading = styled.div`
-  text-align: center;
-  padding: 24px;
-  color: #64748b;
-`;
-
-const Pagination = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PageButton = styled.button`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background-color: ${props => props.active ? '#2563eb' : 'white'};
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${props => props.active ? '#2563eb' : '#f8fafc'};
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
   }
 `;
 
 const SearchButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2563eb;
+  padding: 10px 20px;
+  background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  align-self: flex-end;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+  
+  &:hover {
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+  }
+`;
+
+const LogTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   margin-top: 24px;
-  height: 36px;
+`;
+
+const TableHeaderCell = styled.th`
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const TableRow = styled.tr`
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
 
   &:hover {
-    background-color: #1d4ed8;
+    background: #f8fafc;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+  background: white;
+`;
+
+const ActionBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'CREATE': return '#DCFCE7';
+      case 'MODIFY': return '#DBEAFE';
+      case 'DELETE': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'CREATE': return '#16A34A';
+      case 'MODIFY': return '#2563EB';
+      case 'DELETE': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
   }
 `;
 
 const DetailsButton = styled.button`
   padding: 8px 16px;
-  background-color: #2563eb;
+  background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 24px;
-  height: 36px;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: #1d4ed8;
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+`;
+
+const PaginationButton = styled.button`
+  padding: 8px 16px;
+  background: ${props => props.active ? '#2E7D32' : 'white'};
+  color: ${props => props.active ? 'white' : '#1e293b'};
+  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  &:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
   }
 `;
 
@@ -430,16 +500,18 @@ const ModalOverlay = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 `;
 
 const ModalContent = styled.div`
   background-color: white;
   padding: 24px;
-  border-radius: 8px;
+  border-radius: 16px;
   max-width: 80%;
   max-height: 80%;
   overflow: auto;
   min-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 `;
 
 const ModalHeader = styled.div`
@@ -447,25 +519,35 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const ModalTitle = styled.h2`
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
+  margin: 0;
 `;
 
 const CloseButton = styled.button`
   padding: 8px 16px;
-  background-color: #2563eb;
+  background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: #1d4ed8;
+    background: #1B5E20;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -479,7 +561,7 @@ const DetailItem = styled.div`
   display: grid;
   grid-template-columns: 150px 1fr;
   gap: 16px;
-  padding: 12px;
+  padding: 16px;
   background-color: #f8fafc;
   border-radius: 8px;
   align-items: start;

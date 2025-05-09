@@ -7,7 +7,9 @@ import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 // Standalone API utilities
 export const loginRequest = ({ email, password }) =>
-  axiosInstance.post(API_ENDPOINTS.LOGIN, { email, password });
+  axiosInstance.post(API_ENDPOINTS.LOGIN, { email, password }, {
+    withCredentials: true
+  });
 
 export const fetchCurrentUser = () =>
   axiosInstance.get(API_ENDPOINTS.USER_INFO, {
@@ -39,7 +41,8 @@ export const useAuth = () => {
     } catch (err) {
       console.error('인증 확인 오류', err);
       setIsAuthenticated(false);
-      navigate('/login', { replace: true });
+      setUser(null);
+      setIsAdmin(false);
     } finally {
       setIsLoading(false);
     }
@@ -51,14 +54,21 @@ export const useAuth = () => {
       const u = await fetchCurrentUser();
       setUser(u);
       setIsAuthenticated(true);
-      setIsAdmin(u.companyRole === 'ADMIN');
-      navigate(u.companyRole === 'ADMIN' ? '/dashboard-admin' : '/dashboard', {
-        replace: true,
-      });
+      const adminStatus = u.companyRole === 'ADMIN';
+      setIsAdmin(adminStatus);
+      
+      if (adminStatus) {
+        navigate('/dashboard-admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error('로그인 오류', err);
       setIsAuthenticated(false);
-      throw err;
+      if (err.response?.status === 401) {
+        throw err;
+      }
+      throw new Error('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 
