@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import axiosInstance from '../utils/axiosInstance';
 
 const CompanyManagement = () => {
   const navigate = useNavigate();
@@ -57,17 +58,13 @@ const CompanyManagement = () => {
         size: 10
       }).toString();
 
-      const response = await fetch(`${API_ENDPOINTS.COMPANIES_SEARCH}?${queryParams}`, {
-        headers: {
-          'Authorization': `${localStorage.getItem('token')?.trim()}`
-        }
-      });
-      const data = await response.json();
-      setCompanies(data.content);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.COMPANIES_SEARCH}?${queryParams}`);
+      setCompanies(data.content || []);
       setTotalPages(data.totalPages);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
+      setCompanies([]);
       setLoading(false);
     }
   };
@@ -194,34 +191,42 @@ const CompanyManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => (
-                <TableRow key={company.id}>
-                  <TableCell 
-                    onClick={() => navigate(`/company-edit/${company.id}`)}
-                    style={{ cursor: 'pointer', color: '#1e293b' }}
-                  >
-                    {company.name}
-                  </TableCell>
-                  <TableCell>{company.businessNumber}</TableCell>
-                  <TableCell>{company.coOwner}</TableCell>
-                  <TableCell>{company.phone}</TableCell>
-                  <TableCell>
-                    <RoleBadge role={company.companyRole}>
-                      {getRoleName(company.companyRole)}
-                    </RoleBadge>
-                  </TableCell>
-                  <TableCell>
-                    <ActionButtonContainer>
-                      <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
-                        수정
-                      </ActionButton>
-                      <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
-                        삭제
-                      </DeleteButton>
-                    </ActionButtonContainer>
+              {companies && companies.length > 0 ? (
+                companies.map((company) => (
+                  <TableRow key={company.id}>
+                    <TableCell 
+                      onClick={() => navigate(`/company-edit/${company.id}`)}
+                      style={{ cursor: 'pointer', color: '#1e293b' }}
+                    >
+                      {company.name}
+                    </TableCell>
+                    <TableCell>{company.businessNumber}</TableCell>
+                    <TableCell>{company.coOwner}</TableCell>
+                    <TableCell>{company.phone}</TableCell>
+                    <TableCell>
+                      <RoleBadge role={company.companyRole}>
+                        {getRoleName(company.companyRole)}
+                      </RoleBadge>
+                    </TableCell>
+                    <TableCell>
+                      <ActionButtonContainer>
+                        <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
+                          수정
+                        </ActionButton>
+                        <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
+                          삭제
+                        </DeleteButton>
+                      </ActionButtonContainer>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="6" style={{ textAlign: 'center' }}>
+                    등록된 회사가 없습니다.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </tbody>
           </CompanyTable>
         )}

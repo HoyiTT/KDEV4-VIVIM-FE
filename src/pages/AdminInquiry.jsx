@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const AdminInquiry = () => {
   const navigate = useNavigate();
@@ -71,27 +72,16 @@ const AdminInquiry = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({
-          inquiryType: formData.inquiryType,
-          projectId: formData.projectId,
-          title: formData.title,
-          content: formData.content
-        })
+      const { data } = await axiosInstance.post(API_ENDPOINTS.ADMIN_INQUIRY_CREATE, {
+        inquiryType: formData.inquiryType,
+        projectId: formData.projectId,
+        title: formData.title,
+        content: formData.content
       });
 
-      if (response.ok) {
+      if (data) {
         alert('문의가 성공적으로 등록되었습니다.');
         navigate('/admin-inquiry-list');
-      } else {
-        const errorData = await response.json();
-        alert(`문의 등록에 실패했습니다: ${errorData.message || '알 수 없는 오류가 발생했습니다.'}`);
       }
     } catch (error) {
       console.error('Error creating inquiry:', error);

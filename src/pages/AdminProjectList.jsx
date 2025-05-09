@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const AdminProjectList = () => {
   const navigate = useNavigate();
@@ -24,57 +25,47 @@ const AdminProjectList = () => {
     try {
       setLoading(true);
       
-      // 필터가 비어있는 경우 기본 페이지네이션 파라미터만 사용
       const queryParams = new URLSearchParams({
         page: currentPage,
         size: 10
       }).toString();
 
-      const response = await fetch(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`, {
-        headers: {
-          'Authorization': `${localStorage.getItem('token')?.trim()}`
-        }
-      });
-      const data = await response.json();
-      setProjects(data.content);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`);
+      console.log('projects/search: ', data);
+      setProjects(data.content || []);
       setTotalPages(data.totalPages);
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching projects:', error);
+      setProjects([]);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    setCurrentPage(0);
-    
-    // 입력된 값만 필터링
-    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-      if (value !== '' && value !== false) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
+  const handleSearch = async () => {
+    try {
+      setCurrentPage(0);
+      
+      const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== '' && value !== false) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
 
-    const queryParams = new URLSearchParams({
-      ...activeFilters,
-      page: 0,
-      size: 10
-    }).toString();
+      const queryParams = new URLSearchParams({
+        ...activeFilters,
+        page: 0,
+        size: 10
+      }).toString();
 
-    fetch(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`, {
-      headers: {
-        'Authorization': `${localStorage.getItem('token')?.trim()}`
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        setProjects(data.content);
-        setTotalPages(data.totalPages);
-      })
-      .catch(error => {
-        console.error('Error searching projects:', error);
-      });
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS_SEARCH}?${queryParams}`);
+      setProjects(data.content || []);
+      setTotalPages(data.totalPages);
+    } catch (error) {
+      console.error('Error searching projects:', error);
+      setProjects([]);
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -89,26 +80,12 @@ const AdminProjectList = () => {
     setActiveMenuItem(menuItem);
   };
 
-  // Add delete project function
   const handleDeleteProject = async (projectId) => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        });
-        
-        if (response.ok) {
-          alert('프로젝트가 삭제되었습니다.');
-          fetchProjects(); // Refresh the project list
-        } else {
-          alert('프로젝트 삭제에 실패했습니다.');
-        }
+        await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${projectId}`);
+        alert('프로젝트가 삭제되었습니다.');
+        fetchProjects();
       } catch (error) {
         console.error('Error deleting project:', error);
         alert('프로젝트 삭제 중 오류가 발생했습니다.');

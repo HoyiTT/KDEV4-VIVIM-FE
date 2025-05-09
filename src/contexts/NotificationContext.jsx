@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { API_ENDPOINTS } from '../config/api';
 import { FaUser, FaHome, FaBell } from 'react-icons/fa';
@@ -96,6 +96,13 @@ export const NotificationProvider = ({ children }) => {
     }
     setIsConnected(false);
   };
+
+  // 컴포넌트 언마운트 시 SSE 연결 해제
+  useEffect(() => {
+    return () => {
+      disconnectSSE();
+    };
+  }, []);
 
   const value = {
     notifications,

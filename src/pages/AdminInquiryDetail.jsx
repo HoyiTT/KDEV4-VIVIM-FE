@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const AdminInquiryDetail = () => {
   const navigate = useNavigate();
@@ -22,16 +23,8 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchInquiryDetail = async () => {
       try {
-        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
-          headers: {
-            'Authorization': token
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setInquiry(data);
-        }
+        const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
+        setInquiry(data);
       } catch (error) {
         console.error('Error fetching inquiry:', error);
       }
@@ -43,19 +36,9 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id), {
-          headers: {
-            'Authorization': token
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Fetched comments:', data);
-          setComments(data);
-        } else {
-          console.error('Failed to fetch comments:', response.status);
-        }
+        const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_COMMENTS(id));
+        console.log('Fetched comments:', data);
+        setComments(data);
       } catch (error) {
         console.error('Error fetching comments:', error);
       }
@@ -69,20 +52,9 @@ const AdminInquiryDetail = () => {
   const handleCompleteAnswer = async () => {
     try {
       setIsSubmitting(true);
-      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id), {
-        method: 'PATCH',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        alert('답변이 완료 처리되었습니다.');
-        window.location.reload();
-      } else {
-        throw new Error('답변 완료 처리에 실패했습니다.');
-      }
+      const { data } = await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMPLETE(id));
+      alert('답변이 완료 처리되었습니다.');
+      window.location.reload();
     } catch (error) {
       console.error('Error completing answer:', error);
       alert('답변 완료 처리 중 오류가 발생했습니다.');
@@ -98,24 +70,12 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: answer
-        })
+      const { data } = await axiosInstance.post(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT(id), {
+        content: answer
       });
-
-      if (response.ok) {
-        alert('답변이 등록되었습니다.');
-        setAnswer('');
-        window.location.reload();
-      } else {
-        throw new Error('답변 등록에 실패했습니다.');
-      }
+      alert('답변이 등록되었습니다.');
+      setAnswer('');
+      window.location.reload();
     } catch (error) {
       console.error('Error submitting answer:', error);
       alert('답변 등록 중 오류가 발생했습니다.');
@@ -139,25 +99,13 @@ const AdminInquiryDetail = () => {
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_EDIT(id, commentId), {
-        method: 'PUT',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: editContent
-        })
+      const { data } = await axiosInstance.put(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_EDIT(id, commentId), {
+        content: editContent
       });
-
-      if (response.ok) {
-        alert('답변이 수정되었습니다.');
-        setEditingCommentId(null);
-        setEditContent('');
-        window.location.reload();
-      } else {
-        throw new Error('답변 수정에 실패했습니다.');
-      }
+      alert('답변이 수정되었습니다.');
+      setEditingCommentId(null);
+      setEditContent('');
+      window.location.reload();
     } catch (error) {
       console.error('Error updating comment:', error);
       alert('답변 수정 중 오류가 발생했습니다.');
@@ -176,20 +124,9 @@ const AdminInquiryDetail = () => {
   const handleDeleteInquiry = async () => {
     if (window.confirm('정말로 이 문의를 삭제하시겠습니까?')) {
       try {
-        const response = await fetch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id), {
-          method: 'PATCH',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          alert('문의가 삭제되었습니다.');
-          navigate('/admin-inquiry-list');
-        } else {
-          throw new Error('문의 삭제에 실패했습니다.');
-        }
+        const { data } = await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
+        alert('문의가 삭제되었습니다.');
+        navigate('/admin-inquiry-list');
       } catch (error) {
         console.error('Error deleting inquiry:', error);
         alert('문의 삭제 중 오류가 발생했습니다.');

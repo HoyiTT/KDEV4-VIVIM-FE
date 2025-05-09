@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 // Styled components
 const PageContainer = styled.div`
@@ -219,51 +220,31 @@ const UserEdit = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
-          headers: {
-            'Authorization': token
-          }
-        });
+        const { data } = await axiosInstance.get(API_ENDPOINTS.USER_DETAIL(userId));
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
-        }
-        
-        const result = await response.json();
-        console.log('User data:', result);
-        
-        if (result.statusCode === 200 && result.data) {
+        if (data.statusCode === 200 && data.data) {
           // Store the user data first
-          const userDataFromApi = result.data;
+          const userDataFromApi = data.data;
           setUserData(userDataFromApi);
           
           // Then fetch companies to find the matching company
-          const companiesResponse = await fetch(API_ENDPOINTS.COMPANIES, {
-            headers: {
-              'Authorization': token
-            }
-          });
+          const { data: companiesData } = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+          setCompanies(companiesData || []);
           
-          if (companiesResponse.ok) {
-            const companiesData = await companiesResponse.json();
-            setCompanies(companiesData);
-            
-            // Find the company that matches the user's company name
-            const matchingCompany = companiesData.find(
-              company => company.name === userDataFromApi.companyName
-            );
-            
-            if (matchingCompany) {
-              // Update the userData with the matching company ID
-              setUserData(prevState => ({
-                ...prevState,
-                companyId: matchingCompany.id
-              }));
-            }
+          // Find the company that matches the user's company name
+          const matchingCompany = companiesData.find(
+            company => company.name === userDataFromApi.companyName
+          );
+          
+          if (matchingCompany) {
+            // Update the userData with the matching company ID
+            setUserData(prevState => ({
+              ...prevState,
+              companyId: matchingCompany.id
+            }));
           }
         } else {
-          throw new Error(result.statusMessage || 'Failed to fetch user data');
+          throw new Error(data.statusMessage || 'Failed to fetch user data');
         }
         
         setLoading(false);
@@ -279,30 +260,15 @@ const UserEdit = () => {
     }
   }, [userId]);
 
-  // Remove the separate companies fetch since we're doing it in the user data fetch
-  useEffect(() => {
-    // This useEffect is now empty as we're fetching companies in the user data fetch
-  }, []);
-
   // Add a new useEffect to fetch companies
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.COMPANIES, {
-          headers: {
-            'Authorization': token
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch companies');
-        }
-        
-        const result = await response.json();
-        setCompanies(result);
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+        setCompanies(data || []);
       } catch (error) {
         console.error('Error fetching companies:', error);
+        setCompanies([]);
       }
     };
 
@@ -321,24 +287,13 @@ const UserEdit = () => {
     if (name === 'companyId' && value) {
       const fetchCompanyRole = async () => {
         try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(value), {
-            headers: {
-              'Authorization': token
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch company details');
-          }
-          
-          const result = await response.json();
+          const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_DETAIL(value));
           
           // Update the company name and role
           setUserData(prevState => ({
             ...prevState,
-            companyName: result.name,
-            companyRole: result.companyRole
+            companyName: data.name,
+            companyRole: data.companyRole
           }));
         } catch (error) {
           console.error('Error fetching company details:', error);
@@ -353,23 +308,15 @@ const UserEdit = () => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.USER_DETAIL(userId), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({
-          name: userData.name,
-          phone: userData.phone,
-          email: userData.email,
-          companyId: userData.companyId,
-          modifiedAt: new Date().toISOString()
-        })
+      const { data } = await axiosInstance.put(API_ENDPOINTS.USER_DETAIL(userId), {
+        name: userData.name,
+        phone: userData.phone,
+        email: userData.email,
+        companyId: userData.companyId,
+        modifiedAt: new Date().toISOString()
       });
 
-      if (response.ok) {
+      if (data.statusCode === 200) {
         alert('사용자 정보가 수정되었습니다.');
         navigate('/user-management');
       } else {
@@ -388,15 +335,9 @@ const UserEdit = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.USER_PASSWORD_MODIFY(userId, newPassword), {
-        method: 'PUT',
-        headers: {
-          'Authorization': token
-        }
-      });
+      const { data } = await axiosInstance.put(API_ENDPOINTS.USER_PASSWORD_MODIFY(userId, newPassword));
 
-      if (response.ok) {
+      if (data.statusCode === 200) {
         alert('비밀번호가 성공적으로 변경되었습니다.');
         setNewPassword('');
       } else {

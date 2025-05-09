@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 // Sidebar를 Navbar로 변경
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 // Change component name from ProjectCreate2 to ProjectCreate
 const ProjectCreate = () => {
@@ -71,33 +72,23 @@ const ProjectCreate = () => {
   // Add useEffect to fetch companies when component mounts
   // Add token to fetch requests
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(API_ENDPOINTS.COMPANIES, {
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        setCompanies(data);
-      })
-      .catch(error => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axiosInstance.get(API_ENDPOINTS.COMPANIES);
+        setCompanies(response.data);
+      } catch (error) {
         console.error('Error fetching companies:', error);
-      });
+      }
+    };
+    fetchCompanies();
   }, []);
 
   useEffect(() => {
-    if (selectedClientCompany) {
-      const token = localStorage.getItem('token');
-      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany), {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(response => {
-          const data = response.data || [];  // response.data가 없으면 빈 배열 사용
+    const fetchClientCompanyUsers = async () => {
+      if (selectedClientCompany) {
+        try {
+          const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany));
+          const data = response.data.data || [];
           const employeeData = data.map(employee => ({
             userId: employee.id,
             name: employee.name,
@@ -105,15 +96,16 @@ const ProjectCreate = () => {
             companyName: employee.companyName
           }));
           setClientCompanyUsers(employeeData);
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('Error fetching client company users:', error);
-        });
-      
-      // Reset selections when company changes
-      setClientManagers([]);
-      setClientUsers([]);
-    }
+        }
+        
+        // Reset selections when company changes
+        setClientManagers([]);
+        setClientUsers([]);
+      }
+    };
+    fetchClientCompanyUsers();
   }, [selectedClientCompany]);
 
   useEffect(() => {

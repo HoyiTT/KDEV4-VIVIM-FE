@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
@@ -104,38 +105,21 @@ const ProjectPostDetail = () => {
   const handleDeleteComment = async (commentId) => {
     if (window.confirm('댓글을 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token
-          }
-        });
-    
-        if (response.ok) {
-          alert('댓글이 삭제되었습니다.');
-          fetchComments();
-          setActiveCommentOptions(null);
-        } else {
-          alert('댓글 삭제에 실패했습니다.');
-        }
+        await axiosInstance.delete(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`);
+        alert('댓글이 삭제되었습니다.');
+        fetchComments();
+        setActiveCommentOptions(null);
       } catch (error) {
         console.error('Error deleting comment:', error);
-        alert('댓글 삭제 중 오류가 발생했습니다.');
+        alert('댓글 삭제에 실패했습니다.');
       }
     }
   };
 
   const fetchPostDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setPost(data);
+      const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`);
+      setPost(response.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -197,14 +181,8 @@ const ProjectPostDetail = () => {
 `;
   const fetchComments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setComments(data);
+      const response = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/comments`);
+      setComments(response.data);
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
@@ -212,14 +190,8 @@ const ProjectPostDetail = () => {
 
   const fetchFiles = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setFiles(data);
+      const response = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/files`);
+      setFiles(response.data);
     } catch (error) {
       console.error('Error fetching files:', error);
     }
@@ -227,14 +199,8 @@ const ProjectPostDetail = () => {
 
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
-        headers: {
-          'Authorization': token
-        }
-      });
-      const data = await response.json();
-      setLinks(data);
+      const response = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/links`);
+      setLinks(response.data);
     } catch (error) {
       console.error('Error fetching links:', error);
     }
@@ -243,23 +209,12 @@ const ProjectPostDetail = () => {
   const handleDeletePost = async () => {
     if (window.confirm('게시글을 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token
-          }
-        });
-      
-        if (response.ok) {
-          alert('게시글이 삭제되었습니다.');
-          navigate(`/project/${projectId}`);
-        } else {
-          alert('게시글 삭제에 실패했습니다.');
-        }
+        await axiosInstance.delete(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`);
+        alert('게시글이 삭제되었습니다.');
+        navigate(`/project/${projectId}`);
       } catch (error) {
         console.error('Error deleting post:', error);
-        alert('게시글 삭제 중 오류가 발생했습니다.');
+        alert('게시글 삭제에 실패했습니다.');
       }
     }
   };
