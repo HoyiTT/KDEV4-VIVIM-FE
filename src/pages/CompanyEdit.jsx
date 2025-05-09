@@ -23,6 +23,11 @@ const Header = styled.div`
   max-width: 800px;
 `;
 
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
 const HeaderButtonsContainer = styled.div`
   display: flex;
   gap: 12px;
@@ -223,13 +228,16 @@ const CompanyEdit = () => {
   return (
     <PageContainer>
       <MainContent>
+        <div style={{ width: '100%', maxWidth: '800px' }}>
         <Header>
+            <HeaderLeft>
           <PageTitle>회사 수정</PageTitle>
-          <HeaderButtonsContainer>
-            <BackButton onClick={handleBack}>
-              ← 돌아가기
-            </BackButton>
-          </HeaderButtonsContainer>
+            </HeaderLeft>
+            <HeaderButtonsContainer>
+              <BackButton onClick={handleBack}>
+                ← 돌아가기
+              </BackButton>
+            </HeaderButtonsContainer>
         </Header>
 
         <FormContainer onSubmit={handleSubmit}>
@@ -328,6 +336,7 @@ const CompanyEdit = () => {
             </SubmitButton>
           </ButtonContainer>
         </FormContainer>
+        </div>
       </MainContent>
     </PageContainer>
   );

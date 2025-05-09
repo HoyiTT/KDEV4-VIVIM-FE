@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 import axiosInstance from '../utils/axiosInstance';
-import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -32,50 +32,22 @@ ChartJS.register(
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { notifications } = useNotifications();
   const [loading, setLoading] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 더미 데이터
-  const deadlineProjects = [
-    {
-      id: 1,
-      name: '웹사이트 리뉴얼 프로젝트',
-      remainingDays: 3,
-      status: '진행중'
-    },
-    {
-      id: 2,
-      name: '모바일 앱 개발',
-      remainingDays: 5,
-      status: '검토중'
-    },
-    {
-      id: 3,
-      name: '데이터베이스 마이그레이션',
-      remainingDays: 7,
-      status: '진행중'
-    }
-  ];
+  // 날짜 포맷팅 함수 추가
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
 
-  const recentApprovals = [
-    {
-      id: 1,
-      title: '프로젝트 계획서 승인 요청',
-      status: '대기중',
-      createdAt: '2024-03-15T10:00:00'
-    },
-    {
-      id: 2,
-      title: '예산 변경 승인 요청',
-      status: '승인됨',
-      createdAt: '2024-03-14T15:30:00'
-    },
-    {
-      id: 3,
-      title: '인력 배치 승인 요청',
-      status: '반려됨',
-      createdAt: '2024-03-13T09:15:00'
-    }
-  ];
+  // 읽지 않은 알림 수 계산
+  useEffect(() => {
+    const count = notifications.filter(notification => !notification.read).length;
+    setUnreadNotifications(count);
+  }, [notifications]);
 
   const recentPosts = [
     {
@@ -119,214 +91,20 @@ const Dashboard = () => {
     }
   ];
 
-  // 프로젝트 현황 차트 데이터
-  const projectStatusData = {
-    labels: ['계약중', '검수중', '완료'],
-    datasets: [
-      {
-        data: [8, 5, 15],
-        backgroundColor: [
-          '#2E7D32',
-          '#FFA000',
-          '#43A047'
-        ],
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  // 월별 프로젝트 통계 차트 데이터
-  const monthlyStatsData = {
-    labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
-    datasets: [
-      {
-        label: '신규 프로젝트',
-        data: [4, 6, 8, 5, 7, 9],
-        backgroundColor: '#2E7D32',
-      },
-      {
-        label: '완료 프로젝트',
-        data: [3, 4, 6, 4, 5, 7],
-        backgroundColor: '#66BB6A',
-      },
-    ],
-  };
-
-  // 금액 통계 차트 데이터
-  const revenueData = {
-    labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
-    datasets: [
-      {
-        label: '프로젝트 금액',
-        data: [15000000, 25000000, 18000000, 30000000, 22000000],
-        borderColor: '#2E7D32',
-        backgroundColor: 'rgba(46, 125, 50, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#2E7D32',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }
-    ],
-  };
-
-  // 차트 옵션
-  const doughnutOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'bottom',
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            const label = context.label || '';
-            const value = context.raw || 0;
-            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-            const percentage = Math.round((value / total) * 100);
-            return `${label}: ${value}개 (${percentage}%)`;
-          }
-        }
-      }
-    },
-    cutout: '70%',
-  };
-
-  const barOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(value) {
-            return (value / 1000000).toFixed(0) + 'M';
-          }
-        }
-      },
-    },
-  };
-
-  const lineOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(value) {
-            return (value / 1000000).toFixed(0) + 'M';
-          }
-        },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.1)'
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        }
-      }
-    },
-    elements: {
-      line: {
-        tension: 0.4
-      }
-    }
-  };
-
-  // 통계 데이터
-  const stats = {
-    totalProjects: 28,
-    activeProjects: 12,
-    completedProjects: 8,
-    pendingInquiries: 5
-  };
-
   return (
     <PageContainer>
       <ContentWrapper>
         <Card>
-          <CardTitle>프로젝트 현황</CardTitle>
-          <CardContent>
-            <ProjectStats>
-              <StatItem>
-                <StatLabel>전체 프로젝트</StatLabel>
-                <StatValue>{stats.totalProjects}</StatValue>
-              </StatItem>
-              <StatItem>
-                <StatLabel>진행중</StatLabel>
-                <StatValue>{stats.activeProjects}</StatValue>
-              </StatItem>
-              <StatItem>
-                <StatLabel>완료</StatLabel>
-                <StatValue>{stats.completedProjects}</StatValue>
-              </StatItem>
-            </ProjectStats>
-            <ChartContainer>
-              <Doughnut data={projectStatusData} options={doughnutOptions} />
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitle>월별 프로젝트 통계</CardTitle>
-          <CardContent>
-            <ChartContainer>
-              <Bar data={monthlyStatsData} options={barOptions} />
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitle>프로젝트 금액 통계</CardTitle>
-          <CardContent>
-            <ChartContainer>
-              <Line data={revenueData} options={lineOptions} />
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitle>최근 프로젝트</CardTitle>
-          <CardContent>
-            <ProjectList>
-              {deadlineProjects.map((project) => (
-                <ProjectItem key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
-                  <ProjectInfo>
-                    <ProjectName>{project.name}</ProjectName>
-                    <ProjectStatus status={project.status}>
-                      {project.status === '진행중' ? '진행중' : '검토중'}
-                    </ProjectStatus>
-                  </ProjectInfo>
-                  <ProjectDate>{project.remainingDays}일</ProjectDate>
-                </ProjectItem>
-              ))}
-            </ProjectList>
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardTitle>최근 게시글</CardTitle>
           <CardContent>
             <PostList>
-              {recentPosts.map((post) => (
-                <PostItem key={post.id} onClick={() => navigate(`/post/${post.id}`)}>
+              {recentPosts.map(post => (
+                <PostItem key={post.id}>
+                  <PostTitle>{post.title}</PostTitle>
                   <PostInfo>
-                    <PostTitle>{post.title}</PostTitle>
                     <PostAuthor>{post.author}</PostAuthor>
+                    <PostDate>{formatDate(post.createdAt)}</PostDate>
                   </PostInfo>
-                  <PostDate>{new Date(post.createdAt).toLocaleDateString()}</PostDate>
                 </PostItem>
               ))}
             </PostList>
@@ -334,33 +112,18 @@ const Dashboard = () => {
         </Card>
 
         <Card>
-          <CardTitle>최근 승인요청</CardTitle>
-          <CardContent>
-            <ApprovalList>
-              {recentApprovals.map((approval) => (
-                <ApprovalItem key={approval.id} onClick={() => navigate(`/approval/${approval.id}`)}>
-                  <ApprovalInfo>
-                    <ApprovalTitle>{approval.title}</ApprovalTitle>
-                    <ApprovalStatus>{approval.status}</ApprovalStatus>
-                  </ApprovalInfo>
-                  <ApprovalDate>{new Date(approval.createdAt).toLocaleDateString()}</ApprovalDate>
-                </ApprovalItem>
-              ))}
-            </ApprovalList>
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardTitle>최근 문의사항</CardTitle>
           <CardContent>
             <InquiryList>
-              {recentInquiries.map((inquiry) => (
-                <InquiryItem key={inquiry.id} onClick={() => navigate(`/inquiry/${inquiry.id}`)}>
+              {recentInquiries.map(inquiry => (
+                <InquiryItem key={inquiry.id}>
+                  <InquiryTitle>{inquiry.title}</InquiryTitle>
                   <InquiryInfo>
-                    <InquiryTitle>{inquiry.title}</InquiryTitle>
-                    <InquiryStatus>{inquiry.status}</InquiryStatus>
+                    <InquiryStatus status={inquiry.status}>
+                      {inquiry.status}
+                    </InquiryStatus>
+                    <InquiryDate>{formatDate(inquiry.createdAt)}</InquiryDate>
                   </InquiryInfo>
-                  <InquiryDate>{new Date(inquiry.createdAt).toLocaleDateString()}</InquiryDate>
                 </InquiryItem>
               ))}
             </InquiryList>

@@ -76,7 +76,7 @@ export const useNotifications = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await axiosInstance.patch(`${API_ENDPOINTS.NOTIFICATIONS.READ}/${notificationId}`, null, {
+      await axiosInstance.patch(`${API_ENDPOINTS.NOTIFICATIONS.READ}/${notificationId}`, {}, {
         withCredentials: true
       });
       setNotifications(prev =>

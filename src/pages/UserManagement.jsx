@@ -55,7 +55,7 @@ const StatusBadge = styled.span`
 
   &::before {
     content: '';
-    display: inline-block;
+  display: inline-block;
     width: 4px;
     height: 4px;
     border-radius: 50%;
@@ -73,309 +73,309 @@ const TableCell = styled.td`
   white-space: ${props => props.nowrap ? 'nowrap' : 'normal'};
 `;
 
-const TableHeaderCell = styled.th`
-  padding: 16px 24px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-`;
+  const TableHeaderCell = styled.th`
+    padding: 16px 24px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+  `;
 
-const TableRow = styled.tr`
-  cursor: pointer;
-  transition: all 0.2s;
+  const TableRow = styled.tr`
+    cursor: pointer;
+    transition: all 0.2s;
 
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const ActionButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const ActionButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 8px 16px;
-  background: #EF4444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #C51111;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  ${props => props.disabled && `
-    background: #e2e8f0;
-    cursor: not-allowed;
     &:hover {
-      transform: none;
-      box-shadow: none;
+      background: #f8fafc;
     }
-  `}
-`;
+  `;
 
-const PaginationContainer = styled.div`
+  const ActionButtonContainer = styled.div`
+    display: flex;
+    gap: 8px;
+  `;
+
+  const ActionButton = styled.button`
+    padding: 8px 16px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #1B5E20;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  `;
+
+  const DeleteButton = styled.button`
+    padding: 8px 16px;
+    background: #EF4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #C51111;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    ${props => props.disabled && `
+      background: #e2e8f0;
+      cursor: not-allowed;
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    `}
+  `;
+
+  const PaginationContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+  `;
+
+  const PaginationButton = styled.button`
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #1e293b;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      background: #f8fafc;
+    }
+
+    &:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+  `;
+
+  const PaginationNumber = styled.button`
+    width: 32px;
+    height: 32px;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
+    align-items: center;
+    justify-content: center;
+    background: ${props => props.active ? '#2E7D32' : 'white'};
+    border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
+    border-radius: 6px;
+    color: ${props => props.active ? 'white' : '#1e293b'};
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
 
-const PaginationButton = styled.button`
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #1e293b;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
+    &:hover:not(:disabled) {
+      background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
+    }
+  `;
 
-  &:hover:not(:disabled) {
-    background: #f8fafc;
-  }
-
-  &:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    cursor: not-allowed;
-  }
-`;
-
-const PaginationNumber = styled.button`
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
-  border-radius: 6px;
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
-  }
-`;
-
-const SearchCard = styled.div`
+  const SearchCard = styled.div`
   background: white;
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
-`;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+  `;
 
-const SearchSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
+  const SearchSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  `;
 
-const SearchRow = styled.div`
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-`;
+  const SearchRow = styled.div`
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  `;
 
-const SearchInput = styled.input`
-  padding: 10px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 240px;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  
-  &::placeholder {
-    color: #94a3b8;
-  }
+  const SearchInput = styled.input`
+    padding: 10px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 240px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    
+    &::placeholder {
+      color: #94a3b8;
+    }
 
   &:hover {
     border-color: #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-  }
-`;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    &:focus {
+      outline: none;
+      border-color: #2E7D32;
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    }
+  `;
 
-const SearchCheckbox = styled.label`
+  const SearchCheckbox = styled.label`
   display: flex;
-  align-items: center;
+    align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #475569;
+    color: #475569;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: all 0.2s;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
 
   &:hover {
-    background: #f8fafc;
-  }
-  
-  input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: #2E7D32;
-  }
-`;
+      background: #f8fafc;
+    }
+    
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #2E7D32;
+    }
+  `;
 
-const SearchButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
+  const SearchButton = styled.button`
+    padding: 10px 20px;
+    background: #2E7D32;
+    color: white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
 
   &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  }
-`;
+      background: #1B5E20;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    }
+  `;
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-`;
+  const Header = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  `;
 
-const PageTitle = styled.h1`
-  font-size: 20px;
+  const PageTitle = styled.h1`
+    font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-  letter-spacing: -0.01em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
 
-  &::before {
-    content: '';
-    display: block;
-    width: 3px;
-    height: 20px;
+    &::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 20px;
+      background: #2E7D32;
+      border-radius: 1.5px;
+    }
+  `;
+
+  const ButtonContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  `;
+
+  const AddButton = styled.button`
+    padding: 8px 16px;
     background: #2E7D32;
-    border-radius: 1.5px;
-  }
-`;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    
+    &:before {
+      content: '+';
+      font-size: 18px;
+      font-weight: 400;
+    }
 
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-`;
+    &:hover {
+      background: #1B5E20;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+    }
 
-const AddButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:before {
-    content: '+';
-    font-size: 18px;
-    font-weight: 400;
-  }
+    &:active {
+      transform: translateY(0);
+    }
+  `;
 
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
+  const LoadingMessage = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    font-size: 16px;
+    color: #64748b;
+  `;
 
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 16px;
-  color: #64748b;
-`;
-
-const UsersTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  margin-top: 24px;
-`;
+  const UsersTable = styled.table`
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-top: 24px;
+  `;
 
 const UserManagement = () => {
   const navigate = useNavigate();

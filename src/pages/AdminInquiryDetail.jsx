@@ -543,4 +543,4 @@ const EmptyMessage = styled.div`
   font-size: 14px;
 `;
 
-export default AdminInquiryDetail;
+export default AdminInquiryDetail; 

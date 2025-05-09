@@ -90,7 +90,8 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     LIST: `${API_BASE_URL}/notifications`,
     SUBSCRIBE: `${API_BASE_URL}/notifications/subscribe`,
-    READ: `${API_BASE_URL}/notifications/read`,
-    READ_ALL: `${API_BASE_URL}/notifications/read-all`
+    READ: (id) => `${API_BASE_URL}/notifications/${id}/read`,
+    READ_ALL: `${API_BASE_URL}/notifications/read-all`,
+    UNREAD_COUNT: `${API_BASE_URL}/notifications/unread/count`
   }
 };

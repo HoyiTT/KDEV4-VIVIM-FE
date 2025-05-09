@@ -90,7 +90,7 @@ const TimelineProgress = styled.div`
   left: 0;
   height: 100%;
   width: ${props => props.width}%;
-  background-color: #22c55e;
+  background-color: #2E7D32;
   transition: width 0.3s ease-in-out;
 `;
 
@@ -152,7 +152,7 @@ const StageProgressMarker = styled.div`
   height: 44px;
   border-radius: 12px;
   background-color: ${props => {
-    if (props['data-completed'] === 'true') return '#22c55e';
+    if (props['data-completed'] === 'true') return '#2E7D32';
     if (props['data-current'] === 'true') return '#3b82f6';
     return '#e2e8f0';
   }};
@@ -162,7 +162,7 @@ const StageProgressMarker = styled.div`
   margin-bottom: 12px;
   box-shadow: ${props => 
     props['data-viewing'] === 'true'
-      ? '0 0 0 2px #fff, 0 0 0 4px #3b82f6' 
+      ? '0 0 0 2px #fff, 0 0 0 4px #2E7D32' 
       : '0 2px 4px rgba(0, 0, 0, 0.1)'
   };
   
@@ -266,7 +266,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div`
   width: ${props => props.width};
   height: 100%;
-  background-color: ${props => props.color || '#22c55e'};
+  background-color: ${props => props.color || '#2E7D32'};
   border-radius: 2px;
 `;
 
@@ -461,10 +461,8 @@ const ProjectStageProgress = ({
     }
   };
 
-  // 현재 선택된 단계
   const currentStage = progressList[currentStageIndex];
 
-  // 현재 단계의 상태 계산
   const getCurrentStageStatus = (stage, index) => {
     const stageStatus = progressStatus.progressList.find(
       status => status.progressId === stage.id
@@ -561,7 +559,7 @@ const ProjectStageProgress = ({
                       openStageModal('editPosition');
                       setShowMenu(false);
                     }}>
-                      <FaPlus /> 단계 순서 변경
+                      <FaGripVertical /> 단계 순서 변경
                     </DropdownItem>
                     {currentStage && (
                       <>
@@ -640,7 +638,7 @@ const ProjectStageProgress = ({
                   const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
                   
                   if (isCompleted) {
-                    return <small style={{ color: '#16a34a' }}>완료</small>;
+                    return <small style={{ color: '#2E7D32' }}>완료</small>;
                   } else if (isCurrent) {
                     return <small style={{ color: '#3b82f6' }}>진행중</small>;
                   } else {
@@ -668,7 +666,7 @@ const ProjectStageProgress = ({
                     <ProgressBar>
                       <ProgressFill 
                         width={`${progressPercent}%`}
-                        color={stageStatus.isCompleted ? '#22c55e' : '#3b82f6'}
+                        color={stageStatus.isCompleted ? '#2E7D32' : '#2E7D32'}
                       />
                     </ProgressBar>
                     <ProgressInfoValue>
@@ -690,7 +688,7 @@ const ProjectStageProgress = ({
                   const currentStageIndex = Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress);
                   return (currentStageIndex / (totalStages - 1)) * 100;
                 })()}%`}
-                color="#22c55e"
+                color="#2E7D32"
               />
             </ProgressBar>
             <ProgressInfoValue>
@@ -816,7 +814,7 @@ const ManageButton = styled.button`
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background-color: #2563eb;
+  background-color: #2E7D32;
   color: white;
   border: none;
   border-radius: 4px;
@@ -826,7 +824,7 @@ const ManageButton = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background-color: #1d4ed8;
+    background-color: #2E7D32;
   }
   
   @media (max-width: 768px) {
@@ -894,52 +892,40 @@ const StageNavigation = styled.div`
 `;
 
 const NavButton = styled.button`
-  padding: 6px 10px;
-  background: ${props => props.disabled ? '#f1f5f9' : '#f8fafc'};
-  color: ${props => props.disabled ? '#cbd5e1' : '#2563eb'};
-  border: 1px solid ${props => props.disabled ? '#e2e8f0' : '#2563eb'};
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  &:hover {
-    background: ${props => props.disabled ? '#f1f5f9' : '#f0f7ff'};
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    color: #1e293b;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
   }
 `;
 
-const StageIndicator = styled.span`
+const StageIndicator = styled.div`
   font-size: 14px;
   color: #64748b;
-`;
-
-// 추가된 스타일 컴포넌트
-const ApprovalRequestContainer = styled.div`
-  margin-top: 0;
-`;
-
-// 스타일 컴포넌트 추가
-const IncreaseProgressButton = styled.button`
-  margin-top: 12px;
-  padding: 8px 16px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
 `;
 
-// 로딩 메시지 스타일 컴포넌트 추가
 const LoadingMessage = styled.div`
   display: flex;
   justify-content: center;
@@ -947,161 +933,42 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
-// 모듈의 마지막에 export 구문 배치
-export default ProjectStageProgress; 
-
-const FormSelect = styled.select`
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 16px;
-  width: 100%;
-  
-  &:focus {
-    outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
-  }
-  
-  &:disabled {
-    background-color: #f3f4f6;
-    cursor: not-allowed;
-  }
+const ApprovalRequestContainer = styled.div`
+  margin-top: 24px;
 `;
 
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const StageModalContent = styled.div`
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 600px;
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const ModalTitle = styled.h3`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #334155;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: #64748b;
-  cursor: pointer;
-`;
-
-const ModalBody = styled.div`
-  margin-bottom: 20px;
-`;
-
-const FormField = styled.div`
-  margin-bottom: 16px;
-`;
-
-const FormLabel = styled.label`
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #334155;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-`;
-
-const ActionButton = styled.button`
+const IncreaseProgressButton = styled.button`
+  margin-top: 12px;
   padding: 8px 16px;
-  background-color: #2563eb;
+  background-color: #2E7D32;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #1d4ed8;
+    background-color: #2E7D32;
   }
-
-  &:disabled {
-    background-color: #f3f4f6;
-    cursor: not-allowed;
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 8px 16px;
-  background-color: #f3f4f6;
-  color: #64748b;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-`;
-
-const ModalForm = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const DragInstructions = styled.div`
-  margin-bottom: 16px;
-  padding: 12px;
-  background-color: #f8fafc;
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 14px;
-  text-align: center;
-`;
-
-const StageList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 `;
 
 const SortableStageItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 12px;
-  background-color: white;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
+  margin-bottom: 8px;
   cursor: grab;
-  
-  &:active {
-    cursor: grabbing;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
   }
 `;
 
@@ -1109,9 +976,9 @@ const DragHandle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
-  cursor: grab;
   padding: 8px;
+  color: #64748b;
+  cursor: grab;
   
   &:active {
     cursor: grabbing;
@@ -1120,17 +987,131 @@ const DragHandle = styled.div`
 
 const StageItemContent = styled.div`
   flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-left: 12px;
 `;
 
 const StageItemName = styled.div`
   font-weight: 500;
   color: #1e293b;
+  margin-bottom: 4px;
 `;
 
 const StageItemPosition = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const StageModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  
+  &:hover {
+    color: #1e293b;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 20px;
+`;
+
+const DragInstructions = styled.div`
   color: #64748b;
   font-size: 14px;
-`; 
+  margin-bottom: 16px;
+  text-align: center;
+`;
+
+const StageList = styled.div`
+  margin-bottom: 20px;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+`;
+
+const ActionButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: #2E7D32;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 8px 16px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+  }
+`;
+
+export default ProjectStageProgress;

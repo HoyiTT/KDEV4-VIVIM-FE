@@ -31,7 +31,7 @@ const PROGRESS_STAGE_MAP = {
 const StatusBadge = styled.div`
   padding: 4px 12px;
   border-radius: 4px;
-  font-size: 14px;
+    font-size: 14px;
   font-weight: 500;
   background-color: ${props => props.$isDeleted ? '#ef4444' : '#2E7D32'};
   color: white;
@@ -2064,16 +2064,16 @@ const ProjectDetail = () => {
                       <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
                     ) : companyInfo ? (
                       <>
-                        <ToggleItem>
-                          <ToggleLabel>고객사</ToggleLabel>
+                    <ToggleItem>
+                      <ToggleLabel>고객사</ToggleLabel>
                           <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>개발사</ToggleLabel>
-                          <ToggleValue>
+                    </ToggleItem>
+                    <ToggleItem>
+                      <ToggleLabel>개발사</ToggleLabel>
+                      <ToggleValue>
                             {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
+                      </ToggleValue>
+                    </ToggleItem>
                       </>
                     ) : (
                       <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -2094,18 +2094,18 @@ const ProjectDetail = () => {
                       <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
                     ) : clientUserInfo ? (
                       <>
-                        <ToggleItem>
-                          <ToggleLabel>고객사 담당자</ToggleLabel>
-                          <ToggleValue>
+                    <ToggleItem>
+                      <ToggleLabel>고객사 담당자</ToggleLabel>
+                      <ToggleValue>
                             {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>고객사 사용자</ToggleLabel>
-                          <ToggleValue>
+                      </ToggleValue>
+                    </ToggleItem>
+                    <ToggleItem>
+                      <ToggleLabel>고객사 사용자</ToggleLabel>
+                      <ToggleValue>
                             {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
+                      </ToggleValue>
+                    </ToggleItem>
                       </>
                     ) : (
                       <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
@@ -2126,18 +2126,18 @@ const ProjectDetail = () => {
                       <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
                     ) : devUserInfo ? (
                       <>
-                        <ToggleItem>
-                          <ToggleLabel>개발사 담당자</ToggleLabel>
-                          <ToggleValue>
+                    <ToggleItem>
+                      <ToggleLabel>개발사 담당자</ToggleLabel>
+                      <ToggleValue>
                             {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
-                        <ToggleItem>
-                          <ToggleLabel>개발사 사용자</ToggleLabel>
-                          <ToggleValue>
+                      </ToggleValue>
+                    </ToggleItem>
+                    <ToggleItem>
+                      <ToggleLabel>개발사 사용자</ToggleLabel>
+                      <ToggleValue>
                             {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                          </ToggleValue>
-                        </ToggleItem>
+                      </ToggleValue>
+                    </ToggleItem>
                       </>
                     ) : (
                       <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
@@ -2179,6 +2179,9 @@ const ProjectDetail = () => {
                                 <StageHeaderActions>
                                   <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
                                     <FaPlus /> 승인요청 추가
+                                  </StageActionButton>
+                                  <StageActionButton onClick={() => openStageModal('editPosition')}>
+                                    <FaGripVertical /> 단계 순서 변경
                                   </StageActionButton>
                                 </StageHeaderActions>
                               )}

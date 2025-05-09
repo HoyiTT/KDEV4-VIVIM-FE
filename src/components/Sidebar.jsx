@@ -3,23 +3,28 @@ import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { FaHome, FaProjectDiagram, FaBell } from 'react-icons/fa';
+import axiosInstance from '../services/axiosInstance';
+import { API_ENDPOINTS } from '../config/api';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, isClient, isDeveloperManager } = useAuth();
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationPanelRef = useRef(null);
   const { 
     notifications, 
-    unreadCount,
     markAsRead, 
     markAllAsRead, 
     getFilteredNotifications,
     showReadNotifications,
     setShowReadNotifications
   } = useNotifications();
+
+  // 읽지 않은 알림 수 계산
+  const unreadCount = notifications.filter(notification => !notification.read).length;
 
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: '📊' },
