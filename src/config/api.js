@@ -77,6 +77,8 @@ export const API_ENDPOINTS = {
   ADMIN_INQUIRY_DETAIL: (id) => `${API_BASE_URL}/admininquiry/${id}`,
   ADMIN_INQUIRY_EDIT: (id) => `${API_BASE_URL}/admininquiry/${id}`,
   ADMIN_INQUIRY_CREATE: `${API_BASE_URL}/admininquiry`,
+  ADMIN_INQUIRY_DELETE: (id) => `${API_BASE_URL}/admininquiry/${id}/delete`,
+  ADMIN_INQUIRY_COMMENT_DELETE: (inquiryId, commentId) => `${API_BASE_URL}/admininquiry/${inquiryId}/comment/${commentId}/delete`,
 
   // Posts
   POST: {

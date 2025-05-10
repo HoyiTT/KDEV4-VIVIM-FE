@@ -32,10 +32,25 @@ const AdminInquiryDetail = () => {
   const fetchInquiryDetail = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
+      console.log('Fetching inquiry detail for ID:', id);
+      console.log('API URL:', API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id));
+      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_DETAIL(id), {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('Received inquiry data:', data);
       setInquiry(data);
     } catch (error) {
       console.error('Error fetching inquiry:', error);
+      console.error('Error details:', error.response?.data);
+      if (error.response?.status === 403) {
+        alert('접근 권한이 없습니다.');
+        navigate('/admin/inquiries');
+      } else {
+        alert('문의 내용을 불러오는데 실패했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,10 +113,23 @@ const AdminInquiryDetail = () => {
       try {
         await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
         alert('문의가 삭제되었습니다.');
-        navigate('/admin-inquiry-list');
+        navigate('/admin/inquiries');
       } catch (error) {
         console.error('Error deleting inquiry:', error);
         alert('문의 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (window.confirm('정말로 이 답변을 삭제하시겠습니까?')) {
+      try {
+        await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_DELETE(id, commentId));
+        alert('답변이 삭제되었습니다.');
+        fetchComments();
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('답변 삭제 중 오류가 발생했습니다.');
       }
     }
   };
@@ -146,15 +174,17 @@ const AdminInquiryDetail = () => {
                 <TypeBadge type={inquiry.inquiryType}>
                   {inquiry.inquiryType === 'NORMAL' ? '일반' : '프로젝트'}
                 </TypeBadge>
-                <StatusBadge status={inquiry.status}>
-                  {inquiry.status === 'PENDING' ? '대기중' :
-                   inquiry.status === 'IN_PROGRESS' ? '처리중' : '답변 완료'}
+                <StatusBadge status={inquiry.inquiryStatus}>
+                  {inquiry.inquiryStatus === 'PENDING' ? '답변 대기' :
+                   inquiry.inquiryStatus === 'IN_PROGRESS' ? '처리중' : '답변 완료'}
                 </StatusBadge>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <CreateButton onClick={handleCompleteAnswer}>
-                  답변 완료하기
-                </CreateButton>
+                {inquiry.inquiryStatus !== 'COMPLETED' && (
+                  <CreateButton onClick={handleCompleteAnswer}>
+                    답변 완료하기
+                  </CreateButton>
+                )}
                 <CreateButton onClick={handleDeleteInquiry} style={{ background: '#dc2626' }}>
                   <FaTrashAlt /> 문의사항 삭제
                 </CreateButton>
@@ -206,6 +236,9 @@ const AdminInquiryDetail = () => {
                         }).replace(/\. /g, '.').slice(0, -1)}
                       </CommentDate>
                     </CommentInfo>
+                    <DeleteButton onClick={() => handleDeleteComment(comment.id)}>
+                      <FaTrashAlt /> 삭제
+                    </DeleteButton>
                   </CommentHeader>
                   <CommentContent>{comment.content}</CommentContent>
                 </CommentItem>
@@ -222,11 +255,11 @@ const AdminInquiryDetail = () => {
                 placeholder="답변을 입력해주세요..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                disabled={inquiry.status === 'COMPLETED'}
+                disabled={inquiry.inquiryStatus === 'COMPLETED'}
               />
               <SubmitButton 
                 onClick={handleSubmitAnswer}
-                disabled={inquiry.status === 'COMPLETED' || !answer.trim()}
+                disabled={inquiry.inquiryStatus === 'COMPLETED' || !answer.trim()}
               >
                 등록
               </SubmitButton>
@@ -541,6 +574,31 @@ const EmptyMessage = styled.div`
   padding: 20px;
   color: #64748b;
   font-size: 14px;
+`;
+
+const DeleteButton = styled.button`
+  padding: 6px 12px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 export default AdminInquiryDetail; 
