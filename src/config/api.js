@@ -24,8 +24,9 @@ export const API_ENDPOINTS = {
   ADMIN_PROJECTS: `${API_BASE_URL}/projects/all`,
   USER_PROJECTS: (userId) => `${API_BASE_URL}/projects?userId=${userId}`,
   PROJECT_POSTS: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
-  PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/link`,
-  PROJECT_POST_FILE: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/file/stream`,
+  PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/posts/${postId}/link`,
+  PROJECT_POST_FILE_MULTIPART: (postId) => `${API_BASE_URL}/posts/${postId}/file/multipart`,
+  PROJECT_POST_FILE_COMPLETE: () => `${API_BASE_URL}/upload/complete`,
   PROJECT_PROGRESS_POSITION: (projectId, progressId) => `${API_BASE_URL}/projects/${projectId}/progress/${progressId}/positioning`,
   PROJECTS_SEARCH: `${API_BASE_URL}/projects/search`,
 
