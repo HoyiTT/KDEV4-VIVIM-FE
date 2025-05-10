@@ -1004,9 +1004,8 @@ const ProjectDetail = () => {
   const [showClientInfo, setShowClientInfo] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
 
-  const [companyInfo, setCompanyInfo] = useState(null);
-  const [clientUserInfo, setClientUserInfo] = useState(null);
-  const [devUserInfo, setDevUserInfo] = useState(null);
+  const [projectCompanies, setProjectCompanies] = useState([]);
+  const [projectUsers, setProjectUsers] = useState([]);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPositionModal, setShowPositionModal] = useState(false);
@@ -1120,7 +1119,7 @@ const ProjectDetail = () => {
         if (error.response?.status === 403) {
           alert('프로젝트를 삭제할 권한이 없습니다.');
         } else {
-          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
         }
       }
     }
@@ -1136,9 +1135,8 @@ const ProjectDetail = () => {
 
     // 회사 정보 조회 추가
     if (isAdmin || isClient || isDeveloperManager) {
-      fetchCompanyInfo();
-      fetchClientUserInfo();
-      fetchDevUserInfo();
+      fetchProjectCompanies();
+      fetchProjectUsers();
     }
 
     // 30초마다 데이터 업데이트
@@ -1239,7 +1237,7 @@ const ProjectDetail = () => {
         // position이 가장 큰 단계(마지막에 추가된 단계)는 항상 미완료 상태로 설정
         const isLastStage = progress.position === Math.max(...arr.map(p => p.position));
         return {
-          ...progress,
+        ...progress,
           isCompleted: isLastStage ? false : progress.isCompleted
         };
       }).sort((a, b) => a.position - b.position);  // position 기준으로 정렬
@@ -1284,7 +1282,7 @@ const ProjectDetail = () => {
       console.error('Error fetching posts:', error);
     }
   };
-
+  
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
       setCurrentStageIndex(prev => prev + 1);
@@ -1301,7 +1299,7 @@ const ProjectDetail = () => {
   const handleApprovalClick = (approval) => {
     navigate(`/project/${id}/approval/${approval.id}`);
   };
-
+  
   // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
@@ -1490,7 +1488,7 @@ const ProjectDetail = () => {
   };
 
   // 회사 정보 조회
-  const fetchCompanyInfo = async () => {
+  const fetchProjectCompanies = async () => {
     try {
       // 권한 체크
       if (!isAdmin && !isClient && !isDeveloperManager) {
@@ -1498,10 +1496,10 @@ const ProjectDetail = () => {
         return;
       }
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/company-info`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/companies`, {
         withCredentials: true
       });
-      setCompanyInfo(response.data);
+      setProjectCompanies(response.data);
     } catch (error) {
       console.error('회사 정보 조회 중 오류 발생:', error);
       if (error.response?.status === 403) {
@@ -1511,7 +1509,7 @@ const ProjectDetail = () => {
   };
 
   // 고객사 사용자 정보 조회
-  const fetchClientUserInfo = async () => {
+  const fetchProjectUsers = async () => {
     try {
       // 권한 체크
       if (!isAdmin && !isClient && !isDeveloperManager) {
@@ -1519,10 +1517,10 @@ const ProjectDetail = () => {
         return;
       }
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/client-users`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/users`, {
         withCredentials: true
       });
-      setClientUserInfo(response.data);
+      setProjectUsers(response.data);
     } catch (error) {
       console.error('고객사 사용자 정보 조회 중 오류 발생:', error);
       if (error.response?.status === 403) {
@@ -1531,45 +1529,24 @@ const ProjectDetail = () => {
     }
   };
 
-  // 개발사 사용자 정보 조회
-  const fetchDevUserInfo = async () => {
-    try {
-      // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
-        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
-        return;
-      }
-
-      const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/dev-users`, {
-        withCredentials: true
-      });
-      setDevUserInfo(response.data);
-    } catch (error) {
-      console.error('개발사 사용자 정보 조회 중 오류 발생:', error);
-      if (error.response?.status === 403) {
-        console.log('개발사 사용자 정보 조회 권한이 없습니다.');
-      }
-    }
-  };
-
   // 토글 헤더 클릭 핸들러 수정
   const handleCompanyInfoToggle = () => {
-    if (!companyInfo && (isAdmin || isClient || isDeveloperManager)) {
-      fetchCompanyInfo();
+    if (projectCompanies.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
+      fetchProjectCompanies();
     }
     setShowCompanyInfo(!showCompanyInfo);
   };
 
   const handleClientInfoToggle = () => {
-    if (!clientUserInfo && (isAdmin || isClient || isDeveloperManager)) {
-      fetchClientUserInfo();
+    if (projectUsers.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
+      fetchProjectUsers();
     }
     setShowClientInfo(!showClientInfo);
   };
 
   const handleDevInfoToggle = () => {
-    if (!devUserInfo && (isAdmin || isClient || isDeveloperManager)) {
-      fetchDevUserInfo();
+    if (projectCompanies.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
+      fetchProjectCompanies();
     }
     setShowDevInfo(!showDevInfo);
   };
@@ -1630,8 +1607,20 @@ const ProjectDetail = () => {
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   };
 
+  // 역할 한글 변환
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case 'CLIENT_MANAGER': return '고객사 담당자';
+      case 'CLIENT_USER': return '고객사 사용자';
+      case 'DEVELOPER_MANAGER': return '개발사 담당자';
+      case 'DEVELOPER_USER': return '개발사 사용자';
+      case 'ADMIN': return '관리자';
+      default: return role;
+    }
+  };
+
   return (
-    <MainContent>
+        <MainContent>
       <ContentWrapper>
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -1648,7 +1637,7 @@ const ProjectDetail = () => {
               <ProjectHeader>
                 <StatusBadge $isDeleted={project?.isDeleted}>
                   {project?.isDeleted ? '삭제됨' : '진행중'}
-                </StatusBadge>
+                  </StatusBadge>
                 {isAdmin && !project?.isDeleted && (
                   <ActionButtons>
                     <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
@@ -1679,6 +1668,7 @@ const ProjectDetail = () => {
                 </DateItem>
               </DateContainer>
 
+              {/* 회사 정보 표시 */}
               <ToggleSection>
                 <ToggleHeader 
                   onClick={handleCompanyInfoToggle}
@@ -1688,90 +1678,52 @@ const ProjectDetail = () => {
                   <span>▼</span>
                 </ToggleHeader>
                 <ToggleContent $isOpen={showCompanyInfo}>
-                  {!isAdmin && !isClient && !isDeveloperManager ? (
-                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                  ) : companyInfo ? (
+                  {projectCompanies.length === 0 ? (
+                    <LoadingMessage>회사 정보를 불러오는 중...</LoadingMessage>
+                  ) : (
                     <>
                       <ToggleItem>
                         <ToggleLabel>고객사</ToggleLabel>
-                        <ToggleValue>{companyInfo.clientCompany?.name || '-'}</ToggleValue>
+                        <ToggleValue>
+                          {projectCompanies.filter(c => c.companyRole === 'CUSTOMER').map(c => c.name).join(', ') || '-'}
+                        </ToggleValue>
                       </ToggleItem>
                       <ToggleItem>
                         <ToggleLabel>개발사</ToggleLabel>
                         <ToggleValue>
-                          {companyInfo.devCompanies?.map(company => company.name).join(', ') || '-'}
+                          {projectCompanies.filter(c => c.companyRole === 'DEVELOPER').map(c => c.name).join(', ') || '-'}
                         </ToggleValue>
                       </ToggleItem>
                     </>
-                  ) : (
-                    <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
                   )}
                 </ToggleContent>
               </ToggleSection>
 
+              {/* 프로젝트 소속 직원 정보 표시 */}
               <ToggleSection>
                 <ToggleHeader 
                   onClick={handleClientInfoToggle}
                   $isOpen={showClientInfo}
                 >
-                  <ToggleTitle>고객사 사용자 정보</ToggleTitle>
+                  <ToggleTitle>프로젝트 소속 직원 정보</ToggleTitle>
                   <span>▼</span>
                 </ToggleHeader>
                 <ToggleContent $isOpen={showClientInfo}>
-                  {!isAdmin && !isClient && !isDeveloperManager ? (
-                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                  ) : clientUserInfo ? (
-                    <>
-                      <ToggleItem>
-                        <ToggleLabel>고객사 담당자</ToggleLabel>
-                        <ToggleValue>
-                          {clientUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                        </ToggleValue>
-                      </ToggleItem>
-                      <ToggleItem>
-                        <ToggleLabel>고객사 사용자</ToggleLabel>
-                        <ToggleValue>
-                          {clientUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                        </ToggleValue>
-                      </ToggleItem>
-                    </>
+                  {projectUsers.length === 0 ? (
+                    <LoadingMessage>직원 정보를 불러오는 중...</LoadingMessage>
                   ) : (
-                    <LoadingMessage>고객사 사용자 정보를 불러오는 중...</LoadingMessage>
+                    <>
+                      {projectUsers.map(user => (
+                        <ToggleItem key={user.userId}>
+                          <ToggleLabel>{getRoleLabel(user.role)}</ToggleLabel>
+                          <ToggleValue>{user.userName}</ToggleValue>
+                        </ToggleItem>
+                      ))}
+                    </>
                   )}
                 </ToggleContent>
               </ToggleSection>
 
-              <ToggleSection>
-                <ToggleHeader 
-                  onClick={handleDevInfoToggle}
-                  $isOpen={showDevInfo}
-                >
-                  <ToggleTitle>개발사 사용자 정보</ToggleTitle>
-                  <span>▼</span>
-                </ToggleHeader>
-                <ToggleContent $isOpen={showDevInfo}>
-                  {!isAdmin && !isClient && !isDeveloperManager ? (
-                    <LoadingMessage>접근 권한이 없습니다.</LoadingMessage>
-                  ) : devUserInfo ? (
-                    <>
-                      <ToggleItem>
-                        <ToggleLabel>개발사 담당자</ToggleLabel>
-                        <ToggleValue>
-                          {devUserInfo.managers?.map(manager => `${manager.name} (${manager.email})`).join(', ') || '-'}
-                        </ToggleValue>
-                      </ToggleItem>
-                      <ToggleItem>
-                        <ToggleLabel>개발사 사용자</ToggleLabel>
-                        <ToggleValue>
-                          {devUserInfo.users?.map(user => `${user.name} (${user.email})`).join(', ') || '-'}
-                        </ToggleValue>
-                      </ToggleItem>
-                    </>
-                  ) : (
-                    <LoadingMessage>개발사 사용자 정보를 불러오는 중...</LoadingMessage>
-                  )}
-                </ToggleContent>
-              </ToggleSection>
             </ProjectInfoSection>
 
             <StageSection>
@@ -1814,7 +1766,7 @@ const ProjectDetail = () => {
                               </StageHeaderActions>
                             )}
                           </StageHeader>
-                        </StageItem>
+                    </StageItem>
                       </StageContainer>
                     ))
                   ) : (
@@ -1826,23 +1778,23 @@ const ProjectDetail = () => {
               </StageSplitLayout>
             </StageSection>
 
-            <BoardSection>
-              <BoardHeader>
+                        <BoardSection>
+                          <BoardHeader>
                 <SectionTitle>게시글</SectionTitle>
-                <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
                   게시글 작성
-                </CreateButton>
-              </BoardHeader>
-              <BoardTable>
-                <thead>
-                  <tr>
-                    <BoardHeaderCell>제목</BoardHeaderCell>
-                    <BoardHeaderCell>작성자</BoardHeaderCell>
-                    <BoardHeaderCell>작성일</BoardHeaderCell>
+                            </CreateButton>
+                          </BoardHeader>
+                          <BoardTable>
+                            <thead>
+                              <tr>
+                                <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>작성자</BoardHeaderCell>
+                                <BoardHeaderCell>작성일</BoardHeaderCell>
                     <BoardHeaderCell>댓글</BoardHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
+                              </tr>
+                            </thead>
+                            <tbody>
                   {posts.length > 0 ? (
                     posts.map((post) => (
                       <BoardRow key={post.postId} onClick={() => handlePostClick(post)}>
@@ -1864,60 +1816,60 @@ const ProjectDetail = () => {
                   ) : (
                     <tr>
                       <EmptyBoardCell colSpan="4">
-                        <EmptyStateContainer>
+                                    <EmptyStateContainer>
                           <EmptyStateTitle>게시글이 없습니다</EmptyStateTitle>
-                          <EmptyStateDescription>
+                                      <EmptyStateDescription>
                             첫 게시글을 작성해보세요.
-                          </EmptyStateDescription>
-                        </EmptyStateContainer>
-                      </EmptyBoardCell>
-                    </tr>
-                  )}
-                </tbody>
-              </BoardTable>
-            </BoardSection>
+                                      </EmptyStateDescription>
+                                    </EmptyStateContainer>
+                                  </EmptyBoardCell>
+                                </tr>
+                              )}
+                            </tbody>
+                          </BoardTable>
+                        </BoardSection>
 
-            {showPositionModal && (
+    {showPositionModal && (
               <ModalOverlay>
                 <ModalContent>
-                  <ModalHeader>
+          <ModalHeader>
                     <h2>단계 순서 변경</h2>
-                  </ModalHeader>
-                  <ModalBody>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
+          </ModalHeader>
+          <ModalBody>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
                         items={progressList.map(item => item.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <StageList>
-                          {progressList.map((stage) => (
-                            <SortableItem
-                              key={stage.id}
-                              id={stage.id}
-                              name={stage.name}
-                              position={stage.position}
+                strategy={verticalListSortingStrategy}
+              >
+                <StageList>
+                  {progressList.map((stage) => (
+                    <SortableItem
+                      key={stage.id}
+                      id={stage.id}
+                      name={stage.name}
+                      position={stage.position}
                               component={SortableStageItem}
-                            />
-                          ))}
-                        </StageList>
-                      </SortableContext>
-                    </DndContext>
-                  </ModalBody>
-                  <ModalFooter>
+                    />
+                  ))}
+                </StageList>
+              </SortableContext>
+            </DndContext>
+          </ModalBody>
+          <ModalFooter>
                     <ActionButton onClick={handleSavePositions}>
-                      순서 저장
-                    </ActionButton>
+              순서 저장
+            </ActionButton>
                     <CancelButton onClick={() => setShowPositionModal(false)}>
                       취소
                     </CancelButton>
-                  </ModalFooter>
+          </ModalFooter>
                 </ModalContent>
-              </ModalOverlay>
-            )}
+      </ModalOverlay>
+    )}
 
             {isStageModalOpen && (
               <ModalOverlay>

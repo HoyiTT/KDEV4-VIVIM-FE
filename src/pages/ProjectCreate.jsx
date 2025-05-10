@@ -88,7 +88,10 @@ const ProjectCreate = () => {
     const fetchClientCompanyUsers = async () => {
       if (selectedClientCompany) {
         try {
-          const response = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany));
+          const response = await axiosInstance.get(
+            API_ENDPOINTS.COMPANY_EMPLOYEES(selectedClientCompany),
+            { withCredentials: true }
+          );
           const data = response.data.data || [];
           const employeeData = data.map(employee => ({
             userId: employee.id,
@@ -100,8 +103,6 @@ const ProjectCreate = () => {
         } catch (error) {
           console.error('Error fetching client company users:', error);
         }
-        
-        // Reset selections when company changes
         setClientManagers([]);
         setClientUsers([]);
       }
@@ -111,14 +112,12 @@ const ProjectCreate = () => {
 
   useEffect(() => {
     if (selectedDevCompany) {
-      const token = localStorage.getItem('token');
-      fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(selectedDevCompany), {
-        headers: {
-          'Authorization': token
-        }
-      })
-        .then(response => response.json())
-        .then(result => {
+      axiosInstance.get(
+        API_ENDPOINTS.COMPANY_EMPLOYEES(selectedDevCompany),
+        { withCredentials: true }
+      )
+        .then(response => {
+          const result = response.data;
           if (result.statusCode === 200) {
             const employeeData = result.data.map(employee => ({
               userId: employee.id,
@@ -132,8 +131,6 @@ const ProjectCreate = () => {
         .catch(error => {
           console.error('Error fetching dev company users:', error);
         });
-      
-      // Reset selections when company changes
       setDevManagers([]);
       setDevUsers([]);
     }
@@ -165,50 +162,31 @@ const ProjectCreate = () => {
 
   // 개발사 선택 핸들러
   const handleDevCompanySelect = async (company) => {
-    console.log('선택된 개발사:', company);
-    if (!selectedDevCompany) {
-      console.error('선택된 개발사 정보가 없습니다.');
-      return;
-    }
-
+    if (!selectedDevCompany) return;
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
-      
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.COMPANY_EMPLOYEES(company.id),
+        { withCredentials: true }
+      );
+      const result = response.data;
       if (result.statusCode === 200 && Array.isArray(result.data)) {
         const formattedUsers = result.data.map(user => ({
           ...user,
           userId: String(user.id)
         }));
-        
-        setDevCompanySelections(prev => prev.map(selection => 
+        setDevCompanySelections(prev => prev.map(selection =>
           selection.id === selectedDevCompany.id
             ? { ...selection, companyId: company.id, companyUsers: formattedUsers }
             : selection
         ));
-        
         setAllUsers(formattedUsers);
         setSearchedUsers(formattedUsers);
         setShowDevCompanyModal(false);
         setShowDevUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
-      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
       alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
     }
   };
@@ -283,7 +261,7 @@ const ProjectCreate = () => {
   };
 
   // 제출 핸들러 수정
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!projectName.trim()) {
@@ -315,8 +293,6 @@ const ProjectCreate = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    
     // 모든 개발사의 담당자와 개발자 정보를 하나의 배열로 합치기
     const allDevManagers = devCompanySelections.flatMap(selection => selection.managers);
     const allDevUsers = devCompanySelections.flatMap(selection => selection.users);
@@ -337,41 +313,20 @@ const ProjectCreate = () => {
       clientUsers: clientUsers,
       devManagers: allDevManagers,
       devUsers: allDevUsers,
-      projectFee: parseInt(projectFee.replace(/,/g, '')) // contractAmount를 projectFee로 변경
+      projectFee: parseInt(projectFee.replace(/,/g, ''))
     };
     
-    console.log('Project data to be sent to server:', projectData);
-    
-    // Send POST request to the API
-    fetch(API_ENDPOINTS.PROJECTS, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': token
-      },
-      body: JSON.stringify(projectData)
-    })
-    .then(response => {
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        return response.text().then(text => {
-          console.log('Error response body:', text);
-          throw new Error(`Server responded with ${response.status}: ${text || 'No error details provided'}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Success:', data);
-      // Navigate back to dashboard on success
+    try {
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.PROJECTS,
+        projectData,
+        { withCredentials: true }
+      );
+      // 성공 시
       navigate('/dashboard-admin');
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('프로젝트 생성 중 오류가 발생했습니다: ' + error.message);
-    });
+    } catch (error) {
+      alert('프로젝트 생성 중 오류가 발생했습니다: ' + (error?.response?.data?.message || error.message));
+    }
   };
 
   // 상태 변수 추가
@@ -385,41 +340,26 @@ const ProjectCreate = () => {
 
   // 고객사 선택 핸들러
   const handleClientCompanySelect = async (company) => {
-    console.log('선택된 고객사:', company);
     setSelectedClientCompany(company);
     setShowClientCompanyModal(false);
-    
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANY_EMPLOYEES(company.id), {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('받은 사용자 데이터:', result);
-      
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.COMPANY_EMPLOYEES(company.id),
+        { withCredentials: true }
+      );
+      const result = response.data;
       if (result.statusCode === 200 && Array.isArray(result.data)) {
         const formattedUsers = result.data.map(user => ({
           ...user,
           userId: String(user.id)
         }));
-        
         setAllUsers(formattedUsers);
         setSearchedUsers(formattedUsers);
         setShowClientUserModal(true);
       } else {
-        console.error('예상치 못한 응답 형식:', result);
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
-      console.error('사용자 데이터를 가져오는 중 오류 발생:', error);
       alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
     }
   };
@@ -448,10 +388,6 @@ const ProjectCreate = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
       <MainContent>
         <Header>
           <PageTitle>프로젝트 생성</PageTitle>

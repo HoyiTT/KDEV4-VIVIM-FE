@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
@@ -8,49 +7,45 @@ import Select from '../components/common/Select';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
     actionType: '',
-    entityType: '',
+    targetType: '',
     startDate: '',
     endDate: '',
     userId: '',
+    size: 10,
   });
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-  const pageSize = 10;
+  const [cursor, setCursor] = useState({ loggedAt: '', id: '' });
+  const [nextCursor, setNextCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
 
   useEffect(() => {
     fetchLogs();
-  }, [page]);
+  }, []);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (customCursor = null) => {
     try {
       setLoading(true);
-      
-      const queryParams = new URLSearchParams();
-      queryParams.append('page', page);
-      queryParams.append('size', pageSize);
-
-      if (filters.actionType) queryParams.append('actionType', filters.actionType);
-      if (filters.entityType) queryParams.append('entityType', filters.entityType);
-      if (filters.startDate) queryParams.append('startDate', filters.startDate);
-      if (filters.endDate) queryParams.append('endDate', filters.endDate);
-      if (filters.userId) queryParams.append('userId', filters.userId);
-
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.AUDIT_LOGS_SEARCH}?${queryParams.toString()}`);
-      setLogs(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
+      const params = {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== undefined && value !== null) {
+          params[key] = value;
+        }
+      });
+      if (customCursor && customCursor.loggedAt && customCursor.id) {
+        params.cursorLoggedAt = customCursor.loggedAt;
+        params.cursorId = customCursor.id;
+      }
+      const { data } = await axiosInstance.get(`/auditLog/searchCursor`, { params });
+      setLogs(data.logs || []);
+      setNextCursor(data.nextCursor || null);
+      setCursor(customCursor || { loggedAt: '', id: '' });
     } catch (error) {
-      console.error('Error fetching logs:', error);
-      alert('로그를 불러오는데 실패했습니다.');
       setLogs([]);
-      setTotalPages(0);
-      setTotalElements(0);
+      setNextCursor(null);
     } finally {
       setLoading(false);
     }
@@ -58,14 +53,29 @@ const AuditLog = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePageChange = (newPage) => {
-    setPage(newPage);
+  const handleSearch = () => {
+    setCursor({ loggedAt: '', id: '' });
+    setCursorStack([]);
+    fetchLogs(null);
+  };
+
+  const handleNext = () => {
+    if (nextCursor) {
+      setCursorStack(prev => [...prev, cursor]);
+      fetchLogs(nextCursor);
+    }
+  };
+
+  const handlePrev = () => {
+    if (cursorStack.length > 0) {
+      const prevStack = [...cursorStack];
+      const prevCursor = prevStack.pop();
+      setCursorStack(prevStack);
+      fetchLogs(prevCursor);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -91,11 +101,6 @@ const AuditLog = () => {
     setShowModal(true);
   };
 
-  const handleSearch = () => {
-    setPage(0);
-    fetchLogs();
-  };
-
   return (
     <PageContainer>
       <MainContent>
@@ -103,22 +108,51 @@ const AuditLog = () => {
           <HeaderLeft>
             <PageTitle>로그 기록</PageTitle>
             <FilterContainer>
-              <Select name="actionType" value={filters.actionType} onChange={handleFilterChange}>
-                <option value="">전체</option>
-                <option value="CREATE">생성</option>
-                <option value="MODIFY">수정</option>
-                <option value="DELETE">삭제</option>
-              </Select>
-              <Select name="entityType" value={filters.entityType} onChange={handleFilterChange}>
-                <option value="">전체</option>
-                <option value="PROJECT">프로젝트</option>
-                <option value="USER">사용자</option>
-                <option value="POST">게시글</option>
-                <option value="COMMENT">댓글</option>
-              </Select>
+              <select
+                name="actionType"
+                value={filters.actionType}
+                onChange={handleFilterChange}
+                style={{
+                  padding: '8px 12px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  width: '120px',
+                  marginRight: '0'
+                }}
+              >
+                <option value="">--</option>
+                <option value="CREATE">CREATE</option>
+                <option value="MODIFY">MODIFY</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+              <select
+                name="targetType"
+                value={filters.targetType}
+                onChange={handleFilterChange}
+                style={{
+                  padding: '8px 12px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  width: '120px',
+                  marginRight: '0'
+                }}
+              >
+                <option value="">--</option>
+                <option value="USER">USER</option>
+                <option value="COMPANY">COMPANY</option>
+                <option value="PROJECT">PROJECT</option>
+                <option value="APPROVAL">APPROVAL</option>
+                <option value="PHASE">PHASE</option>
+                <option value="POST">POST</option>
+                <option value="COMMENT">COMMENT</option>
+                <option value="LINK">LINK</option>
+              </select>
               <Input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
               <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
+              <Input type="number" name="size" value={filters.size} onChange={handleFilterChange} min={1} max={100} style={{ width: 80 }} />
             </FilterContainer>
           </HeaderLeft>
           <HeaderRight>
@@ -170,46 +204,16 @@ const AuditLog = () => {
             </LogTable>
             <PaginationContainer>
               <PaginationButton 
-                onClick={() => handlePageChange(0)} 
-                disabled={page === 0}
-              >
-                처음
-              </PaginationButton>
-              <PaginationButton 
-                onClick={() => handlePageChange(page - 1)} 
-                disabled={page === 0}
+                onClick={handlePrev} 
+                disabled={cursorStack.length === 0}
               >
                 이전
               </PaginationButton>
-              {(() => {
-                const buttons = [];
-                const startPage = Math.max(0, page - 5);
-                const endPage = Math.min(totalPages - 1, page + 5);
-
-                for (let i = startPage; i <= endPage; i++) {
-                  buttons.push(
-                    <PaginationButton
-                      key={i}
-                      onClick={() => handlePageChange(i)}
-                      active={page === i}
-                    >
-                      {i + 1}
-                    </PaginationButton>
-                  );
-                }
-                return buttons;
-              })()}
               <PaginationButton 
-                onClick={() => handlePageChange(page + 1)} 
-                disabled={page === totalPages - 1}
+                onClick={handleNext} 
+                disabled={!nextCursor}
               >
                 다음
-              </PaginationButton>
-              <PaginationButton 
-                onClick={() => handlePageChange(totalPages - 1)} 
-                disabled={page === totalPages - 1}
-              >
-                마지막
               </PaginationButton>
             </PaginationContainer>
           </>
@@ -298,19 +302,31 @@ const PageTitle = styled.h1`
 
 const FilterContainer = styled.div`
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
 `;
 
 const Input = styled.input`
-  padding: 10px 16px;
+  padding: 8px 12px;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  min-width: 120px;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  &[type="date"] {
+    width: 140px;
+  }
+  
+  &[type="text"] {
+    width: 120px;
+  }
+  
+  &[type="number"] {
+    width: 80px;
+  }
   
   &:hover {
     border-color: #cbd5e1;

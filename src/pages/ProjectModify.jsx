@@ -1083,12 +1083,12 @@ const CancelButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: white;
+  padding: 12px 24px;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 8px;
+  background-color: #2E7D32;
+  color: white;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;

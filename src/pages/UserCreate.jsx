@@ -30,9 +30,16 @@ const UserCreate = () => {
         }
       });
       const data = await response.json();
-      setCompanies(data);
+      if (Array.isArray(data)) {
+        setCompanies(data);
+      } else if (Array.isArray(data.content)) {
+        setCompanies(data.content);
+      } else {
+        setCompanies([]);
+      }
     } catch (error) {
       console.error('Error fetching companies:', error);
+      setCompanies([]);
     }
   };
 
@@ -80,10 +87,6 @@ const UserCreate = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <MainContent>
         <Header>
           <PageTitle>사용자 등록</PageTitle>

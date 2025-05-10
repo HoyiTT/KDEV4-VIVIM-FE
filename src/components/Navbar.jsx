@@ -13,7 +13,7 @@ const NavbarContainer = styled.nav`
   height: 80px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
-  display: flex;
+    display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
@@ -270,7 +270,7 @@ const ActionButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-
+  
   &:hover {
     background: #f8fafc;
     color: #2E7D32;
@@ -334,7 +334,7 @@ const HamburgerButton = styled.button`
     align-items: center;
     justify-content: center;
   }
-
+  
   &:hover {
     color: #2E7D32;
   }

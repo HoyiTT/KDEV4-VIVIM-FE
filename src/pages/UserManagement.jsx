@@ -208,35 +208,36 @@ const TableCell = styled.td`
 
   const SearchSection = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-bottom: 24px;
+    gap: 0;
   `;
 
   const SearchRow = styled.div`
     display: flex;
-    gap: 16px;
+    gap: 8px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   `;
 
   const SearchInput = styled.input`
-    padding: 10px 16px;
+    padding: 8px 12px;
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
-    width: 240px;
+    width: 120px;
+    min-width: 0;
     transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    
     &::placeholder {
       color: #94a3b8;
     }
-
-  &:hover {
-    border-color: #cbd5e1;
+    &:hover {
+      border-color: #cbd5e1;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
-    
     &:focus {
       outline: none;
       border-color: #2E7D32;
@@ -418,15 +419,31 @@ const UserManagement = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (customFilters = filters, page = currentPage) => {
     try {
       setLoading(true);
-      
-      const queryParams = new URLSearchParams({
-        page: currentPage - 1,
-        size: 10
-      }).toString();
-
+      const hasActiveFilter = Object.values(customFilters).some(
+        v => v !== '' && v !== false
+      );
+      let queryParams = '';
+      if (hasActiveFilter) {
+        const activeFilters = Object.entries(customFilters).reduce((acc, [key, value]) => {
+          if (value !== '' && value !== false) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {});
+        queryParams = new URLSearchParams({
+          ...activeFilters,
+          page: page - 1,
+          size: 10
+        }).toString();
+      } else {
+        queryParams = new URLSearchParams({
+          page: page - 1,
+          size: 10
+        }).toString();
+      }
       const { data } = await axiosInstance.get(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
         withCredentials: true
       });
@@ -441,33 +458,9 @@ const UserManagement = () => {
     }
   };
 
-  const handleSearch = async () => {
-    try {
-      setCurrentPage(1);
-      
-      const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-        if (value !== '' && value !== false) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {});
-
-      const queryParams = new URLSearchParams({
-        ...activeFilters,
-        page: 0,
-        size: 10
-      }).toString();
-
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.USERS_SEARCH}?${queryParams}`, {
-        withCredentials: true
-      });
-      setUsers(data.content || []);
-      setTotalPages(data.totalPages || 0);
-    } catch (error) {
-      console.error('Error searching users:', error);
-      setUsers([]);
-      setTotalPages(0);
-    }
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchUsers(filters, 1);
   };
 
   const handleFilterChange = (e) => {
@@ -511,57 +504,24 @@ const UserManagement = () => {
     navigate(`/user-edit/${userId}`);
   };
 
+  useEffect(() => {
+    fetchUsers(filters, currentPage);
+  }, [currentPage]);
+
   return (
     <PageContainer>
-      <Sidebar />
       <MainContent>
         <Card>
           <Header>
             <PageTitle>사용자 관리</PageTitle>
             <ButtonContainer>
-              <SearchCheckbox>
-                <input
-                  type="checkbox"
-                  name="isDeleted"
-                  checked={filters.isDeleted}
-                  onChange={handleFilterChange}
-                />
-                <span>삭제된 사용자만 검색</span>
-              </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
-                검색
-              </SearchButton>
               <AddButton onClick={() => navigate('/user-create')}>
                 새 사용자 등록
               </AddButton>
             </ButtonContainer>
           </Header>
           <SearchSection>
-            <SearchRow>
-              <Select
-                name="companyRole"
-                value={filters.companyRole}
-                onChange={handleFilterChange}
-              >
-                <option value="">역할 선택</option>
-                <option value="ADMIN">관리자</option>
-                <option value="DEVELOPER">개발사</option>
-                <option value="CUSTOMER">고객사</option>
-              </Select>
-              <Select
-                name="companyId"
-                value={filters.companyId}
-                onChange={handleFilterChange}
-              >
-                <option value="">회사 선택</option>
-                {companies.map(company => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </Select>
-            </SearchRow>
-            <SearchRow>
+            <SearchRow style={{ flex: 1 }}>
               <SearchInput
                 type="text"
                 name="name"
@@ -583,7 +543,38 @@ const UserManagement = () => {
                 value={filters.phone}
                 onChange={handleFilterChange}
               />
+              <select
+                name="companyRole"
+                value={filters.companyRole}
+                onChange={handleFilterChange}
+                style={{
+                  padding: '8px 12px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  minWidth: '120px',
+                }}
+              >
+                <option value="">회사 역할 선택</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="DEVELOPER">DEVELOPER</option>
+                <option value="CUSTOMER">CUSTOMER</option>
+              </select>
+              <SearchCheckbox>
+                <input
+                  type="checkbox"
+                  name="isDeleted"
+                  checked={filters.isDeleted}
+                  onChange={handleFilterChange}
+                />
+                <span>삭제된 사용자만 검색</span>
+              </SearchCheckbox>
             </SearchRow>
+            <div>
+              <SearchButton onClick={handleSearch}>
+                검색
+              </SearchButton>
+            </div>
           </SearchSection>
         </Card>
 

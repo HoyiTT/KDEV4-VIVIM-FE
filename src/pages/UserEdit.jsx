@@ -356,11 +356,20 @@ const UserEdit = () => {
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    setUserData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
-  }, []);
+    if (name === 'companyId') {
+      const selectedCompany = companies.find(c => String(c.id) === value);
+      setUserData(prevState => ({
+        ...prevState,
+        companyId: value,
+        companyRole: selectedCompany ? selectedCompany.companyRole : ''
+      }));
+    } else {
+      setUserData(prevState => ({
+        ...prevState,
+        [name]: value
+      }));
+    }
+  }, [companies]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();

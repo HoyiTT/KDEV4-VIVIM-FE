@@ -52,16 +52,32 @@ const CompanyManagement = () => {
     }
   };
 
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (customFilters = filters, page = currentPage) => {
     try {
       setLoading(true);
-      
-      // 필터가 비어있는 경우 기본 페이지네이션 파라미터만 사용
-      const queryParams = new URLSearchParams({
-        page: currentPage,
-        size: 10
-      }).toString();
-
+      // 필터가 모두 비어있으면 page/size만, 아니면 필터 파라미터 추가
+      const hasActiveFilter = Object.values(customFilters).some(
+        v => v !== '' && v !== false
+      );
+      let queryParams = '';
+      if (hasActiveFilter) {
+        const activeFilters = Object.entries(customFilters).reduce((acc, [key, value]) => {
+          if (value !== '' && value !== false) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {});
+        queryParams = new URLSearchParams({
+          ...activeFilters,
+          page,
+          size: 10
+        }).toString();
+      } else {
+        queryParams = new URLSearchParams({
+          page,
+          size: 10
+        }).toString();
+      }
       const { data } = await axiosInstance.get(`${API_ENDPOINTS.COMPANIES_SEARCH}?${queryParams}`);
       setCompanies(data.content || []);
       setTotalPages(data.totalPages);
@@ -75,34 +91,7 @@ const CompanyManagement = () => {
 
   const handleSearch = () => {
     setCurrentPage(0);
-    
-    // 입력된 값만 필터링
-    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-      if (value !== '' && value !== false) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
-
-    const queryParams = new URLSearchParams({
-      ...activeFilters,
-      page: 0,
-      size: 10
-    }).toString();
-
-    fetch(`${API_ENDPOINTS.COMPANIES_SEARCH}?${queryParams}`, {
-      headers: {
-        'Authorization': `${localStorage.getItem('token')?.trim()}`
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        setCompanies(data.content);
-        setTotalPages(data.totalPages);
-      })
-      .catch(error => {
-        console.error('Error searching companies:', error);
-      });
+    fetchCompanies(filters, 0);
   };
 
   const handleFilterChange = (e) => {
@@ -126,6 +115,11 @@ const CompanyManagement = () => {
     }
   };
 
+  // 페이지 변경 시
+  useEffect(() => {
+    fetchCompanies(filters, currentPage);
+  }, [currentPage]);
+
   return (
     <PageContainer>
       <MainContent>
@@ -133,17 +127,6 @@ const CompanyManagement = () => {
           <Header>
             <PageTitle>회사 관리</PageTitle>
             <ButtonContainer>
-              <SearchCheckbox>
-                <input
-                  type="checkbox"
-                  checked={showDeleted}
-                  onChange={(e) => setShowDeleted(e.target.checked)}
-                />
-                삭제된 회사만 검색
-              </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
-                검색
-              </SearchButton>
               <AddButton onClick={() => navigate('/company-create')}>
                 새 회사 등록
               </AddButton>
@@ -151,20 +134,43 @@ const CompanyManagement = () => {
           </Header>
 
           <SearchSection>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">전체</option>
-              <option value="ACTIVE">활성</option>
-              <option value="INACTIVE">비활성</option>
-            </Select>
-            <SearchInput
-              type="text"
-              placeholder="회사명 검색"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <SearchInput
+                type="text"
+                placeholder="회사명 검색"
+                name="name"
+                value={filters.name}
+                onChange={handleFilterChange}
+              />
+              <SearchInput
+                type="text"
+                placeholder="사업자등록번호 검색"
+                name="businessNumber"
+                value={filters.businessNumber}
+                onChange={handleFilterChange}
+              />
+              <SearchInput
+                type="text"
+                placeholder="이메일 검색"
+                name="email"
+                value={filters.email}
+                onChange={handleFilterChange}
+              />
+              <SearchCheckbox>
+                <input
+                  type="checkbox"
+                  checked={filters.isDeleted}
+                  name="isDeleted"
+                  onChange={handleFilterChange}
+                />
+                삭제된 회사만 검색
+              </SearchCheckbox>
+            </div>
+            <div>
+              <SearchButton onClick={handleSearch}>
+                검색
+              </SearchButton>
+            </div>
           </SearchSection>
         </Card>
 
@@ -336,32 +342,30 @@ const AddButton = styled.button`
 
 const SearchSection = styled.div`
   display: flex;
-  gap: 16px;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: flex-start;
+  flex-wrap: nowrap;
   margin-bottom: 24px;
+  overflow-x: auto;
+  gap: 0;
 `;
 
 const SearchInput = styled.input`
-  padding: 10px 16px;
+  padding: 8px 12px;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  width: 240px;
+  width: 140px;
+  min-width: 0;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  
   &::placeholder {
     color: #94a3b8;
   }
-
   &:hover {
     border-color: #cbd5e1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
-  
   &:focus {
     outline: none;
     border-color: #2E7D32;

@@ -74,13 +74,16 @@ const AdminProjects = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [searchParams, setSearchParams] = useState({
     name: '',
+    description: '',
     isDeleted: false
   });
 
   const [filters, setFilters] = useState({
     name: '',
+    description: '',
     isDeleted: false
   });
 
@@ -88,26 +91,20 @@ const AdminProjects = () => {
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
-      setSearchParams(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      setSearchParams(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setSearchParams(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleSearch = () => {
-    setFilters(searchParams);
+    setFilters({ ...searchParams });
     setCurrentPage(1);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -119,20 +116,26 @@ const AdminProjects = () => {
         page: currentPage - 1,
         size: itemsPerPage,
         ...(filters.name && { name: filters.name }),
+        ...(filters.description && { description: filters.description }),
         ...(filters.isDeleted && { isDeleted: true })
       }).toString();
 
-      const response = await axiosInstance.get(`/projects/all?${queryParams}`);
-      setProjects(response.data.content || response.data);
-      setTotalPages(Math.ceil((response.data.totalElements || response.data.length) / itemsPerPage));
+      const response = await axiosInstance.get(`/projects/search?${queryParams}`);
+      setProjects(response.data.content || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalElements(response.data.totalElements || 0);
     } catch (error) {
-      console.error('프로젝트 목록을 불러오는데 실패했습니다:', error);
       setProjects([]);
       setTotalPages(1);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, filters]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleDeleteProject = async (projectId) => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
@@ -147,15 +150,6 @@ const AdminProjects = () => {
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  // filters가 변경될 때만 fetchProjects 실행
-  useEffect(() => {
-    fetchProjects();
-  }, [filters]);
-
   // 현재 페이지의 프로젝트만 표시
   const getCurrentPageProjects = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -168,7 +162,7 @@ const AdminProjects = () => {
   };
 
   const getProjectStatus = (project) => {
-    if (project.isDeleted) {
+    if (project.deleted) {
       return '삭제됨';
     }
     switch (project.projectStatus) {
@@ -184,7 +178,7 @@ const AdminProjects = () => {
   };
 
   const getStatusColor = (project) => {
-    if (project.isDeleted) {
+    if (project.deleted) {
       return { text: '삭제됨', color: '#B91C1C' };
     }
     switch (project.projectStatus) {
@@ -340,9 +334,10 @@ const AdminProjects = () => {
 
   const SearchSection = styled.div`
     display: flex;
-    gap: 12px;
     align-items: center;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
     width: 100%;
   `;
 
@@ -472,7 +467,7 @@ const AdminProjects = () => {
     }
   `;
 
-  const CreateButton = styled.button`
+  const AddButton = styled.button`
     padding: 10px 20px;
     background: #2E7D32;
     color: white;
@@ -531,47 +526,42 @@ const AdminProjects = () => {
 
   return (
     <PageContainer>
-      <Sidebar />
       <MainContent>
         <Header>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <PageTitle>프로젝트 관리</PageTitle>
-              <CreateButton onClick={() => navigate('/project-create')}>
-                + 새 프로젝트 등록
-              </CreateButton>
+              <AddButton onClick={() => navigate('/projectCreate')}>+ 새 프로젝트 등록</AddButton>
             </div>
             <SearchSection>
-              <SearchInput
-                type="text"
-                placeholder="프로젝트명 검색"
-                value={searchParams.name}
-                onChange={handleFilterChange}
-                onKeyPress={handleKeyPress}
-                name="name"
-              />
-              <StyledSelect
-                value={searchParams.projectStatus}
-                onChange={(e) => handleFilterChange({ target: { name: 'projectStatus', value: e.target.value } })}
-              >
-                <option value="">전체</option>
-                <option value="PENDING">대기중</option>
-                <option value="IN_PROGRESS">진행중</option>
-                <option value="UNDER_INSPECTION">검수중</option>
-                <option value="COMPLETED">완료</option>
-              </StyledSelect>
-              <SearchCheckbox>
-                <input
-                  type="checkbox"
-                  name="isDeleted"
-                  checked={searchParams.isDeleted}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
+                <SearchInput
+                  type="text"
+                  name="name"
+                  placeholder="프로젝트명 검색"
+                  value={searchParams.name}
                   onChange={handleFilterChange}
+                  onKeyDown={handleKeyPress}
                 />
-                삭제된 프로젝트만 검색
-              </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
-                검색
-              </SearchButton>
+                <SearchInput
+                  type="text"
+                  name="description"
+                  placeholder="프로젝트 설명 검색"
+                  value={searchParams.description}
+                  onChange={handleFilterChange}
+                  onKeyDown={handleKeyPress}
+                />
+                <SearchCheckbox>
+                  <input
+                    type="checkbox"
+                    name="isDeleted"
+                    checked={searchParams.isDeleted}
+                    onChange={handleFilterChange}
+                  />
+                  삭제된 프로젝트만 검색
+                </SearchCheckbox>
+              </div>
+              <SearchButton onClick={handleSearch}>검색</SearchButton>
             </SearchSection>
           </div>
         </Header>
@@ -591,7 +581,7 @@ const AdminProjects = () => {
                 </tr>
               </thead>
               <tbody>
-                {getCurrentPageProjects().map((project) => {
+                {projects.map((project) => {
                   const statusColor = getStatusColor(project);
                   return (
                     <TableRow 
@@ -603,23 +593,27 @@ const AdminProjects = () => {
                       <TableCell>{formatDate(project.endDate)}</TableCell>
                       <TableCell>
                         <StatusBadge 
-                          status={project.isDeleted ? 'DELETED' : project.projectStatus}
+                          status={project.deleted ? 'DELETED' : project.projectStatus}
                         >
                           {getProjectStatus(project)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>
-                        {!project.isDeleted && (
+                        {!project.deleted && (
                           <ActionButtonContainer>
-                            <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                            <ActionButton
+                              onClick={e => {
+                                e.stopPropagation();
+                                navigate(`/projectModify/${project.projectId}`);
+                              }}
+                            >
                               수정
                             </ActionButton>
-                            <DeleteButton 
-                              onClick={(e) => {
+                            <DeleteButton
+                              onClick={e => {
                                 e.stopPropagation();
                                 handleDeleteProject(project.projectId);
                               }}
-                              disabled={project.isDeleted}
                             >
                               삭제
                             </DeleteButton>
@@ -631,7 +625,7 @@ const AdminProjects = () => {
                 })}
               </tbody>
             </ProjectsTable>
-            {projects.length > 0 && (
+            {totalElements > 0 && (
               <PaginationContainer>
                 <PaginationButton 
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}

@@ -78,6 +78,7 @@ const DashboardAdmin = () => {
     ],
   });
   const [recentProposals, setRecentProposals] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState([]);
 
   // 차트 데이터
   const projectStatusData = {
@@ -98,16 +99,16 @@ const DashboardAdmin = () => {
   };
 
   const monthlyStatsData = {
-    labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
+    labels: monthlyStats.map(stat => stat.month),
     datasets: [
       {
-        label: '신규 프로젝트',
-        data: [4, 6, 8, 5, 7, 9],
+        label: '전체 프로젝트',
+        data: monthlyStats.map(stat => stat.totalProjects),
         backgroundColor: '#2E7D32',
       },
       {
-        label: '완료 프로젝트',
-        data: [3, 4, 6, 4, 5, 7],
+        label: '완료된 프로젝트',
+        data: monthlyStats.map(stat => stat.completedProjects),
         backgroundColor: '#66BB6A',
       },
     ],
@@ -350,6 +351,21 @@ const DashboardAdmin = () => {
     };
 
     fetchRecentProposals();
+  }, []);
+
+  useEffect(() => {
+    const fetchMonthlyStats = async () => {
+      try {
+        const { data } = await axiosInstance.get('/projects/projects/stats/monthly');
+        console.log('Monthly stats data:', data);
+        setMonthlyStats(data);
+      } catch (error) {
+        console.error('Error fetching monthly stats:', error);
+        setMonthlyStats([]);
+      }
+    };
+
+    fetchMonthlyStats();
   }, []);
 
   const handlePostClick = (postId, projectId) => {

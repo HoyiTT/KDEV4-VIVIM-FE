@@ -312,6 +312,7 @@ const CompanyEdit = () => {
               value={formData.companyRole || ''}
               onChange={handleChange}
               required
+              disabled
             >
               <option value="">선택하세요</option>
               <option value="DEVELOPER">개발사</option>
