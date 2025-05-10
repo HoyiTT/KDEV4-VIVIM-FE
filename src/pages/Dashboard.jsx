@@ -38,26 +38,7 @@ const Dashboard = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [recentPosts, setRecentPosts] = useState([]);
   const [recentInquiries, setRecentInquiries] = useState([]);
-  const [deadlineProjects, setDeadlineProjects] = useState([
-    {
-      id: 1,
-      name: '웹사이트 리뉴얼 프로젝트',
-      deadline: '2024-03-25T23:59:59',
-      status: 'IN_PROGRESS'
-    },
-    {
-      id: 2,
-      name: '모바일 앱 개발 프로젝트',
-      deadline: '2024-03-28T23:59:59',
-      status: 'IN_PROGRESS'
-    },
-    {
-      id: 3,
-      name: '데이터베이스 마이그레이션',
-      deadline: '2024-03-30T23:59:59',
-      status: 'SUSPENDED'
-    }
-  ]);
+  const [deadlineProjects, setDeadlineProjects] = useState([]);
   const [recentProposals, setRecentProposals] = useState([]);
 
   // 날짜 포맷팅 함수 추가
@@ -129,6 +110,28 @@ const Dashboard = () => {
     }
   };
 
+  // 마감 임박 프로젝트 불러오기
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserProjects(user.id);
+    }
+  }, [user]);
+
+  const fetchUserProjects = async (userId) => {
+    try {
+      const { data } = await axiosInstance.get('/projects', { params: { userId } });
+      if (Array.isArray(data)) {
+        // endDate 오름차순 정렬
+        const sorted = [...data].sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+        setDeadlineProjects(sorted);
+      } else {
+        setDeadlineProjects([]);
+      }
+    } catch (e) {
+      setDeadlineProjects([]);
+    }
+  };
+
   const getProjectStatusText = (status) => {
     switch (status) {
       case 'IN_PROGRESS':
@@ -157,6 +160,18 @@ const Dashboard = () => {
     }
   };
 
+  // D-Day 계산 함수 추가
+  const getDDay = (endDate) => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const end = new Date(endDate);
+    end.setHours(0,0,0,0);
+    const diff = Math.floor((end - today) / (1000 * 60 * 60 * 24));
+    if (diff > 0) return `D-${diff}`;
+    if (diff === 0) return 'D-0';
+    return `D+${Math.abs(diff)}`;
+  };
+
   return (
     <PageContainer>
       <ContentWrapper>
@@ -167,22 +182,18 @@ const Dashboard = () => {
               <CardContent>
                 {deadlineProjects.length > 0 ? (
                   deadlineProjects.map((project) => (
-                    <ProjectItem key={project.id} onClick={() => navigate(`/project/${project.id}`)}>
+                    <ProjectItem key={project.projectId} onClick={() => navigate(`/project/${project.projectId}`)}>
                       <ProjectInfo>
                         <ProjectName>{project.name}</ProjectName>
                         <ProjectDate>
-                          마감일: {new Date(project.deadline).toLocaleDateString('ko-KR', {
+                          마감일: {new Date(project.endDate).toLocaleDateString('ko-KR', {
                             year: 'numeric',
                             month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                            day: '2-digit'
                           }).replace(/\. /g, '.').slice(0, -1)}
                         </ProjectDate>
                       </ProjectInfo>
-                      <ProjectStatus status={project.status}>
-                        {getProjectStatusText(project.status)}
-                      </ProjectStatus>
+                      <DDay overdue={getDDay(project.endDate).startsWith('D+')}>{getDDay(project.endDate)}</DDay>
                     </ProjectItem>
                   ))
                 ) : (
@@ -467,6 +478,33 @@ const CardGrid = styled.div`
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+// DDay 스타일 현대적으로 개선
+const DDay = styled.span`
+  min-width: 56px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: ${props =>
+    props.overdue
+      ? 'linear-gradient(90deg, #ff5858 0%, #f857a6 100%)'
+      : 'linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)'};
+  border-radius: 999px;
+  padding: 5px 18px;
+  margin-left: 28px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  letter-spacing: 1px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.13);
   }
 `;
 
