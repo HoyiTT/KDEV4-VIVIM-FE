@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import axios from 'axios'; 
 
 // 파일 크기 제한 상수 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 // 반드시 컴포넌트 함수 바깥에서 선언!
 const RoleTag = styled.span`
@@ -36,13 +36,18 @@ const ProjectPostModify = () => {
   const [existingLinks, setExistingLinks] = useState([]);
   const [existingFiles, setExistingFiles] = useState([]);
   const [newLinks, setNewLinks] = useState([]);
+  const [linkUrlError, setLinkUrlError] = useState('');
 
   useEffect(() => {
     const fetchPostDetail = async () => {
       try {
-        const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-          withCredentials: true
+        const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
+          credentials: 'include'
         });
+        if (!response.ok) {
+          throw new Error('Failed to fetch post details');
+        }
+        const data = await response.json();
         setTitle(data?.title || '');
         setContent(data?.content || '');
         setPostStatus(data?.projectPostStatus || 'NORMAL');
@@ -68,7 +73,16 @@ const ProjectPostModify = () => {
     'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
   ];
 
- 
+  // URL 형식 검증 함수
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleAddFile = (e) => {
     const selectedFiles = Array.from(e.target.files);
     
@@ -85,8 +99,8 @@ const ProjectPostModify = () => {
     }
     
     if (oversizedFiles.length > 0) {
-      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n');
-      setFileError('10MB 이상의 파일은 업로드할 수 없습니다.');
+      alert('500MB 이상의 파일은 업로드할 수 없습니다:\n');
+      setFileError('500MB 이상의 파일은 업로드할 수 없습니다.');
       e.target.value = '';
       return;
     }
@@ -120,9 +134,10 @@ const ProjectPostModify = () => {
   };
   const fetchFiles = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/files`, {
-        withCredentials: true
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
+        credentials: 'include'
       });
+      const data = await response.json();
       setExistingFiles(data.map(file => ({
         id: file.id,
         name: file.fileName
@@ -134,9 +149,10 @@ const ProjectPostModify = () => {
   // Update fetchLinks function
   const fetchLinks = async () => {
     try {
-      const { data } = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/links`, {
-        withCredentials: true
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
+        credentials: 'include'
       });
+      const data = await response.json();
       setExistingLinks(data.map(link => ({
         id: link.id,
         title: link.title,
@@ -148,31 +164,20 @@ const ProjectPostModify = () => {
   };
 
   // Update handleAddLink
-  const handleAddLink = async (postId, linkData) => {
-    if (!isAuthenticated || !user) {
-      alert('로그인이 필요합니다.');
+  const handleAddLink = () => {
+    if (!linkTitle || !linkUrl) {
       return;
     }
 
-    try {
-      const response = await axiosInstance.post(`${API_BASE_URL}/posts/${postId}/link`, linkData, {
-        withCredentials: true
-      });
-
-      // 응답 데이터가 null이어도 statusCode로 성공 여부 판단
-      if (response.data?.statusCode === 201) {
-        alert('링크가 등록되었습니다.');
-        // 필요하다면 링크 목록 새로고침 등 후처리
-      } else {
-        alert('링크 등록에 실패했습니다.');
-      }
-    } catch (error) {
-      if (error.response?.status === 403) {
-        alert('권한이 없습니다.');
-      } else {
-        alert('링크 등록 중 오류가 발생했습니다.');
-      }
+    if (!isValidUrl(linkUrl)) {
+      setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
+      return;
     }
+
+    setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
+    setLinkTitle('');
+    setLinkUrl('');
+    setLinkUrlError('');
   };
   
   // Update handleLinkDelete
@@ -208,67 +213,152 @@ const ProjectPostModify = () => {
 
     setLoading(true);
     try {
+      // 게시글 수정
       const postData = {
         title: title.trim(),
         content: content.trim(),
         projectPostStatus: postStatus
       };
 
-      await axiosInstance.put(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, postData, {
-        withCredentials: true
+      const postResponse = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(postData)
       });
-
+  
+      if (!postResponse.ok) {
+        throw new Error(`게시글 수정 실패: ${postResponse.status}`);
+      }
+  
       // Delete links that were marked for deletion
       for (const linkId of linksToDelete) {
-        await axiosInstance.patch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {}, {
-          withCredentials: true
+        const deleteLinkResponse = await fetch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {
+          method: 'PATCH',
+          credentials: 'include'
         });
+  
+        if (!deleteLinkResponse.ok) {
+          throw new Error(`링크 삭제 실패: ${deleteLinkResponse.status}`);
+        }
       }
 
       for (const fileId of filesToDelete) {
-        await axiosInstance.patch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {}, {
-          withCredentials: true
+        const deleteFileResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
+          method: 'PATCH',
+          credentials: 'include'
         });
-      }
 
+        if (!deleteFileResponse.ok) {
+          throw new Error(`파일 삭제 실패: ${deleteFileResponse.status}`);
+        }
+      }
+  
       // Add new links
       for (const link of newLinks) {
-        await handleAddLink(postId, { title: link.title, url: link.url });
+        const linkData = {
+          title: link.title,
+          url: link.url
+        };
+  
+        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(postId), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(linkData)
+        });
+  
+        if (!linkResponse.ok) {
+          throw new Error(`링크 추가 실패: ${linkResponse.status}`);
+        }
       }
-
+  
       // Add new files
       for (const file of newFiles) {
-        if (!isAuthenticated || !user) {
-          alert('로그인이 필요합니다.');
-          return;
-        }
         try {
-          const response = await axiosInstance.post(
-            `/posts/${postId}/file/presigned`,
-            {
+          // 1. 멀티파트 업로드를 위한 presigned URL 요청
+          const presignedResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE_MULTIPART(postId), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
               fileName: file.name,
               fileSize: file.size,
               contentType: file.type
-            }
-          );
-          const preSignedUrl = response.data.preSignedUrl || (response.data.data && response.data.data.preSignedUrl);
+            })
+          });
 
-          if (!preSignedUrl) {
-            alert('presigned URL을 받아오지 못했습니다.');
-            return;
+          if (!presignedResponse.ok) {
+            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
           }
 
-          await axios.put(preSignedUrl, file);
+          const { objectKey, uploadId, presignedParts } = await presignedResponse.json();
+
+          // 2. 각 파트 업로드 (병렬 처리)
+          const partSize = 25 * 1000 * 1000; // 25MB
+          const totalParts = Math.ceil(file.size / partSize);
+          const uploadPromises = [];
+
+          for (let i = 0; i < totalParts; i++) {
+            const start = i * partSize;
+            const end = Math.min(start + partSize, file.size);
+            const chunk = file.slice(start, end);
+            const partNumber = i + 1;
+            const presignedUrl = presignedParts.find(part => part.partNumber === partNumber).presignedUrl;
+
+            uploadPromises.push(
+              fetch(presignedUrl, {
+                method: 'PUT',
+                body: chunk,
+                headers: {
+                  'Content-Type': file.type
+                }
+              }).then(async (response) => {
+                if (!response.ok) {
+                  throw new Error(`파일 파트 업로드 실패: ${file.name} (파트 ${partNumber})`);
+                }
+                const etag = response.headers.get('ETag');
+                return {
+                  partNumber,
+                  etag
+                };
+              })
+            );
+          }
+
+          // 모든 파트 업로드가 완료될 때까지 대기
+          const uploadedParts = await Promise.all(uploadPromises);
+
+          // 3. 멀티파트 업로드 완료 요청
+          const completeResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE_COMPLETE(postId), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              key: objectKey,
+              uploadId: uploadId,
+              parts: uploadedParts
+            })
+          });
+
+          if (!completeResponse.ok) {
+            throw new Error(`멀티파트 업로드 완료 실패: ${file.name}`);
+          }
+
         } catch (error) {
-          if (error.response?.status === 403) {
-            alert('파일 업로드 권한이 없습니다.');
-          } else {
-            alert('파일 업로드 중 오류가 발생했습니다.');
-          }
+          console.error('파일 업로드 중 오류 발생:', error);
           throw error;
         }
       }
-
+  
       navigate(`/project/${projectId}/post/${postId}`);
     } catch (error) {
       console.error('오류:', error);
@@ -382,7 +472,7 @@ const ProjectPostModify = () => {
       </LinkInputGroup>
       <AddButton
         type="button"
-        onClick={() => handleAddLink(postId, { title: linkTitle, url: linkUrl })}
+        onClick={handleAddLink}
         disabled={!linkTitle || !linkUrl}
       >
         추가
@@ -496,7 +586,7 @@ const FileInputContainer = styled.div`
   gap: 12px;
   
   &::after {
-    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    content: '* 파일 크기는 500MB 이하여야 합니다.';
     display: block;
     font-size: 12px;
     color: #64748b;
