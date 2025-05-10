@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
+import ErrorMessage from '../components/ErrorMessage';
 
 const LoginContainer = styled.div`
   display: flex;
   min-height: 100vh;
   background-color: #f8fafc;
+  min-width: 300px;
+  overflow-x: auto;
 `;
 const LeftPanel = styled.div`
   flex: 1.5;
@@ -102,6 +105,8 @@ const LoginBox = styled.div`
   justify-content: center;
   box-shadow: -4px 0 24px rgba(0,0,0,0.05);
   margin: 0 auto;
+  overflow: hidden;
+  min-width: 300px;
   @media (max-width: 768px) {
     padding: 40px 20px;
   }
@@ -133,13 +138,21 @@ const DemoTitle = styled.h3`
   color: #2E7D32;
   margin-bottom: 16px;
   font-weight: 600;
+  white-space: nowrap;
+  @media (max-width: 400px) {
+    font-size: 14px;
+  }
 `;
 const CredentialGroup = styled.div`
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   font-size: 14px;
+  white-space: nowrap;
   &:last-child { margin-bottom: 0; }
+  @media (max-width: 400px) {
+    font-size: 12px;
+  }
 `;
 const CredentialLabel = styled.span`
   width: 60px;
@@ -147,6 +160,11 @@ const CredentialLabel = styled.span`
   font-weight: 600;
   color: #334155;
   margin-right: 8px;
+  white-space: nowrap;
+  @media (max-width: 400px) {
+    width: 50px;
+    font-size: 12px;
+  }
 `;
 const CredentialText = styled.span`
   color: #475569;
@@ -156,12 +174,22 @@ const CredentialText = styled.span`
   border-radius: 6px;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  @media (max-width: 400px) {
+    font-size: 12px;
+    padding: 3px 6px;
+  }
 `;
 const CredentialPassword = styled.span`
   color: #2E7D32;
   font-weight: 500;
   padding-left: 8px;
   border-left: 1px solid #e2e8f0;
+  white-space: nowrap;
+  @media (max-width: 400px) {
+    font-size: 12px;
+    padding-left: 6px;
+  }
 `;
 
 // 폼
@@ -169,9 +197,11 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
 `;
 const InputGroup = styled.div`
   text-align: left;
+  width: 100%;
 `;
 const Label = styled.label`
   display: block;
@@ -186,6 +216,7 @@ const Input = styled.input`
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
+  box-sizing: border-box;
   &:focus {
     outline: none;
     border-color: #2E7D32;
@@ -297,7 +328,14 @@ const Login = () => {
     try {
       await login({ email, password });
     } catch (err) {
-      setError(err.message || '로그인에 실패했습니다.');
+      console.error('Login error:', err);
+      if (err.response?.status === 401) {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -364,6 +402,7 @@ const Login = () => {
         </DemoCredentials>
 
         <Form onSubmit={handleSubmit}>
+          {error && <ErrorMessage message={error} />}
           <InputGroup>
             <Label>이메일</Label>
             <Input

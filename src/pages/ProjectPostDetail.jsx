@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import MainContent from '../components/common/MainContent';
+import { useAuth } from '../hooks/useAuth';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트 - 관리자');
+  const { user, isAdmin } = useAuth();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,46 +18,31 @@ const ProjectPostDetail = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedComment, setEditedComment] = useState('');
-  const [postOptionsDropdown, setPostOptionsDropdown] = useState(false);  // Add this line
+  const [postOptionsDropdown, setPostOptionsDropdown] = useState(false);
   const [activeCommentOptions, setActiveCommentOptions] = useState(null);
   const [commentContent, setCommentContent] = useState('');
   const [responseStatus, setResponseStatus] = useState(null);
 
   useEffect(() => {
+    console.log('Current params:', { projectId, postId });
     fetchPostDetail();
     fetchComments();
     fetchFiles();
     fetchLinks();
   }, [projectId, postId]);
 
-  const decodeToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const token = localStorage.getItem('token');
-  const decodedToken = decodeToken(token);
-  const isAdmin = decodedToken?.role === 'ADMIN';
-  const userId = decodedToken?.userId;
+  console.log('Auth info:', { user, isAdmin, postCreatorId: post?.creatorId });
 
   const handleFileDownload = async (fileId, fileName) => {
     try {
-      const token = localStorage.getItem('token');
       // 1. presigned URL 받아오기
-      const presignedResponse = await fetch(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId), {
-        headers: {
-          'Authorization': token
-        }
-      });
+      const presignedResponse = await axiosInstance.get(API_ENDPOINTS.DECISION.FILE_DOWNLOAD(fileId));
       
-      if (!presignedResponse.ok) {
+      if (!presignedResponse.data) {
         throw new Error('파일 다운로드 URL을 가져오는데 실패했습니다.');
       }
 
-      const { preSignedUrl, fileName: responseFileName } = await presignedResponse.json();
+      const { preSignedUrl, fileName: responseFileName } = presignedResponse.data;
       
       // 2. presigned URL로 직접 파일 다운로드
       window.location.href = preSignedUrl;
@@ -74,21 +60,13 @@ const ProjectPostDetail = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: editedComment }),
+      await axiosInstance.put(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+        content: editedComment
       });
-  
-      if (response.ok) {
-        setEditingCommentId(null);
-        setEditedComment('');
-        fetchComments();
-      }
+      
+      setEditingCommentId(null);
+      setEditedComment('');
+      fetchComments();
     } catch (error) {
       console.error('Error updating comment:', error);
     }
@@ -119,6 +97,7 @@ const ProjectPostDetail = () => {
   const fetchPostDetail = async () => {
     try {
       const response = await axiosInstance.get(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`);
+      console.log('Post detail response:', response.data);
       setPost(response.data);
       setLoading(false);
     } catch (error) {
@@ -218,9 +197,6 @@ const ProjectPostDetail = () => {
       }
     }
   };
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
-  };
 
   const handleCommentSubmit = async (e, parentComment = null) => {
     e.preventDefault();
@@ -230,27 +206,17 @@ const ProjectPostDetail = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
       const parentId = parentComment ? (parentComment.parentId === null ? parentComment.commentId : parentComment.parentId) : null;
 
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({
-          content: commentContent,
-          parentId: parentId
-        })
+      await axiosInstance.post(`${API_BASE_URL}/posts/${postId}/comments`, {
+        content: commentContent,
+        parentId: parentId
       });
 
-      if (response.ok) {
-        setCommentContent('');
-        fetchComments();
-        if (parentComment) {
-          setReplyingToId(null);
-        }
+      setCommentContent('');
+      fetchComments();
+      if (parentComment) {
+        setReplyingToId(null);
       }
     } catch (error) {
       console.error('Error submitting comment:', error);
@@ -260,19 +226,9 @@ const ProjectPostDetail = () => {
   // 응답 처리 함수 수정
   const handleQuestionResponse = async (isYes) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}/answer`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: isYes ? "yes" : "no" 
-      });
-
-      if (!response.ok) {
-        throw new Error('응답 처리 실패');
-      }
+      await axiosInstance.patch(`${API_BASE_URL}/projects/${projectId}/posts/${postId}/answer`, 
+        isYes ? "yes" : "no"
+      );
 
       // 응답 상태 업데이트
       setResponseStatus(isYes ? "yes" : "no");
@@ -286,15 +242,18 @@ const ProjectPostDetail = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <MainContent>
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : post ? (
           <ContentContainer>
+            <HeaderContainer>
+              <BackButton onClick={() => navigate(`/project/${projectId}`)}>
+                <span>←</span>
+                목록으로
+              </BackButton>
+              <PageTitle>게시글 상세</PageTitle>
+            </HeaderContainer>
             <PostContainer>
               <PostHeader>
                 <HeaderContent>
@@ -306,30 +265,15 @@ const ProjectPostDetail = () => {
                       <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
                     </PostCreatorInfo>
                   </div>
-                  {(isAdmin || userId === post.creatorId)  && (
-                  <div>
-                    <PostMoreOptionsContainer>
-                    <MoreOptionsButton onClick={() => setPostOptionsDropdown(prev => !prev)}>
-                      ⋮
-                    </MoreOptionsButton>
-                      {postOptionsDropdown && (
-                        <OptionsDropdown>
-                          <OptionButton onClick={() => {
-                            navigate(`/project/${projectId}/post/${postId}/modify`);
-                            setPostOptionsDropdown(false);
-                          }}>
-                            수정
-                          </OptionButton>
-                          <OptionButton onClick={() => {
-                            handleDeletePost();
-                            setPostOptionsDropdown(false);
-                          }}>
-                            삭제
-                          </OptionButton>
-                        </OptionsDropdown>
-                      )}
-                    </PostMoreOptionsContainer>
-                  </div>
+                  {(isAdmin || user?.userId === post.creatorId) && (
+                    <ButtonContainer>
+                      <EditButton onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}>
+                        수정
+                      </EditButton>
+                      <DeleteButton onClick={handleDeletePost}>
+                        삭제
+                      </DeleteButton>
+                    </ButtonContainer>
                   )}
                 </HeaderContent>
               </PostHeader>
@@ -449,7 +393,7 @@ const ProjectPostDetail = () => {
                               </CommentAuthor>
                               <CommentText>{parentComment.content}</CommentText>
                               <CommentMoreOptionsContainer $isChild={true}>
-                              {(isAdmin || userId === parentComment.creatorId) && (
+                              {(isAdmin || user?.userId === parentComment.creatorId) && (
                               <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
                                   prev === parentComment.commentId ? null : parentComment.commentId
                                 )}>
@@ -532,7 +476,7 @@ const ProjectPostDetail = () => {
                                      </CommentAuthor>
                                     <CommentText>{childComment.content}</CommentText>
                                     <CommentMoreOptionsContainer $isChild={true}>
-                                      {(isAdmin || userId === childComment.creatorId) && (
+                                      {(isAdmin || user?.userId === childComment.creatorId) && (
                                     <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
                                       prev === childComment.commentId ? null : childComment.commentId
                                     )}>
@@ -611,12 +555,14 @@ const FormContainer = styled.form`
   margin-bottom: 20px;
 `;
 
-const CommentInput = styled.input`
-  width: 98%;
+const CommentInput = styled.textarea`
+  width: 100%;
+  height: 100px;
   font-size: 14px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border-radius: 8px;
+  resize: none;
 
   &:focus {
     outline: none;
@@ -626,23 +572,24 @@ const CommentInput = styled.input`
 
 const ButtonContainer = styled.div`
   display: flex;
-  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 0;
+  flex-shrink: 0;
 `;
 
 const SubmitButton = styled.button`
-  padding: 8px 16px;
-  background-color: #dcfce7;
-  border: 1px solid #86efac;
+  padding: 10px 20px;
+  background-color: #2563eb;
+  border: none;
   border-radius: 6px;
-  color: #16a34a;
+  color: white;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background-color: #bbf7d0;
-    color: #15803d;
+    background-color: #1d4ed8;
   }
 `;
 
@@ -653,15 +600,13 @@ const CharacterCount = styled.div`
   margin-top: 4px;
 `;
 
-
-const PostTitle = styled.h1`
-  font-size: 32px;
+const PostTitle = styled.h2`
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0;
-  text-align: left;
-  margin-bottom: 24px;
+  margin: 0 0 16px 0;
   letter-spacing: -0.5px;
+  word-break: break-word;
 `;
 
 const PostCreatorInfo = styled.div`
@@ -669,7 +614,7 @@ const PostCreatorInfo = styled.div`
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  justify-content: left;  // Add this to center the creator info
+  flex-wrap: wrap;
 `;
 
 const DateText = styled.span`
@@ -694,39 +639,50 @@ const AuthorName = styled.span`
 
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-top: 60px;
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  
+  &:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+  }
 `;
 
 const PostContainer = styled.div`
   width: 100%;
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
 const PostHeader = styled.div`
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 16px;
+  padding-bottom: 24px;
   margin-bottom: 24px;
 `;
 
-
-
 const PostContent = styled.div`
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   color: #1e293b;
   white-space: pre-wrap;
+  margin-bottom: 32px;
 `;
 
 const LoadingMessage = styled.div`
@@ -751,16 +707,30 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
+  padding: 20px;
+`;
+
+const HeaderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 `;
 
 const CommentsSection = styled.div`
   width: 100%;
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 `;
 
@@ -768,17 +738,17 @@ const CommentHeader = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 16px 0;
+  margin: 0 0 24px 0;
 `;
 
 const CommentList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 `;
 
 const CommentItem = styled.div`
-  padding: 16px;
+  padding: 20px;
   background: #f8fafc;
   border-radius: 8px;
   position: relative;
@@ -813,7 +783,6 @@ const CommentText = styled.p`
   word-break: break-all; // Handle long text without overflow
 `;
 
-
 const CommentInfo = styled.div`
   display: flex;
   justify-content: space-between;
@@ -835,13 +804,13 @@ const CommentDate = styled.span`
 `;
 
 const ChildCommentItem = styled(CommentItem)`
-  margin-left: 24px;
+  margin-left: 32px;
   display: flex;
   gap: 8px;
   background-color: #f1f5f9;
   flex-direction: column;
   min-height: 80px;
-  position: relative;  // Add this
+  position: relative;
 `;
 
 const ReplyIcon = styled.span`
@@ -859,8 +828,6 @@ const EditCommentForm = styled.div`
   gap: 8px;
   margin: 0 0 0 0;  // Add right margin to prevent overlap with options button
 `;
-
-
 
 // Add these new styled components
 const EditButtonContainer = styled.div`
@@ -883,8 +850,6 @@ const SaveButton = styled.button`
     background-color: #1d4ed8;
   }
 `;
-
-
 
 const NoComments = styled.p`
   text-align: center;
@@ -930,37 +895,38 @@ const AttachmentsSection = styled.div`
   width: 100%;
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 32px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  margin-bottom: 24px;
 `;
 
 const AttachmentHeader = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 16px 0;
+  margin: 0 0 24px 0;
 `;
 
 const AttachmentContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 `;
 
 const AttachmentGroup = styled.div`
   width: 100%;
   background: #f8fafc;
   border-radius: 8px;
-  padding: 20px;
+  padding: 24px;
   margin: 0;
   box-sizing: border-box;
 `;
 
 const GroupTitle = styled.h3`
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #1e293b;
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
 `;
 
 const PlaceholderMessage = styled.p`
@@ -1007,18 +973,14 @@ const CommentThread = styled.div`
   margin-bottom: 20px;
 `;
 
-
-
-
-
 const ActionButton = styled.button`
   background: white;
   border: 1px solid #e2e8f0;
   color: #64748b;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   
   &:hover {
     color: #2563eb;
@@ -1027,37 +989,35 @@ const ActionButton = styled.button`
   }
 `;
 
-
 const HeaderContent = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
 `;
-
-
 
 const PostMoreOptionsContainer = styled.div`
   position: relative;
 `;
 
-
-
 const MoreOptionsButton = styled.button`
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 4px 8px;
   line-height: 1;
+  color: #64748b;
   
-
+  &:hover {
+    color: #1e293b;
+  }
 `;
-
-
 
 const OptionButton = styled.button`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: none;
   border: none;
   text-align: left;
@@ -1068,22 +1028,12 @@ const OptionButton = styled.button`
   &:hover {
     background-color: #f1f5f9;
   }
-
-  &:first-child {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-  }
-
-  &:last-child {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-  }
 `;
 
 // 스타일 컴포넌트 추가
 const QuestionResponseContainer = styled.div`
-  margin-top: 24px;
-  padding-top: 24px;
+  margin-top: 32px;
+  padding-top: 32px;
   border-top: 1px solid #e2e8f0;
 `;
 
@@ -1096,12 +1046,12 @@ const ResponseTitle = styled.h3`
 
 const ResponseButtonContainer = styled.div`
   display: flex;
-  gap: 12px;
+  gap: 16px;
 `;
 
 const ResponseButton = styled.button`
-  padding: 8px 24px;
-  border-radius: 6px;
+  padding: 10px 32px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1136,13 +1086,45 @@ const NoButton = styled(ResponseButton)`
 `;
 
 const ResponseResult = styled.div`
-  margin-top: 16px;
-  padding: 12px;
+  margin-top: 20px;
+  padding: 16px;
   background-color: #f8fafc;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   color: #1e293b;
   font-weight: 500;
+`;
+
+const EditButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 16px;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
 `;
 
 export default ProjectPostDetail;

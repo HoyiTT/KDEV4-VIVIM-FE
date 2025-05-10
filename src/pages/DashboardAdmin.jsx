@@ -1,52 +1,247 @@
 // src/pages/DashboardAdmin.jsx
 import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
-import Navbar from '../components/Navbar';
-import { PieChart } from 'react-minimal-pie-chart';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
+import { Doughnut, Bar, Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title
+} from 'chart.js';
+import MainContent from '../components/common/MainContent';
+import Navbar from '../components/Navbar';
+import { API_ENDPOINTS } from '../config/api';
 
 const DashboardAdmin = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated || !user || user.companyRole !== 'ADMIN') {
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, user, authLoading, navigate]);
+
   const [activeMenuItem, setActiveMenuItem] = useState('대시보드');
   const [recentPosts, setRecentPosts] = useState([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    projectChange: 0,
+    activeProjects: 0,
+    activeChange: 0,
+    completedProjects: 0,
+    completedChange: 0,
+    pendingInquiries: 0,
+    inquiryChange: 0
+  });
+  const [recentProjects, setRecentProjects] = useState([]);
+  const [recentInquiries, setRecentInquiries] = useState([]);
   const [summaryData, setSummaryData] = useState([
     { title: '계약중인 프로젝트', value: 0 },
     { title: '검수중인 프로젝트', value: 0 },
     { title: '완료된 프로젝트', value: 0 }
-  ]);
-  const [revenueData, setRevenueData] = useState([
-    { name: '1주차', amount: 0 },
-    { name: '2주차', amount: 0 },
-    { name: '3주차', amount: 0 },
-    { name: '4주차', amount: 0 },
-    { name: '5주차', amount: 0 }
-  ]);
-  const [projectStatusData, setProjectStatusData] = useState([
-    { title: '요구사항정의', count: 0, color: '#FFD572' },
-    { title: '화면설계', count: 0, color: '#B785DB' },
-    { title: '디자인', count: 0, color: '#647ACB' },
-    { title: '개발', count: 0, color: '#7BC86C' },
-    { title: '배포', count: 0, color: '#8E6DA6' },
-    { title: '검수', count: 0, color: '#FF8A65' }
   ]);
   const [adminInquiries, setAdminInquiries] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [revenueData, setRevenueData] = useState({
+    labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
+    datasets: [
+      {
+        label: '프로젝트 금액',
+        data: [15000000, 25000000, 18000000, 30000000, 22000000],
+        borderColor: '#2E7D32',
+        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#2E7D32',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ],
+  });
+  const [recentProposals, setRecentProposals] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState([]);
 
-  const navigate = useNavigate();
+  // 차트 데이터
+  const projectStatusData = {
+    labels: ['요구사항정의', '화면설계', '디자인', '개발', '배포', '검수', '완료'],
+    datasets: [{
+      data: [15, 2, 2, 0, 1, 1, 0],
+      backgroundColor: [
+        '#e8f5e9',  // 요구사항정의 - 가장 밝은 녹색
+        '#c8e6c9',  // 화면설계
+        '#a5d6a7',  // 디자인
+        '#81c784',  // 개발
+        '#66bb6a',  // 배포
+        '#4caf50',  // 검수
+        '#2E7D32'   // 완료 - 시그니처 색상
+      ],
+      borderWidth: 0,
+    }]
+  };
+
+  const monthlyStatsData = {
+    labels: monthlyStats.map(stat => stat.month),
+    datasets: [
+      {
+        label: '전체 프로젝트',
+        data: monthlyStats.map(stat => stat.totalProjects),
+        backgroundColor: '#2E7D32',
+      },
+      {
+        label: '완료된 프로젝트',
+        data: monthlyStats.map(stat => stat.completedProjects),
+        backgroundColor: '#66BB6A',
+      },
+    ],
+  };
+
+  // 차트 옵션
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        align: 'center',
+        labels: {
+          boxWidth: 10,
+          padding: 10,
+          font: {
+            size: 11
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value}개 (${percentage}%)`;
+          }
+        }
+      }
+    },
+    cutout: '70%',
+  };
+
+  const formatCurrency = (value) => {
+    if (value >= 100000000) {
+      return `${(value / 100000000).toFixed(1)}억원`;
+    } else if (value >= 10000) {
+      return `${(value / 10000).toFixed(0)}만원`;
+    } else {
+      return `${value.toLocaleString()}원`;
+    }
+  };
+
+  const barOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return formatCurrency(value);
+          }
+        }
+      },
+    },
+  };
+
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return formatCurrency(value);
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        }
+      }
+    },
+    elements: {
+      line: {
+        tension: 0.4
+      }
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('ko-KR').replace(/\. /g, '.').slice(0, -1);
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return '진행중';
+      case 'COMPLETED':
+        return '완료';
+      case 'ON_HOLD':
+        return '보류';
+      default:
+        return '대기중';
+    }
+  };
+
+  const getInquiryStatusText = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return '대기중';
+      case 'IN_PROGRESS':
+        return '처리중';
+      case 'COMPLETED':
+        return '완료';
+      default:
+        return '대기중';
+    }
+  };
 
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
@@ -55,95 +250,122 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchProjectStatusData = async () => {
       try {
-        const { data } = await axiosInstance.get('/projects/dashboard/progress_count');
-        setProjectStatusData([
-          { title: '요구사항정의', count: data.requirementCount, color: '#FFD572' },
-          { title: '화면설계', count: data.wireframeCount, color: '#B785DB' },
-          { title: '디자인', count: data.designCount, color: '#647ACB' },
-          { title: '개발', count: data.developCount, color: '#7BC86C' },
-          { title: '배포', count: data.publishCount, color: '#8E6DA6' },
-          { title: '검수', count: data.inspectionCount, color: '#FF8A65' }
-        ]);
-      } catch (error) {
-        console.error('Error fetching project status data:', error);
-      }
-    };
-    fetchProjectStatusData();
-  }, []);
-
-  const chartData = useMemo(() => {
-    const total = projectStatusData.reduce((sum, item) => sum + item.count, 0);
-    return projectStatusData.map(item => ({
-      ...item,
-      value: total > 0 ? Number(((item.count / total) * 100).toFixed(1)) : 0
-    }));
-  }, [projectStatusData]);
-
-  useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        const { data } = await axiosInstance.get('/posts/admin/recent');
-        setRecentPosts(data);
-      } catch (error) {
-        console.error('Error fetching recent posts:', error);
-        setRecentPosts([]);
-      }
-    };
-    fetchRecentPosts();
-  }, []);
-
-  useEffect(() => {
-    const fetchSummaryData = async () => {
-      try {
-        const { data } = await axiosInstance.get('/projects/dashboard/inspection_count');
+        const { data } = await axiosInstance.get('/api/projects/dashboard/inspection_count');
+        console.log('Project status data:', data);
+        // 프로젝트 현황 데이터 업데이트
         setSummaryData([
           { title: '계약중인 프로젝트', value: data.progressCount || 0 },
           { title: '검수중인 프로젝트', value: data.inspectionCount || 0 },
           { title: '완료된 프로젝트', value: data.completedCount || 0 }
         ]);
       } catch (error) {
-        console.error('Error fetching summary data:', error);
-        setSummaryData([
-          { title: '계약중인 프로젝트', value: 0 },
-          { title: '검수중인 프로젝트', value: 0 },
-          { title: '완료된 프로젝트', value: 0 }
-        ]);
+        console.error('Error fetching project status data:', error);
       }
     };
-    fetchSummaryData();
-  }, []);
 
-  useEffect(() => {
     const fetchRevenueData = async () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/project_fee');
-        setRevenueData([
-          { name: '1주차', amount: data.week1 },
-          { name: '2주차', amount: data.week2 },
-          { name: '3주차', amount: data.week3 },
-          { name: '4주차', amount: data.week4 },
-          { name: '5주차', amount: data.week5 }
-        ]);
+        console.log('Revenue data:', data);
+        // 수익 데이터 업데이트
+        const revenueData = {
+          labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
+          datasets: [
+            {
+              label: '프로젝트 금액',
+              data: [
+                data.week1 || 0,
+                data.week2 || 0,
+                data.week3 || 0,
+                data.week4 || 0,
+                data.week5 || 0
+              ],
+              borderColor: '#2E7D32',
+              backgroundColor: 'rgba(46, 125, 50, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#2E7D32',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ],
+        };
+        // setRevenueData(revenueData); // API 데이터 대신 더미 데이터 사용
       } catch (error) {
         console.error('Error fetching revenue data:', error);
       }
     };
+
+    fetchProjectStatusData();
     fetchRevenueData();
   }, []);
 
   useEffect(() => {
-    const fetchInquiries = async () => {
+    console.log('useEffect for recent posts triggered');
+    fetchRecentPosts();
+  }, []);
+
+  const fetchRecentPosts = async () => {
+    try {
+      console.log('Fetching recent posts...');
+      const { data } = await axiosInstance.get(API_ENDPOINTS.POST.ADMIN_RECENT, {
+        withCredentials: true
+      });
+      console.log('Recent posts data:', data);
+      setRecentPosts(data);
+    } catch (error) {
+      console.error('Error fetching recent posts:', error);
+      setRecentPosts([]);
+    }
+  };
+
+  useEffect(() => {
+    const fetchAdminInquiries = async () => {
       try {
-        const { data } = await axiosInstance.get('/admininquiry');
-        const sorted = data
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 4);
-        setAdminInquiries(sorted);
+        const { data } = await axiosInstance.get('/admininquiry', {
+          withCredentials: true
+        });
+        console.log('Admin inquiries data:', data);
+        setAdminInquiries(data);
       } catch (error) {
-        console.error('Error fetching inquiries:', error);
+        console.error('Error fetching admin inquiries:', error);
+        setAdminInquiries([]);
       }
     };
-    fetchInquiries();
+
+    fetchAdminInquiries();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecentProposals = async () => {
+      try {
+        const { data } = await axiosInstance.get('/proposals/recent');
+        console.log('Recent proposals data:', data);
+        setRecentProposals(data.approvalList || []);
+      } catch (error) {
+        console.error('Error fetching recent proposals:', error);
+        setRecentProposals([]);
+      }
+    };
+
+    fetchRecentProposals();
+  }, []);
+
+  useEffect(() => {
+    const fetchMonthlyStats = async () => {
+      try {
+        const { data } = await axiosInstance.get('/projects/projects/stats/monthly');
+        console.log('Monthly stats data:', data);
+        setMonthlyStats(data);
+      } catch (error) {
+        console.error('Error fetching monthly stats:', error);
+        setMonthlyStats([]);
+      }
+    };
+
+    fetchMonthlyStats();
   }, []);
 
   const handlePostClick = (postId, projectId) => {
@@ -170,132 +392,156 @@ const DashboardAdmin = () => {
     }
   };
 
+  const handleInquiryClick = (inquiryId) => {
+    navigate(`/admin/inquiry/${inquiryId}`);
+  };
+
+  const handleViewAllInquiries = () => {
+    navigate('/admin/inquiries');
+  };
+
+  const handleProposalClick = (proposalId) => {
+    navigate(`/admin/proposal/${proposalId}`);
+  };
+
   return (
     <PageContainer>
-      <Navbar activeMenuItem={activeMenuItem} handleMenuClick={handleMenuClick} />
       <MainContent>
-        <TopSection>
-          <SummarySection>
-            <ProjectSummaryTitle>프로젝트 진행현황 요약</ProjectSummaryTitle>
-            <SummaryGrid>
-              {summaryData.map((item, idx) => (
-                <SummaryCard key={idx} onClick={() => handleSummaryClick(item.title)}>
-                  <SummaryTitle>{item.title}</SummaryTitle>
-                  <SummaryValue>{item.value}</SummaryValue>
-                </SummaryCard>
-              ))}
-            </SummaryGrid>
-          </SummarySection>
-          <ChartSection>
-            <SectionTitle>진행중인 단계별 프로젝트 비율</SectionTitle>
-            <ChartWrapper>
-              <ChartContainer>
-                <PieChart
-                  data={chartData}
-                  lineWidth={45}
-                  paddingAngle={2}
-                  label={({ dataEntry }) => `${dataEntry.value}%`}
-                  labelStyle={{ fontSize: '5px', fill: '#fff', fontWeight: '500' }}
-                  labelPosition={80}
-                />
-              </ChartContainer>
-              <ChartLegend>
-                {chartData.map((item, idx) => (
-                  <LegendItem key={idx}>
-                    <LegendColor color={item.color} />
-                    <LegendTextWrapper>
-                      <LegendTitle>{item.title}</LegendTitle>
-                      <LegendCount>
-                        <span>{item.count}건</span>
-                        <LegendPercent>({item.value}%)</LegendPercent>
-                      </LegendCount>
-                    </LegendTextWrapper>
-                  </LegendItem>
-                ))}
-              </ChartLegend>
-            </ChartWrapper>
-          </ChartSection>
-        </TopSection>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Card>
+              <CardTitle>시스템 현황</CardTitle>
+              <CardContent>
+                <StatsGrid>
+                  <StatItem>
+                    <StatLabel>계약 완료한<br />프로젝트</StatLabel>
+                    <StatValue>20</StatValue>
+                  </StatItem>
+                  <StatItem>
+                    <StatLabel>검수 중인<br />프로젝트</StatLabel>
+                    <StatValue>1</StatValue>
+                  </StatItem>
+                  <StatItem>
+                    <StatLabel>검수 완료한<br />프로젝트</StatLabel>
+                    <StatValue>1</StatValue>
+                  </StatItem>
+                </StatsGrid>
+              </CardContent>
+            </Card>
 
-        <TopSection>
-          <InquirySection>
-            <SectionTitle onClick={() => navigate('/admin-inquiry-list')}>
-              관리자 문의
-            </SectionTitle>
-            <InquiryList>
-              {adminInquiries.map(i => (
-                <InquiryItem
-                  key={i.id}
-                  onClick={() => navigate(`/admin-inquiry-list/${i.id}`)}
-                >
-                  <InquiryHeader>
-                    <InquiryTitle>{i.title}</InquiryTitle>
-                    <InquiryStatus status={i.inquiryStatus}>
-                      {i.inquiryStatus === 'PENDING'
-                        ? '미답변'
-                        : i.inquiryStatus === 'IN_PROGRESS'
-                        ? '검토중'
-                        : '답변완료'}
-                    </InquiryStatus>
-                  </InquiryHeader>
-                  <InquiryInfo>
-                    <CompanyInfo>{i.creatorName}</CompanyInfo>
-                    <InquiryDate>
-                      {new Date(i.createdAt)
-                        .toLocaleDateString('ko-KR')
-                        .replace(/\. /g, '.')
-                        .slice(0, -1)}
-                    </InquiryDate>
-                  </InquiryInfo>
-                </InquiryItem>
-              ))}
-            </InquiryList>
-          </InquirySection>
-          <RevenueSection>
-            <TitleRow>
-              <SectionTitle>이번 달 매출 현황</SectionTitle>
-              <RevenueAmount>
-                총 매출: {revenueData.reduce((sum, it) => sum + it.amount, 0).toLocaleString()}만원
-              </RevenueAmount>
-            </TitleRow>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={val => [`${val.toLocaleString()}만원`, '매출']} />
-                <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </RevenueSection>
-        </TopSection>
+            <Card>
+              <CardTitle>프로젝트 현황</CardTitle>
+              <CardContent>
+                <DoughnutChartSection>
+                  <Doughnut 
+                    data={projectStatusData}
+                    options={doughnutOptions}
+                  />
+                </DoughnutChartSection>
+              </CardContent>
+            </Card>
+          </div>
 
-        <RecentPostSection>
-          <SectionTitle>최근 게시글</SectionTitle>
-          <PostList>
-            {recentPosts.map(p => (
-              <PostItem key={p.postId} onClick={() => handlePostClick(p.postId, p.projectId)}>
-                <PostCategory>
-                  {p.projectPostStatus === 'NORMAL'
-                    ? '일반'
-                    : p.projectPostStatus === 'QUESTION'
-                    ? '질문'
-                    : '공지'}
-                </PostCategory>
-                <PostTitle>{p.title}</PostTitle>
-                <PostInfo>
-                  <PostAuthor>{p.creatorName}</PostAuthor>
-                  <PostDate>
-                    {new Date(p.createdAt)
-                      .toLocaleDateString('ko-KR')
-                      .replace(/\. /g, '.')
-                      .slice(0, -1)}
-                  </PostDate>
-                </PostInfo>
-              </PostItem>
-            ))}
-          </PostList>
-        </RecentPostSection>
+          <Card>
+            <CardHeader>
+              <CardTitle>관리자 문의 목록</CardTitle>
+              <ViewAllButton onClick={handleViewAllInquiries}>
+                전체보기
+                <ArrowIcon>→</ArrowIcon>
+              </ViewAllButton>
+            </CardHeader>
+            <CardContent>
+              <InquiryList>
+                {adminInquiries.length > 0 ? (
+                  adminInquiries.slice(0, 5).map((inquiry) => (
+                    <NoticeItem key={inquiry.id} onClick={() => handleInquiryClick(inquiry.id)}>
+                      <NoticeInfo>
+                        <NoticeTitle>{inquiry.title}</NoticeTitle>
+                        <NoticeMeta>
+                          <NoticeCreator>{inquiry.creatorName}</NoticeCreator>
+                          <NoticeDate>{formatDate(inquiry.createdAt)}</NoticeDate>
+                        </NoticeMeta>
+                      </NoticeInfo>
+                      <NoticeStatus status={inquiry.inquiryStatus}>
+                        {getInquiryStatusText(inquiry.inquiryStatus)}
+                      </NoticeStatus>
+                    </NoticeItem>
+                  ))
+                ) : (
+                  <EmptyMessage>관리자 문의가 없습니다.</EmptyMessage>
+                )}
+              </InquiryList>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Card>
+            <CardTitle>최근 게시물</CardTitle>
+            <CardContent>
+              {recentPosts.length > 0 ? (
+                recentPosts.map((post) => (
+                  <ProjectItem key={post.postId} onClick={() => navigate(`/project/${post.projectId}/post/${post.postId}`)}>
+                    <ProjectInfo>
+                      <ProjectName>{post.title}</ProjectName>
+                      <ProjectDate>
+                        {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        }).replace(/\. /g, '.').slice(0, -1)}
+                      </ProjectDate>
+                    </ProjectInfo>
+                    <ProjectStatus status={post.status}>
+                      {post.creatorName}
+                    </ProjectStatus>
+                  </ProjectItem>
+                ))
+              ) : (
+                <EmptyMessage>최근 게시물이 없습니다.</EmptyMessage>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardTitle>최근 승인요청</CardTitle>
+            <CardContent>
+              <ProjectList>
+                {recentProposals.length > 0 ? (
+                  recentProposals.map((proposal) => (
+                    <ProjectItem key={proposal.id} onClick={() => handleProposalClick(proposal.id)}>
+                      <ProjectInfo>
+                        <ProjectName>{proposal.title}</ProjectName>
+                        <ProjectDate>{formatDate(proposal.createdAt)}</ProjectDate>
+                      </ProjectInfo>
+                      <ProjectStatus status={proposal.approvalProposalStatus}>
+                        {getInquiryStatusText(proposal.approvalProposalStatus)}
+                      </ProjectStatus>
+                    </ProjectItem>
+                  ))
+                ) : (
+                  <EmptyMessage>최근 승인요청이 없습니다.</EmptyMessage>
+                )}
+              </ProjectList>
+            </CardContent>
+          </Card>
+        </div>
+
+        <ProjectStatsCard>
+          <ProjectStatsTitle>프로젝트 통계</ProjectStatsTitle>
+          <ProjectStatsContent>
+            <ProjectStatsGrid>
+              <ProjectStatsSection>
+                <ProjectStatsChartTitle>월별 프로젝트 통계</ProjectStatsChartTitle>
+                <Bar data={monthlyStatsData} options={barOptions} />
+              </ProjectStatsSection>
+              <ProjectStatsSection>
+                <ProjectStatsChartTitle>프로젝트 금액 통계</ProjectStatsChartTitle>
+                <Line data={revenueData} options={lineOptions} />
+              </ProjectStatsSection>
+            </ProjectStatsGrid>
+          </ProjectStatsContent>
+        </ProjectStatsCard>
       </MainContent>
 
       {showModal && (
@@ -335,152 +581,186 @@ const DashboardAdmin = () => {
   );
 };
 
-// Styled components definitions
-
 const PageContainer = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f5f7fa;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI,
-    Roboto, Oxygen, Ubuntu, Cantarell, Open Sans, Helvetica Neue, sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
 `;
 
-const MainContent = styled.main`
-  padding: 24px;
-  margin: 60px auto 0;
-  max-width: 1300px;
-  width: calc(100% - 100px);
-`;
-
-const TopSection = styled.div`
+const ContentWrapper = styled.div`
   display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1400px;
+  padding: 10px;
+  margin: 20px auto;
+  box-sizing: border-box;
+  width: 100%;
 `;
 
-const SectionTitle = styled.h2`
+const Card = styled.div`
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+`;
+
+const CardTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
 `;
 
-const ProjectSummaryTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 20px;
-`;
-
-const SummarySection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+const CardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
   flex: 1;
 `;
 
-const SummaryGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
 `;
 
-const SummaryCard = styled.div`
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  transition: transform 0.2s;
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
+
   &:hover {
-    transform: translateY(-2px);
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
   }
 `;
 
-const SummaryTitle = styled.div`
+const StatLabel = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const StatValue = styled.div`
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+`;
+
+const SystemStatusGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+  height: 320px;
+`;
+
+const StatsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const AdminInquirySection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+`;
+
+const AdminInquiryTitle = styled.h3`
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin: 0 0 12px 0;
 `;
 
-const SummaryValue = styled.div`
-  font-size: 24px;
-  font-weight: 600;
-  color: #2e7d32;
-  &::after {
-    content: '건';
-    font-size: 14px;
-    color: #64748b;
-  }
+const DoughnutChartSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+  height: 300px;
+  margin: 0 auto;
+  position: relative;
 `;
 
 const ChartSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-`;
-
-const ChartWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 32px;
-`;
-
-const ChartContainer = styled.div`
-  width: 260px;
-  height: 260px;
-`;
-
-const ChartLegend = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
   align-items: center;
-  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin-bottom: 0;
 `;
 
-const LegendColor = styled.div`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background-color: ${(props) => props.color};
-`;
-
-const LegendTextWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const LegendTitle = styled.span`
+const ChartTitle = styled.div`
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
+  margin-bottom: 16px;
+  text-align: center;
 `;
 
-const LegendCount = styled.div`
-  font-size: 13px;
+const UserList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const UserItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const UserName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+`;
+
+const UserEmail = styled.div`
+  font-size: 14px;
   color: #64748b;
 `;
 
-const LegendPercent = styled.span`
+const UserDate = styled.div`
+  font-size: 13px;
   color: #94a3b8;
 `;
 
+const InquiryProjectGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 32px;
+`;
+
 const InquirySection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
   display: flex;
   flex-direction: column;
 `;
@@ -489,175 +769,128 @@ const InquiryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
-  flex: 1;
 `;
 
-const InquiryItem = styled.div`
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
+const NoticeItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   cursor: pointer;
-  transition: background 0.2s;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
   &:hover {
-    background: white;
+    background-color: #f8fafc;
   }
 `;
 
-const InquiryHeader = styled.div`
+const NoticeInfo = styled.div`
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
 `;
 
-const InquiryTitle = styled.span`
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const InquiryStatus = styled.span`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 600;
-  ${(props) => {
-    switch (props.status) {
-      case 'PENDING':
-        return `
-          background: #FEF2F2;
-          color: #EF4444;
-          border: 1px solid #FCA5A5;
-        `;
-      case 'IN_PROGRESS':
-        return `
-          background: #F0F9FF;
-          color: #0EA5E9;
-          border: 1px solid #7DD3FC;
-        `;
-      case 'COMPLETED':
-        return `
-          background: #F0FDF4;
-          color: #22C55E;
-          border: 1px solid #86EFAC;
-        `;
-      default:
-        return `
-          background: #F8FAFC;
-          color: #64748B;  
-          border: 1px solid #CBD5E1;
-        `;
-    }
-  }}
-`;
-
-const InquiryInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
+const NoticeTitle = styled.div`
   font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+`;
+
+const NoticeMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
   color: #64748b;
 `;
 
-const CompanyInfo = styled.span``;
+const NoticeCreator = styled.div`
+  font-weight: 500;
+  color: #475569;
+`;
 
-const InquiryDate = styled.span`
+const NoticeDate = styled.div`
   color: #94a3b8;
 `;
 
-const RevenueSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex: 1;
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const RevenueAmount = styled.div`
-  font-size: 18px;
+const NoticeStatus = styled.div`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 600;
-  color: #82a6dd;
+  letter-spacing: -0.02em;
+  transition: all 0.15s ease;
+  background: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#FEF3C7';
+      case 'IN_PROGRESS': return '#DBEAFE';
+      case 'COMPLETED': return '#DCFCE7';
+      case 'ON_HOLD': return '#FEE2E2';
+      default: return '#F8FAFC';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PENDING': return '#D97706';
+      case 'IN_PROGRESS': return '#2563EB';
+      case 'COMPLETED': return '#16A34A';
+      case 'ON_HOLD': return '#DC2626';
+      default: return '#64748B';
+    }
+  }};
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
+  }
 `;
 
-const RecentPostSection = styled.div`
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 24px;
-`;
-
-const PostList = styled.div`
+const ProjectList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
 `;
 
-const PostItem = styled.div`
+const ProjectItem = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
   &:hover {
-    background: #f1f5f9;
+    background-color: #f8fafc;
   }
 `;
 
-const PostCategory = styled.span`
-  background: ${(props) => {
-    switch (props.children) {
-      case '질문':
-        return '#E3F2FD';
-      case '일반':
-        return '#E8F5E9';
-      case '공지':
-        return '#F3E5F5';
-      default:
-        return '#e2e8f0';
-    }
-  }};
-  color: ${(props) => {
-    switch (props.children) {
-      case '질문':
-        return '#1976D2';
-      case '일반':
-        return '#2E7D32';
-      case '공지':
-        return '#9C27B0';
-      default:
-        return '#475569';
-    }
-  }};
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+const ProjectInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
-const PostTitle = styled.span`
-  font-size: 14px;
+const ProjectName = styled.div`
+  font-size: 13px;
   font-weight: 500;
   color: #1e293b;
-  flex: 1;
+  line-height: 1.4;
 `;
 
-const PostInfo = styled.div`
-  display: flex;
-  gap: 12px;
-  font-size: 13px;
-  color: #64748b;
-`;
+const ProjectStatus = styled(NoticeStatus)``;
 
-const PostAuthor = styled.span``;
-
-const PostDate = styled.span`
+const ProjectDate = styled.div`
+  font-size: 11px;
   color: #94a3b8;
 `;
 
@@ -678,6 +911,10 @@ const ModalContent = styled.div`
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 600px) {
+    width: 95%;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -706,36 +943,27 @@ const ModalBody = styled.div`
   flex: 1;
 `;
 
-const ProjectItem = styled.div`
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 8px;
-  &:hover {
-    background: #f1f5f9;
-  }
+const ChartGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+  height: 450px;
 `;
 
-const ProjectName = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const ProjectInfo = styled.div`
+const ChartContainer = styled.div`
+  width: 100%;
+  height: 400px;
   display: flex;
-  justify-content: space-between;
-  font-size: 13px;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 24px;
   color: #64748b;
-`;
-
-const CompanyName = styled.span`
-  font-weight: 500;
-`;
-
-const ProjectDate = styled.span`
-  color: #94a3b8;
 `;
 
 const LoadingMessage = styled.div`
@@ -744,10 +972,169 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 24px;
+const CompanyName = styled.span`
+  font-weight: 500;
+`;
+
+const PostList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const PostItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const PostTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+`;
+
+const PostInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
   color: #64748b;
+`;
+
+const PostAuthor = styled.div`
+  font-weight: 500;
+  color: #475569;
+`;
+
+const PostDate = styled.div`
+  color: #94a3b8;
+`;
+
+const PostStatus = styled(NoticeStatus)``;
+
+const NoticeInquiryGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+`;
+
+const NoticeSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const NoticeList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const ViewAllButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #475569;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+`;
+
+const ArrowIcon = styled.span`
+  font-size: 14px;
+  transition: transform 0.2s ease;
+  ${ViewAllButton}:hover & {
+    transform: translateX(4px);
+  }
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const ProjectStatsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const ProjectStatsCard = styled(Card)`
+  margin-bottom: 0;
+`;
+
+const ProjectStatsTitle = styled(CardTitle)`
+  margin-bottom: 16px;
+`;
+
+const ProjectStatsContent = styled(CardContent)`
+  height: 100%;
+  padding: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ProjectStatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+  height: 400px;
+  width: 100%;
+  overflow: hidden;
+`;
+
+const ProjectStatsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+`;
+
+const ProjectStatsChartTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 12px;
+  text-align: center;
 `;
 
 export default DashboardAdmin;

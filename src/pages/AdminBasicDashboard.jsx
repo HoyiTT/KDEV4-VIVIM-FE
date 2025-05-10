@@ -8,8 +8,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const DashboardContainer = styled.div`
   padding: 24px;
-  height: auto;
-  overflow-y: visible;
+  height: 100vh;
+  overflow-y: auto;
   background-color: #f8fafc;
 `;
 
@@ -90,7 +90,7 @@ const StatusBadge = styled.span`
   }
 `;
 
-const AdminDashboard = () => {
+const AdminBasicDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -239,4 +239,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminBasicDashboard; 

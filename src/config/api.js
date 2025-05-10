@@ -24,8 +24,9 @@ export const API_ENDPOINTS = {
   ADMIN_PROJECTS: `${API_BASE_URL}/projects/all`,
   USER_PROJECTS: (userId) => `${API_BASE_URL}/projects?userId=${userId}`,
   PROJECT_POSTS: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
-  PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/link`,
-  PROJECT_POST_FILE: (projectId, postId) => `${API_BASE_URL}/projects/${projectId}/posts/${postId}/file/stream`,
+  PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/posts/${postId}/link`,
+  PROJECT_POST_FILE_MULTIPART: (postId) => `${API_BASE_URL}/posts/${postId}/file/multipart`,
+  PROJECT_POST_FILE_COMPLETE: () => `${API_BASE_URL}/upload/complete`,
   PROJECT_PROGRESS_POSITION: (projectId, progressId) => `${API_BASE_URL}/projects/${projectId}/progress/${progressId}/positioning`,
   PROJECTS_SEARCH: `${API_BASE_URL}/projects/search`,
 
@@ -80,10 +81,19 @@ export const API_ENDPOINTS = {
   // Posts
   POST: {
     LIST: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
-    RECENT: `${API_BASE_URL}/posts/admin/recent`,
+    RECENT: `${API_BASE_URL}/posts/user/recent`,
+    ADMIN_RECENT: `${API_BASE_URL}/posts/admin/recent`,
     DETAIL: (id) => `${API_BASE_URL}/posts/${id}`,
     CREATE: `${API_BASE_URL}/posts`,
     MODIFY: (id) => `${API_BASE_URL}/posts/${id}`,
     DELETE: (id) => `${API_BASE_URL}/posts/${id}`,
   },
+
+  NOTIFICATIONS: {
+    LIST: `${API_BASE_URL}/notifications`,
+    SUBSCRIBE: `${API_BASE_URL}/notifications/subscribe`,
+    READ: (id) => `${API_BASE_URL}/notifications/${id}/read`,
+    READ_ALL: `${API_BASE_URL}/notifications/read-all`,
+    UNREAD_COUNT: `${API_BASE_URL}/notifications/unread/count`
+  }
 };

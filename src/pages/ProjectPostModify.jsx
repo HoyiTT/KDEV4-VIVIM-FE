@@ -1,45 +1,48 @@
-import React, { useState, useEffect } from 'react';  // useEffect 추가
+import React, { useState, useEffect } from 'react';  
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
+import MainContent from '../components/common/MainContent';
+import axiosInstance from '../utils/axiosInstance';
+import { useAuth } from '../hooks/useAuth';
+import axios from 'axios'; 
 
+// 파일 크기 제한 상수 
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
-
-// 파일 크기 제한 상수 추가 (상단에 추가)
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+// 반드시 컴포넌트 함수 바깥에서 선언!
+const RoleTag = styled.span`
+  // 스타일 정의
+`;
 
 const ProjectPostModify = () => {
-  const { projectId, postId } = useParams();  // postId 추가
+  const { projectId, postId } = useParams(); 
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const parentPost = state?.parentPost;  // 라우터의 state에서 parentPost 가져오기
   const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
   
-  // Form states (removed links state)
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postStatus, setPostStatus] = useState('NORMAL');
   const [linkTitle, setLinkTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [fileError, setFileError] = useState('');
-  // Change the initial loading state from true to false
-  const [loading, setLoading] = useState(false);  // Changed from useState(true)
+  const [loading, setLoading] = useState(false); 
   const [newFiles, setNewFiles] = useState([]);
   const [filesToDelete, setFilesToDelete] = useState([]);
   const [linksToDelete, setLinksToDelete] = useState([]);
   const [existingLinks, setExistingLinks] = useState([]);
   const [existingFiles, setExistingFiles] = useState([]);
   const [newLinks, setNewLinks] = useState([]);
+  const [linkUrlError, setLinkUrlError] = useState('');
 
   useEffect(() => {
     const fetchPostDetail = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
-          headers: {
-            'Authorization': `${token}`
-          }
+          credentials: 'include'
         });
         if (!response.ok) {
           throw new Error('Failed to fetch post details');
@@ -70,7 +73,16 @@ const ProjectPostModify = () => {
     'application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript'
   ];
 
- 
+  // URL 형식 검증 함수
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleAddFile = (e) => {
     const selectedFiles = Array.from(e.target.files);
     
@@ -87,8 +99,8 @@ const ProjectPostModify = () => {
     }
     
     if (oversizedFiles.length > 0) {
-      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n');
-      setFileError('10MB 이상의 파일은 업로드할 수 없습니다.');
+      alert('500MB 이상의 파일은 업로드할 수 없습니다:\n');
+      setFileError('500MB 이상의 파일은 업로드할 수 없습니다.');
       e.target.value = '';
       return;
     }
@@ -122,11 +134,8 @@ const ProjectPostModify = () => {
   };
   const fetchFiles = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/files`, {
-        headers: {
-          'Authorization': token
-        }
+        credentials: 'include'
       });
       const data = await response.json();
       setExistingFiles(data.map(file => ({
@@ -140,15 +149,12 @@ const ProjectPostModify = () => {
   // Update fetchLinks function
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/links`, {
-        headers: {
-          'Authorization': token
-        }
+        credentials: 'include'
       });
       const data = await response.json();
       setExistingLinks(data.map(link => ({
-        id: link.id,  // Changed from linkId to id
+        id: link.id,
         title: link.title,
         url: link.url
       })));
@@ -159,13 +165,19 @@ const ProjectPostModify = () => {
 
   // Update handleAddLink
   const handleAddLink = () => {
-
-    
-    if (linkTitle && linkUrl) {
-      setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
-      setLinkTitle('');
-      setLinkUrl('');
+    if (!linkTitle || !linkUrl) {
+      return;
     }
+
+    if (!isValidUrl(linkUrl)) {
+      setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
+      return;
+    }
+
+    setNewLinks([...newLinks, { title: linkTitle, url: linkUrl }]);
+    setLinkTitle('');
+    setLinkUrl('');
+    setLinkUrlError('');
   };
   
   // Update handleLinkDelete
@@ -184,7 +196,11 @@ const ProjectPostModify = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 제목과 내용의 공백 검증
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+
     if (!title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -197,21 +213,19 @@ const ProjectPostModify = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
       // 게시글 수정
       const postData = {
-        title: title.trim(),  // 앞뒤 공백 제거
-        content: content.trim(),  // 앞뒤 공백 제거
+        title: title.trim(),
+        content: content.trim(),
         projectPostStatus: postStatus
       };
 
       const postResponse = await fetch(API_ENDPOINTS.PROJECT_DETAIL(projectId) + `/posts/${postId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `${token}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(postData)
       });
   
@@ -223,21 +237,18 @@ const ProjectPostModify = () => {
       for (const linkId of linksToDelete) {
         const deleteLinkResponse = await fetch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {
           method: 'PATCH',
-          headers: {
-            'Authorization': `${token}`
-          }
+          credentials: 'include'
         });
   
         if (!deleteLinkResponse.ok) {
           throw new Error(`링크 삭제 실패: ${deleteLinkResponse.status}`);
         }
       }
+
       for (const fileId of filesToDelete) {
         const deleteFileResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
           method: 'PATCH',
-          headers: {
-            'Authorization': `${token}`
-          }
+          credentials: 'include'
         });
 
         if (!deleteFileResponse.ok) {
@@ -252,12 +263,12 @@ const ProjectPostModify = () => {
           url: link.url
         };
   
-        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, postId), {
+        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(postId), {
           method: 'POST',
           headers: {
-            'Authorization': `${token}`,
             'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify(linkData)
         });
   
@@ -266,17 +277,16 @@ const ProjectPostModify = () => {
         }
       }
   
-      // Inside handleSubmit function, after handling links
       // Add new files
       for (const file of newFiles) {
         try {
-          // 1. presigned URL 요청
-          const presignedUrlResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE(projectId, postId), {
+          // 1. 멀티파트 업로드를 위한 presigned URL 요청
+          const presignedResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE_MULTIPART(postId), {
             method: 'POST',
             headers: {
-              'Authorization': `${token}`,
               'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
               fileName: file.name,
               fileSize: file.size,
@@ -284,23 +294,63 @@ const ProjectPostModify = () => {
             })
           });
 
-          if (!presignedUrlResponse.ok) {
-            throw new Error(`presignedURL 생성 실패: ${presignedUrlResponse.status}`);
+          if (!presignedResponse.ok) {
+            throw new Error(`Presigned URL 요청 실패: ${file.name}`);
           }
 
-          const { preSignedUrl } = await presignedUrlResponse.json();
+          const { objectKey, uploadId, presignedParts } = await presignedResponse.json();
 
-          // 2. presigned URL을 사용하여 S3에 파일 업로드
-          const uploadResponse = await fetch(preSignedUrl, {
-            method: 'PUT',
+          // 2. 각 파트 업로드 (병렬 처리)
+          const partSize = 25 * 1000 * 1000; // 25MB
+          const totalParts = Math.ceil(file.size / partSize);
+          const uploadPromises = [];
+
+          for (let i = 0; i < totalParts; i++) {
+            const start = i * partSize;
+            const end = Math.min(start + partSize, file.size);
+            const chunk = file.slice(start, end);
+            const partNumber = i + 1;
+            const presignedUrl = presignedParts.find(part => part.partNumber === partNumber).presignedUrl;
+
+            uploadPromises.push(
+              fetch(presignedUrl, {
+                method: 'PUT',
+                body: chunk,
+                headers: {
+                  'Content-Type': file.type
+                }
+              }).then(async (response) => {
+                if (!response.ok) {
+                  throw new Error(`파일 파트 업로드 실패: ${file.name} (파트 ${partNumber})`);
+                }
+                const etag = response.headers.get('ETag');
+                return {
+                  partNumber,
+                  etag
+                };
+              })
+            );
+          }
+
+          // 모든 파트 업로드가 완료될 때까지 대기
+          const uploadedParts = await Promise.all(uploadPromises);
+
+          // 3. 멀티파트 업로드 완료 요청
+          const completeResponse = await fetch(API_ENDPOINTS.PROJECT_POST_FILE_COMPLETE(postId), {
+            method: 'POST',
             headers: {
-              'Content-Type': file.type
+              'Content-Type': 'application/json'
             },
-            body: file
+            credentials: 'include',
+            body: JSON.stringify({
+              key: objectKey,
+              uploadId: uploadId,
+              parts: uploadedParts
+            })
           });
 
-          if (!uploadResponse.ok) {
-            throw new Error(`파일 업로드 실패: ${uploadResponse.status}`);
+          if (!completeResponse.ok) {
+            throw new Error(`멀티파트 업로드 완료 실패: ${file.name}`);
           }
 
         } catch (error) {
@@ -312,23 +362,27 @@ const ProjectPostModify = () => {
       navigate(`/project/${projectId}/post/${postId}`);
     } catch (error) {
       console.error('오류:', error);
-      alert('게시글 수정 중 오류가 발생했습니다: ' + error.message);
+      if (error.response?.status === 403) {
+        alert('권한이 없습니다.');
+      } else {
+        alert('게시글 수정 중 오류가 발생했습니다: ' + error.message);
+      }
     } finally {
-      setLoading(false);  // Make sure loading is set to false when everything is done
+      setLoading(false);
     }
   };
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={(menuItem) => setActiveMenuItem(menuItem)}
-      />
       <MainContent>
         <ContentContainer>
-          <Header>
+          <HeaderContainer>
+            <BackButton onClick={() => navigate(`/project/${projectId}/post/${postId}`)}>
+              <span>←</span>
+              뒤로가기
+            </BackButton>
             <PageTitle>게시글 수정</PageTitle>
-          </Header>
+          </HeaderContainer>
 
           <FormContainer onSubmit={handleSubmit}>
             <InputGroup>
@@ -532,7 +586,7 @@ const FileInputContainer = styled.div`
   gap: 12px;
   
   &::after {
-    content: '* 파일 크기는 10MB 이하여야 합니다.';
+    content: '* 파일 크기는 500MB 이하여야 합니다.';
     display: block;
     font-size: 12px;
     color: #64748b;
@@ -625,15 +679,18 @@ const FileItem = styled.li`
 `;
 
 const DeleteButton = styled.button`
-  background: none;
+  padding: 8px 16px;
+  background-color: #2E7D32;   // 시그니처 초록색
+  color: white;
   border: none;
-  color: #94a3b8;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  padding: 4px;
-  font-size: 16px;
-  
+  transition: all 0.2s;
+
   &:hover {
-    color: #ef4444;
+    background-color: #1B5E20; // 더 진한 초록색
   }
 `;
 
@@ -675,20 +732,28 @@ const PageContainer = styled.div`
   background-color: #f5f7fa;
 `;
 
-const MainContent = styled.div`
-  flex: 1;
-  padding: 24px;
-  margin-top: 60px;
-`;
-
 const ContentContainer = styled.div`
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
 `;
 
-const Header = styled.div`
-  margin-bottom: 24px;
+const HeaderContainer = styled.div`
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const PageTitle = styled.h1`
@@ -702,6 +767,10 @@ const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background-color: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 
