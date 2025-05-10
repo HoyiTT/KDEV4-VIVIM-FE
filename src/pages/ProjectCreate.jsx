@@ -448,10 +448,6 @@ const ProjectCreate = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem} 
-        handleMenuClick={handleMenuClick} 
-      />
       <MainContent>
         <Header>
           <PageTitle>프로젝트 생성</PageTitle>

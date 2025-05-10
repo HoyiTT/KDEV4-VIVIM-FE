@@ -334,9 +334,10 @@ const AdminProjects = () => {
 
   const SearchSection = styled.div`
     display: flex;
-    gap: 12px;
     align-items: center;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
     width: 100%;
   `;
 
@@ -466,7 +467,7 @@ const AdminProjects = () => {
     }
   `;
 
-  const CreateButton = styled.button`
+  const AddButton = styled.button`
     padding: 10px 20px;
     background: #2E7D32;
     color: white;
@@ -530,39 +531,37 @@ const AdminProjects = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <PageTitle>프로젝트 관리</PageTitle>
-              <CreateButton onClick={() => navigate('/project-create')}>
-                + 새 프로젝트 등록
-              </CreateButton>
+              <AddButton onClick={() => navigate('/projectCreate')}>+ 새 프로젝트 등록</AddButton>
             </div>
             <SearchSection>
-              <SearchInput
-                type="text"
-                placeholder="프로젝트명 검색"
-                value={searchParams.name}
-                onChange={handleFilterChange}
-                name="name"
-                onKeyDown={handleKeyPress}
-              />
-              <SearchInput
-                type="text"
-                placeholder="프로젝트 설명 검색"
-                value={searchParams.description}
-                onChange={handleFilterChange}
-                name="description"
-                onKeyDown={handleKeyPress}
-              />
-              <SearchCheckbox>
-                <input
-                  type="checkbox"
-                  name="isDeleted"
-                  checked={searchParams.isDeleted}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
+                <SearchInput
+                  type="text"
+                  name="name"
+                  placeholder="프로젝트명 검색"
+                  value={searchParams.name}
                   onChange={handleFilterChange}
+                  onKeyDown={handleKeyPress}
                 />
-                삭제된 프로젝트만 검색
-              </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
-                검색
-              </SearchButton>
+                <SearchInput
+                  type="text"
+                  name="description"
+                  placeholder="프로젝트 설명 검색"
+                  value={searchParams.description}
+                  onChange={handleFilterChange}
+                  onKeyDown={handleKeyPress}
+                />
+                <SearchCheckbox>
+                  <input
+                    type="checkbox"
+                    name="isDeleted"
+                    checked={searchParams.isDeleted}
+                    onChange={handleFilterChange}
+                  />
+                  삭제된 프로젝트만 검색
+                </SearchCheckbox>
+              </div>
+              <SearchButton onClick={handleSearch}>검색</SearchButton>
             </SearchSection>
           </div>
         </Header>
@@ -602,15 +601,19 @@ const AdminProjects = () => {
                       <TableCell>
                         {!project.deleted && (
                           <ActionButtonContainer>
-                            <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                            <ActionButton
+                              onClick={e => {
+                                e.stopPropagation();
+                                navigate(`/projectModify/${project.projectId}`);
+                              }}
+                            >
                               수정
                             </ActionButton>
-                            <DeleteButton 
-                              onClick={(e) => {
+                            <DeleteButton
+                              onClick={e => {
                                 e.stopPropagation();
                                 handleDeleteProject(project.projectId);
                               }}
-                              disabled={project.deleted}
                             >
                               삭제
                             </DeleteButton>

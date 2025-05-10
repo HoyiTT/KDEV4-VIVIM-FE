@@ -57,10 +57,6 @@ const CompanyCreate = () => {
 
   return (
     <PageContainer>
-      <Navbar 
-        activeMenuItem={activeMenuItem}
-        handleMenuClick={handleMenuClick}
-      />
       <MainContent>
         <Header>
           <PageTitle>회사 등록</PageTitle>
