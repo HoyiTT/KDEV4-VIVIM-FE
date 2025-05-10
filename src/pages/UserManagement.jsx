@@ -513,7 +513,6 @@ const UserManagement = () => {
 
   return (
     <PageContainer>
-      <Sidebar />
       <MainContent>
         <Card>
           <Header>

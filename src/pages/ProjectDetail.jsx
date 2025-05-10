@@ -1120,7 +1120,7 @@ const ProjectDetail = () => {
         if (error.response?.status === 403) {
           alert('프로젝트를 삭제할 권한이 없습니다.');
         } else {
-          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
         }
       }
     }
@@ -1239,7 +1239,7 @@ const ProjectDetail = () => {
         // position이 가장 큰 단계(마지막에 추가된 단계)는 항상 미완료 상태로 설정
         const isLastStage = progress.position === Math.max(...arr.map(p => p.position));
         return {
-          ...progress,
+        ...progress,
           isCompleted: isLastStage ? false : progress.isCompleted
         };
       }).sort((a, b) => a.position - b.position);  // position 기준으로 정렬
@@ -1284,7 +1284,7 @@ const ProjectDetail = () => {
       console.error('Error fetching posts:', error);
     }
   };
-
+  
   const handleNextStage = () => {
     if (currentStageIndex < progressList.length - 1) {
       setCurrentStageIndex(prev => prev + 1);
@@ -1301,7 +1301,7 @@ const ProjectDetail = () => {
   const handleApprovalClick = (approval) => {
     navigate(`/project/${id}/approval/${approval.id}`);
   };
-
+  
   // 승인요청 목록 조회
   const fetchApprovalRequests = async () => {
     try {
@@ -1631,7 +1631,7 @@ const ProjectDetail = () => {
   };
 
   return (
-    <MainContent>
+        <MainContent>
       <ContentWrapper>
         {loading ? (
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
@@ -1648,7 +1648,7 @@ const ProjectDetail = () => {
               <ProjectHeader>
                 <StatusBadge $isDeleted={project?.isDeleted}>
                   {project?.isDeleted ? '삭제됨' : '진행중'}
-                </StatusBadge>
+                  </StatusBadge>
                 {isAdmin && !project?.isDeleted && (
                   <ActionButtons>
                     <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
@@ -1662,7 +1662,7 @@ const ProjectDetail = () => {
               </ProjectHeader>
               <ProjectTitleSection>
                 <ProjectTitle>{project.name}</ProjectTitle>
-                <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
+              <ProjectDescription>{project.description || '프로젝트 설명이 없습니다.'}</ProjectDescription>
               </ProjectTitleSection>
               <DateContainer>
                 <DateItem>
@@ -1814,7 +1814,7 @@ const ProjectDetail = () => {
                               </StageHeaderActions>
                             )}
                           </StageHeader>
-                        </StageItem>
+                    </StageItem>
                       </StageContainer>
                     ))
                   ) : (
@@ -1826,23 +1826,23 @@ const ProjectDetail = () => {
               </StageSplitLayout>
             </StageSection>
 
-            <BoardSection>
-              <BoardHeader>
+                        <BoardSection>
+                          <BoardHeader>
                 <SectionTitle>게시글</SectionTitle>
-                <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
                   게시글 작성
-                </CreateButton>
-              </BoardHeader>
-              <BoardTable>
-                <thead>
-                  <tr>
-                    <BoardHeaderCell>제목</BoardHeaderCell>
-                    <BoardHeaderCell>작성자</BoardHeaderCell>
-                    <BoardHeaderCell>작성일</BoardHeaderCell>
+                            </CreateButton>
+                          </BoardHeader>
+                          <BoardTable>
+                            <thead>
+                              <tr>
+                                <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>작성자</BoardHeaderCell>
+                                <BoardHeaderCell>작성일</BoardHeaderCell>
                     <BoardHeaderCell>댓글</BoardHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
+                              </tr>
+                            </thead>
+                            <tbody>
                   {posts.length > 0 ? (
                     posts.map((post) => (
                       <BoardRow key={post.postId} onClick={() => handlePostClick(post)}>
@@ -1864,60 +1864,60 @@ const ProjectDetail = () => {
                   ) : (
                     <tr>
                       <EmptyBoardCell colSpan="4">
-                        <EmptyStateContainer>
+                                    <EmptyStateContainer>
                           <EmptyStateTitle>게시글이 없습니다</EmptyStateTitle>
-                          <EmptyStateDescription>
+                                      <EmptyStateDescription>
                             첫 게시글을 작성해보세요.
-                          </EmptyStateDescription>
-                        </EmptyStateContainer>
-                      </EmptyBoardCell>
-                    </tr>
-                  )}
-                </tbody>
-              </BoardTable>
-            </BoardSection>
+                                      </EmptyStateDescription>
+                                    </EmptyStateContainer>
+                                  </EmptyBoardCell>
+                                </tr>
+                              )}
+                            </tbody>
+                          </BoardTable>
+                        </BoardSection>
 
-            {showPositionModal && (
+    {showPositionModal && (
               <ModalOverlay>
                 <ModalContent>
-                  <ModalHeader>
+          <ModalHeader>
                     <h2>단계 순서 변경</h2>
-                  </ModalHeader>
-                  <ModalBody>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
+          </ModalHeader>
+          <ModalBody>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
                         items={progressList.map(item => item.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <StageList>
-                          {progressList.map((stage) => (
-                            <SortableItem
-                              key={stage.id}
-                              id={stage.id}
-                              name={stage.name}
-                              position={stage.position}
+                strategy={verticalListSortingStrategy}
+              >
+                <StageList>
+                  {progressList.map((stage) => (
+                    <SortableItem
+                      key={stage.id}
+                      id={stage.id}
+                      name={stage.name}
+                      position={stage.position}
                               component={SortableStageItem}
-                            />
-                          ))}
-                        </StageList>
-                      </SortableContext>
-                    </DndContext>
-                  </ModalBody>
-                  <ModalFooter>
+                    />
+                  ))}
+                </StageList>
+              </SortableContext>
+            </DndContext>
+          </ModalBody>
+          <ModalFooter>
                     <ActionButton onClick={handleSavePositions}>
-                      순서 저장
-                    </ActionButton>
+              순서 저장
+            </ActionButton>
                     <CancelButton onClick={() => setShowPositionModal(false)}>
                       취소
                     </CancelButton>
-                  </ModalFooter>
+          </ModalFooter>
                 </ModalContent>
-              </ModalOverlay>
-            )}
+      </ModalOverlay>
+    )}
 
             {isStageModalOpen && (
               <ModalOverlay>
