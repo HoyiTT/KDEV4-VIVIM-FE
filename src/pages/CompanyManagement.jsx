@@ -127,6 +127,35 @@ const CompanyManagement = () => {
           <Header>
             <PageTitle>회사 관리</PageTitle>
             <ButtonContainer>
+              <AddButton onClick={() => navigate('/company-create')}>
+                새 회사 등록
+              </AddButton>
+            </ButtonContainer>
+          </Header>
+
+          <SearchSection>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <SearchInput
+                type="text"
+                placeholder="회사명 검색"
+                name="name"
+                value={filters.name}
+                onChange={handleFilterChange}
+              />
+              <SearchInput
+                type="text"
+                placeholder="사업자등록번호 검색"
+                name="businessNumber"
+                value={filters.businessNumber}
+                onChange={handleFilterChange}
+              />
+              <SearchInput
+                type="text"
+                placeholder="이메일 검색"
+                name="email"
+                value={filters.email}
+                onChange={handleFilterChange}
+              />
               <SearchCheckbox>
                 <input
                   type="checkbox"
@@ -136,37 +165,12 @@ const CompanyManagement = () => {
                 />
                 삭제된 회사만 검색
               </SearchCheckbox>
+            </div>
+            <div>
               <SearchButton onClick={handleSearch}>
                 검색
               </SearchButton>
-              <AddButton onClick={() => navigate('/company-create')}>
-                새 회사 등록
-              </AddButton>
-            </ButtonContainer>
-          </Header>
-
-          <SearchSection>
-            <SearchInput
-              type="text"
-              placeholder="회사명 검색"
-              name="name"
-              value={filters.name}
-              onChange={handleFilterChange}
-            />
-            <SearchInput
-              type="text"
-              placeholder="사업자등록번호 검색"
-              name="businessNumber"
-              value={filters.businessNumber}
-              onChange={handleFilterChange}
-            />
-            <SearchInput
-              type="text"
-              placeholder="이메일 검색"
-              name="email"
-              value={filters.email}
-              onChange={handleFilterChange}
-            />
+            </div>
           </SearchSection>
         </Card>
 
@@ -338,32 +342,30 @@ const AddButton = styled.button`
 
 const SearchSection = styled.div`
   display: flex;
-  gap: 16px;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: flex-start;
+  flex-wrap: nowrap;
   margin-bottom: 24px;
+  overflow-x: auto;
+  gap: 0;
 `;
 
 const SearchInput = styled.input`
-  padding: 10px 16px;
+  padding: 8px 12px;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  width: 240px;
+  width: 140px;
+  min-width: 0;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  
   &::placeholder {
     color: #94a3b8;
   }
-
   &:hover {
     border-color: #cbd5e1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
-  
   &:focus {
     outline: none;
     border-color: #2E7D32;
