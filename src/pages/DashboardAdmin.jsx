@@ -79,24 +79,24 @@ const DashboardAdmin = () => {
   });
   const [recentProposals, setRecentProposals] = useState([]);
   const [monthlyStats, setMonthlyStats] = useState([]);
+  const [allProjects, setAllProjects] = useState([]);
 
-  // 차트 데이터
-  const projectStatusData = {
-    labels: ['요구사항정의', '화면설계', '디자인', '개발', '배포', '검수', '완료'],
+  const [projectStatusData, setProjectStatusData] = useState({
+    labels: ['요구사항정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', '완료'],
     datasets: [{
-      data: [15, 2, 2, 0, 1, 1, 0],
+      data: [0, 0, 0, 0, 0, 0, 0],
       backgroundColor: [
         '#e8f5e9',  // 요구사항정의 - 가장 밝은 녹색
         '#c8e6c9',  // 화면설계
         '#a5d6a7',  // 디자인
-        '#81c784',  // 개발
-        '#66bb6a',  // 배포
+        '#81c784',  // 퍼블리싱
+        '#66bb6a',  // 개발
         '#4caf50',  // 검수
         '#2E7D32'   // 완료 - 시그니처 색상
       ],
       borderWidth: 0,
     }]
-  };
+  });
 
   const monthlyStatsData = {
     labels: monthlyStats.map(stat => stat.month),
@@ -114,7 +114,6 @@ const DashboardAdmin = () => {
     ],
   };
 
-  // 차트 옵션
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -143,6 +142,12 @@ const DashboardAdmin = () => {
       }
     },
     cutout: '70%',
+    onClick: (event, elements) => {
+      handleChartClick(elements);
+    },
+    onHover: (event, elements) => {
+      event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    }
   };
 
   const formatCurrency = (value) => {
@@ -172,6 +177,85 @@ const DashboardAdmin = () => {
         }
       },
     },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        const datasetIndex = elements[0].datasetIndex;
+        const month = monthlyStatsData.labels[index];
+        const type = datasetIndex === 0 ? '전체' : '완료된';
+        
+        setModalTitle(`${month} ${type} 프로젝트`);
+        setModalType('monthly');
+        setShowModal(true);
+        setLoading(true);
+
+        try {
+          const filteredProjects = allProjects.filter(project => {
+            if (datasetIndex === 0) {
+              // 전체 프로젝트 - createdAt 기준
+              const createdDate = new Date(project.createdAt);
+              const createdMonth = createdDate.toLocaleString('ko-KR', { month: 'long' });
+              return createdMonth === month;
+            } else {
+              // 완료된 프로젝트 - projectFeePaidDate 기준
+              if (project.projectFeePaidDate) {
+                const paidDate = new Date(project.projectFeePaidDate);
+                const paidMonth = paidDate.toLocaleString('ko-KR', { month: 'long' });
+                return paidMonth === month;
+              }
+              return false;
+            }
+          });
+
+          setProjectList(filteredProjects);
+        } catch (error) {
+          console.error('Error filtering projects:', error);
+          setProjectList([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+    },
+    onHover: (event, elements) => {
+      event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    }
+  };
+
+  const [modalType, setModalType] = useState('');
+
+  const handleBarClick = (data) => {
+    if (data && data.activePayload) {
+      const weekData = revenueData.find(item => item.name === data.activePayload[0].payload.name);
+      setModalTitle(`${weekData.name} 정산 프로젝트`);
+      setModalType('revenue');
+      setShowModal(true);
+      setLoading(true);
+
+      try {
+        // 해당 주차의 프로젝트 목록을 모달에 표시
+        const weekProjects = allProjects.filter(project => {
+          if (project.projectFeePaidDate) {
+            const paidDate = new Date(project.projectFeePaidDate);
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+            if (paidDate >= firstDay && paidDate <= lastDay) {
+              const weekNumber = Math.floor((paidDate.getDate() - 1) / 7);
+              return weekNumber === parseInt(weekData.name[0]) - 1;
+            }
+          }
+          return false;
+        });
+
+        setProjectList(weekProjects);
+      } catch (error) {
+        console.error('Error filtering projects:', error);
+        setProjectList([]);
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const lineOptions = {
@@ -210,6 +294,43 @@ const DashboardAdmin = () => {
       line: {
         tension: 0.4
       }
+    },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        const weekNumber = index + 1;
+        setModalTitle(`${weekNumber}주차 정산 프로젝트`);
+        setModalType('revenue');
+        setShowModal(true);
+        setLoading(true);
+
+        try {
+          const weekProjects = allProjects.filter(project => {
+            if (project.projectFeePaidDate) {
+              const paidDate = new Date(project.projectFeePaidDate);
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+              const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+              if (paidDate >= firstDay && paidDate <= lastDay) {
+                const projectWeekNumber = Math.floor((paidDate.getDate() - 1) / 7);
+                return projectWeekNumber === index;
+              }
+            }
+            return false;
+          });
+
+          setProjectList(weekProjects);
+        } catch (error) {
+          console.error('Error filtering projects:', error);
+          setProjectList([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+    },
+    onHover: (event, elements) => {
+      event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
     }
   };
 
@@ -267,6 +388,7 @@ const DashboardAdmin = () => {
       try {
         const { data } = await axiosInstance.get('/projects/dashboard/project_fee');
         console.log('Revenue data:', data);
+        
         // 수익 데이터 업데이트
         const revenueData = {
           labels: ['1주차', '2주차', '3주차', '4주차', '5주차'],
@@ -292,7 +414,7 @@ const DashboardAdmin = () => {
             }
           ],
         };
-        // setRevenueData(revenueData); // API 데이터 대신 더미 데이터 사용
+        setRevenueData(revenueData);
       } catch (error) {
         console.error('Error fetching revenue data:', error);
       }
@@ -368,6 +490,63 @@ const DashboardAdmin = () => {
     fetchMonthlyStats();
   }, []);
 
+  useEffect(() => {
+    const fetchAllProjects = async () => {
+      try {
+        const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_PROJECTS, {
+          withCredentials: true
+        });
+        
+        // 삭제되지 않은 프로젝트만 필터링
+        const activeProjects = data.filter(project => !project.deleted);
+        setAllProjects(activeProjects);
+        
+        // 통계 데이터 계산
+        const totalProjects = activeProjects.length;
+        const inProgressProjects = activeProjects.filter(project => project.projectStatus === 'PROGRESS').length;
+        const completedProjects = activeProjects.filter(project => project.projectStatus === 'COMPLETED').length;
+        
+        // 프로젝트 단계별 통계 계산
+        const progressCounts = {
+          REQUIREMENTS: activeProjects.filter(p => p.currentProgress === 'REQUIREMENTS').length,
+          WIREFRAME: activeProjects.filter(p => p.currentProgress === 'WIREFRAME').length,
+          DESIGN: activeProjects.filter(p => p.currentProgress === 'DESIGN').length,
+          PUBLISHING: activeProjects.filter(p => p.currentProgress === 'PUBLISHING').length,
+          DEVELOPMENT: activeProjects.filter(p => p.currentProgress === 'DEVELOPMENT').length,
+          INSPECTION: activeProjects.filter(p => p.currentProgress === 'INSPECTION').length,
+          COMPLETED: activeProjects.filter(p => p.currentProgress === 'COMPLETED').length
+        };
+
+        // 도넛 차트 데이터 업데이트
+        setProjectStatusData(prevData => ({
+          ...prevData,
+          datasets: [{
+            ...prevData.datasets[0],
+            data: [
+              progressCounts.REQUIREMENTS,
+              progressCounts.WIREFRAME,
+              progressCounts.DESIGN,
+              progressCounts.PUBLISHING,
+              progressCounts.DEVELOPMENT,
+              progressCounts.INSPECTION,
+              progressCounts.COMPLETED
+            ]
+          }]
+        }));
+        
+        setStats({
+          totalProjects,
+          activeProjects: inProgressProjects,
+          completedProjects
+        });
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    fetchAllProjects();
+  }, []);
+
   const handlePostClick = (postId, projectId) => {
     navigate(`/project/${projectId}/post/${postId}`);
   };
@@ -376,19 +555,57 @@ const DashboardAdmin = () => {
     setModalTitle(title);
     setShowModal(true);
     setLoading(true);
+
     try {
-      const { data } = await axiosInstance.get('/projects/all');
-      const filtered = data.filter(p => {
-        if (title === '계약중인 프로젝트') return p.projectStatus === 'PROGRESS';
-        if (title === '검수중인 프로젝트') return p.projectStatus === 'INSPECTION';
-        return p.projectStatus === 'COMPLETED';
-      });
-      setProjectList(filtered);
+      let filteredProjects;
+      switch (title) {
+        case '전체 프로젝트':
+          filteredProjects = allProjects;
+          break;
+        case '진행중인 프로젝트':
+          filteredProjects = allProjects.filter(project => project.projectStatus === 'PROGRESS');
+          break;
+        case '완료된 프로젝트':
+          filteredProjects = allProjects.filter(project => project.projectStatus === 'COMPLETED');
+          break;
+        default:
+          filteredProjects = [];
+      }
+      
+      setProjectList(filteredProjects);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error filtering projects:', error);
       setProjectList([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateDday = (endDate) => {
+    const today = new Date();
+    const end = new Date(endDate);
+    const diffTime = end - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const getDdayStyle = (dday) => {
+    if (dday < 0) return { color: '#EF4444', backgroundColor: '#FEF2F2' };
+    if (dday <= 7) return { color: '#F59E0B', backgroundColor: '#FFFBEB' };
+    return { color: '#10B981', backgroundColor: '#ECFDF5' };
+  };
+
+  const getProgressText = (progress) => {
+    switch (progress) {
+      case 'REQUIREMENTS': return '요구사항정의';
+      case 'WIREFRAME': return '화면설계';
+      case 'DESIGN': return '디자인';
+      case 'PUBLISHING': return '퍼블리싱';
+      case 'DEVELOPMENT': return '개발';
+      case 'DEPLOYMENT': return '배포';
+      case 'INSPECTION': return '검수';
+      case 'COMPLETED': return '완료';
+      default: return progress;
     }
   };
 
@@ -404,6 +621,37 @@ const DashboardAdmin = () => {
     navigate(`/admin/proposal/${proposalId}`);
   };
 
+  const handleChartClick = (elements) => {
+    if (elements.length > 0) {
+      const index = elements[0].index;
+      const labels = ['요구사항정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', '완료'];
+      const progressMap = {
+        '요구사항정의': 'REQUIREMENTS',
+        '화면설계': 'WIREFRAME',
+        '디자인': 'DESIGN',
+        '퍼블리싱': 'PUBLISHING',
+        '개발': 'DEVELOPMENT',
+        '검수': 'INSPECTION',
+        '완료': 'COMPLETED'
+      };
+      
+      const selectedProgress = progressMap[labels[index]];
+      setModalTitle(`${labels[index]} 단계 프로젝트`);
+      setShowModal(true);
+      setLoading(true);
+
+      try {
+        const filteredProjects = allProjects.filter(project => project.currentProgress === selectedProgress);
+        setProjectList(filteredProjects);
+      } catch (error) {
+        console.error('Error filtering projects:', error);
+        setProjectList([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
     <PageContainer>
       <MainContent>
@@ -413,17 +661,17 @@ const DashboardAdmin = () => {
               <CardTitle>시스템 현황</CardTitle>
               <CardContent>
                 <StatsGrid>
-                  <StatItem>
-                    <StatLabel>계약 완료한<br />프로젝트</StatLabel>
-                    <StatValue>20</StatValue>
+                  <StatItem onClick={() => handleSummaryClick('전체 프로젝트')} style={{ cursor: 'pointer' }}>
+                    <StatLabel>전체 프로젝트</StatLabel>
+                    <StatValue>{stats.totalProjects}</StatValue>
                   </StatItem>
-                  <StatItem>
-                    <StatLabel>검수 중인<br />프로젝트</StatLabel>
-                    <StatValue>1</StatValue>
+                  <StatItem onClick={() => handleSummaryClick('진행중인 프로젝트')} style={{ cursor: 'pointer' }}>
+                    <StatLabel>진행중인 프로젝트</StatLabel>
+                    <StatValue>{stats.activeProjects}</StatValue>
                   </StatItem>
-                  <StatItem>
-                    <StatLabel>검수 완료한<br />프로젝트</StatLabel>
-                    <StatValue>1</StatValue>
+                  <StatItem onClick={() => handleSummaryClick('완료된 프로젝트')} style={{ cursor: 'pointer' }}>
+                    <StatLabel>완료된 프로젝트</StatLabel>
+                    <StatValue>{stats.completedProjects}</StatValue>
                   </StatItem>
                 </StatsGrid>
               </CardContent>
@@ -555,21 +803,49 @@ const DashboardAdmin = () => {
               {loading ? (
                 <LoadingMessage>로딩 중...</LoadingMessage>
               ) : projectList.length > 0 ? (
-                projectList.map(proj => (
-                  <ProjectItem
-                    key={proj.id}
-                    onClick={() => navigate(`/project/${proj.projectId}`)}
-                  >
-                    <ProjectName>{proj.name}</ProjectName>
-                    <ProjectInfo>
-                      <CompanyName>{proj.companyName}</CompanyName>
-                      <ProjectDate>
-                        {new Date(proj.startDate).toLocaleDateString('ko-KR')} ~{' '}
-                        {new Date(proj.endDate).toLocaleDateString('ko-KR')}
-                      </ProjectDate>
-                    </ProjectInfo>
-                  </ProjectItem>
-                ))
+                <ProjectList>
+                  {projectList.map((project) => {
+                    const dday = calculateDday(project.endDate);
+                    const ddayStyle = getDdayStyle(dday);
+                    return (
+                      <ProjectItem
+                        key={project.projectId}
+                        onClick={() => navigate(`/project/${project.projectId}`)}
+                      >
+                        <ProjectInfo>
+                          <ProjectName>{project.name}</ProjectName>
+                          <ProjectDetails>
+                            <ProjectDetail>
+                              <DetailLabel>프로젝트 금액:</DetailLabel>
+                              <DetailValue>{formatCurrency(project.projectFee)}</DetailValue>
+                            </ProjectDetail>
+                            <ProjectDetail>
+                              <DetailLabel>생성일:</DetailLabel>
+                              <DetailValue>{formatDate(project.createdAt)}</DetailValue>
+                            </ProjectDetail>
+                            {project.projectFeePaidDate && (
+                              <ProjectDetail>
+                                <DetailLabel>정산일:</DetailLabel>
+                                <DetailValue>{formatDate(project.projectFeePaidDate)}</DetailValue>
+                              </ProjectDetail>
+                            )}
+                            <ProjectDetail>
+                              <DetailLabel>현재 단계:</DetailLabel>
+                              <DetailValue>{getProgressText(project.currentProgress)}</DetailValue>
+                            </ProjectDetail>
+                            <ProjectDetail>
+                              <DetailLabel>상태:</DetailLabel>
+                              <DetailValue>{getStatusText(project.projectStatus)}</DetailValue>
+                            </ProjectDetail>
+                          </ProjectDetails>
+                          <DdayBadge style={ddayStyle}>
+                            {dday < 0 ? '마감일 초과' : `D-${dday}`}
+                          </DdayBadge>
+                        </ProjectInfo>
+                      </ProjectItem>
+                    );
+                  })}
+                </ProjectList>
               ) : (
                 <EmptyMessage>프로젝트가 없습니다.</EmptyMessage>
               )}
@@ -1135,6 +1411,38 @@ const ProjectStatsChartTitle = styled.div`
   color: #1e293b;
   margin-bottom: 12px;
   text-align: center;
+`;
+
+const DdayBadge = styled.span`
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: ${props => props.style.color};
+  background-color: ${props => props.style.backgroundColor};
+`;
+
+const ProjectDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+`;
+
+const ProjectDetail = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+`;
+
+const DetailLabel = styled.span`
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const DetailValue = styled.span`
+  color: #1e293b;
 `;
 
 export default DashboardAdmin;
