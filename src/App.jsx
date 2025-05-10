@@ -104,7 +104,7 @@ const AppContent = () => {
           <Route path="/user/inquiries/create" element={<UserInquiryCreate />} />
           <Route path="/user/inquiries/:id" element={<UserInquiryDetail />} />
           <Route path="/admin/inquiries" element={<AdminInquiryList />} />
-          <Route path="/admin/inquiries/:id" element={<AdminInquiryDetail />} />
+          <Route path="/admin/inquiry/:id" element={<AdminInquiryDetail />} />
           
           {/* 관리자 전용 경로 */}
           <Route path="/dashboard-admin" element={

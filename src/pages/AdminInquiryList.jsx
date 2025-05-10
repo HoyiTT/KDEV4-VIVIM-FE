@@ -75,16 +75,16 @@ const AdminInquiryList = () => {
     }).replace(/\. /g, '.').slice(0, -1);
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
+  const getStatusBadge = (inquiryStatus) => {
+    switch (inquiryStatus) {
       case 'PENDING':
-        return { text: '대기중', color: '#DC2626' };
+        return { text: '답변 대기', color: '#DC2626' };
       case 'IN_PROGRESS':
         return { text: '처리중', color: '#2E7D32' };
       case 'COMPLETED':
-        return { text: '완료', color: '#64748B' };
+        return { text: '답변 완료', color: '#64748B' };
       default:
-        return { text: '대기중', color: '#64748B' };
+        return { text: '답변 대기', color: '#64748B' };
     }
   };
 
@@ -148,15 +148,14 @@ const AdminInquiryList = () => {
               </thead>
               <tbody>
                 {inquiries.map((inquiry) => {
-                  const statusBadge = getStatusBadge(inquiry.status);
                   return (
                     <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiry/${inquiry.id}`)}>
                       <TableCell>{inquiry.title}</TableCell>
                       <TableCell nowrap>{inquiry.creatorName}</TableCell>
                       <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
                       <TableCell nowrap>
-                        <StatusBadge status={inquiry.status}>
-                          {statusBadge.text}
+                        <StatusBadge status={inquiry.inquiryStatus}>
+                          {getStatusBadge(inquiry.inquiryStatus).text}
                         </StatusBadge>
                       </TableCell>
                       <TableCell nowrap>

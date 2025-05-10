@@ -48,7 +48,7 @@ const AppContent = () => {
           <Route path="/user/inquiries/create" element={<ProtectedRoute><UserInquiryCreate /></ProtectedRoute>} />
           <Route path="/user/inquiries/:id" element={<ProtectedRoute><UserInquiryDetail /></ProtectedRoute>} />
           <Route path="/admin/inquiries" element={<ProtectedRoute><AdminInquiryList /></ProtectedRoute>} />
-          <Route path="/admin/inquiries/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
+          <Route path="/admin/inquiry/:id" element={<ProtectedRoute><AdminInquiryDetail /></ProtectedRoute>} />
           <Route path="/projectCreate" element={<ProtectedRoute><ProjectCreate /></ProtectedRoute>} />
           <Route path="/projectModify/:projectId" element={<ProtectedRoute><ProjectModify /></ProtectedRoute>} />
           <Route path="/company-management" element={<ProtectedRoute><CompanyManagement /></ProtectedRoute>} />
