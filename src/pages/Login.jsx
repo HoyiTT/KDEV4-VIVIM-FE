@@ -329,8 +329,12 @@ const Login = () => {
       await login({ email, password });
     } catch (err) {
       console.error('Login error:', err);
-      if (err.response?.status === 401) {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        setError('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
+      } else if (err.response?.data?.statusMessage) {
+        setError(err.response.data.statusMessage);
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
       } else if (err.message) {
         setError(err.message);
       } else {

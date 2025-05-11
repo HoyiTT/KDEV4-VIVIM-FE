@@ -65,10 +65,7 @@ export const useAuth = () => {
     } catch (err) {
       console.error('로그인 오류', err);
       setIsAuthenticated(false);
-      if (err.response?.status === 401) {
-        throw err;
-      }
-      throw new Error('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      throw err;
     }
   };
 
