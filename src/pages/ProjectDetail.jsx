@@ -1616,11 +1616,10 @@ const ProjectDetail = () => {
     }
   };
 
-  // 상태 텍스트 반환 함수 추가
+  // 상태 텍스트 반환 함수 수정: COMPLETED는 '완료됨'으로, ENDED는 제거
   const getProjectStatusText = (project) => {
     if (project.isDeleted) return '삭제됨';
-    if (project.projectStatus === 'COMPLETED') return '완료';
-    if (project.endDate && new Date(project.endDate) < new Date()) return '종료됨';
+    if (project.projectStatus === 'COMPLETED') return '완료됨';
     return '진행중';
   };
 
