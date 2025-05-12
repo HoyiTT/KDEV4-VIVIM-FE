@@ -143,8 +143,6 @@ const AuditLog = () => {
                 <option value="USER">USER</option>
                 <option value="COMPANY">COMPANY</option>
                 <option value="PROJECT">PROJECT</option>
-                <option value="APPROVAL">APPROVAL</option>
-                <option value="PHASE">PHASE</option>
                 <option value="POST">POST</option>
                 <option value="COMMENT">COMMENT</option>
                 <option value="LINK">LINK</option>
