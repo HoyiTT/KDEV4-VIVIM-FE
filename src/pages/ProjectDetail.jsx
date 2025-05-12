@@ -1006,6 +1006,8 @@ const ProjectDetail = () => {
 
   const [projectCompanies, setProjectCompanies] = useState([]);
   const [projectUsers, setProjectUsers] = useState([]);
+  const [isCompaniesLoading, setIsCompaniesLoading] = useState(false);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPositionModal, setShowPositionModal] = useState(false);
@@ -1132,12 +1134,6 @@ const ProjectDetail = () => {
     fetchApprovalRequests();
     fetchProjectOverallProgress();
     fetchProgressStatus();
-
-    // 회사 정보 조회 추가
-    if (isAdmin || isClient || isDeveloperManager) {
-      fetchProjectCompanies();
-      fetchProjectUsers();
-    }
 
     // 30초마다 데이터 업데이트
     const updateInterval = setInterval(() => {
@@ -1490,65 +1486,60 @@ const ProjectDetail = () => {
   // 회사 정보 조회
   const fetchProjectCompanies = async () => {
     try {
-      // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
-        console.log('회사 정보 조회 권한이 없습니다.');
-        return;
-      }
-
+      setIsCompaniesLoading(true);
       const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/companies`, {
         withCredentials: true
       });
       setProjectCompanies(response.data);
     } catch (error) {
       console.error('회사 정보 조회 중 오류 발생:', error);
-      if (error.response?.status === 403) {
-        console.log('회사 정보 조회 권한이 없습니다.');
-      }
+    } finally {
+      setIsCompaniesLoading(false);
     }
   };
 
   // 고객사 사용자 정보 조회
   const fetchProjectUsers = async () => {
     try {
-      // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
-        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
-        return;
-      }
-
+      setIsUsersLoading(true);
       const response = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/users`, {
         withCredentials: true
       });
       setProjectUsers(response.data);
     } catch (error) {
       console.error('고객사 사용자 정보 조회 중 오류 발생:', error);
-      if (error.response?.status === 403) {
-        console.log('고객사 사용자 정보 조회 권한이 없습니다.');
-      }
+    } finally {
+      setIsUsersLoading(false);
     }
   };
 
   // 토글 헤더 클릭 핸들러 수정
-  const handleCompanyInfoToggle = () => {
-    if (projectCompanies.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
-      fetchProjectCompanies();
+  const handleCompanyInfoToggle = async () => {
+    try {
+      if (!showCompanyInfo) {
+        setIsCompaniesLoading(true);
+        await fetchProjectCompanies();
+      }
+      setShowCompanyInfo(!showCompanyInfo);
+    } catch (error) {
+      console.error('토글 처리 중 오류:', error);
+    } finally {
+      setIsCompaniesLoading(false);
     }
-    setShowCompanyInfo(!showCompanyInfo);
   };
 
-  const handleClientInfoToggle = () => {
-    if (projectUsers.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
-      fetchProjectUsers();
+  const handleClientInfoToggle = async () => {
+    try {
+      if (!showClientInfo) {
+        setIsUsersLoading(true);
+        await fetchProjectUsers();
+      }
+      setShowClientInfo(!showClientInfo);
+    } catch (error) {
+      console.error('토글 처리 중 오류:', error);
+    } finally {
+      setIsUsersLoading(false);
     }
-    setShowClientInfo(!showClientInfo);
-  };
-
-  const handleDevInfoToggle = () => {
-    if (projectCompanies.length === 0 && (isAdmin || isClient || isDeveloperManager)) {
-      fetchProjectCompanies();
-    }
-    setShowDevInfo(!showDevInfo);
   };
 
   // progressList가 변경될 때도 현재 진행 단계 업데이트
@@ -1678,8 +1669,12 @@ const ProjectDetail = () => {
                   <span>▼</span>
                 </ToggleHeader>
                 <ToggleContent $isOpen={showCompanyInfo}>
-                  {projectCompanies.length === 0 ? (
+                  {isCompaniesLoading ? (
                     <LoadingMessage>회사 정보를 불러오는 중...</LoadingMessage>
+                  ) : projectCompanies.length === 0 ? (
+                    <EmptyStateContainer>
+                      <EmptyStateTitle>회사 정보가 없습니다</EmptyStateTitle>
+                    </EmptyStateContainer>
                   ) : (
                     <>
                       <ToggleItem>
@@ -1709,17 +1704,21 @@ const ProjectDetail = () => {
                   <span>▼</span>
                 </ToggleHeader>
                 <ToggleContent $isOpen={showClientInfo}>
-                  {projectUsers.length === 0 ? (
+                  {isUsersLoading ? (
                     <LoadingMessage>직원 정보를 불러오는 중...</LoadingMessage>
+                  ) : projectUsers.length === 0 ? (
+                    <EmptyStateContainer>
+                      <EmptyStateTitle>직원 정보가 없습니다</EmptyStateTitle>
+                    </EmptyStateContainer>
                   ) : (
-                    <>
+                    <StageList>
                       {projectUsers.map(user => (
                         <ToggleItem key={user.userId}>
                           <ToggleLabel>{getRoleLabel(user.role)}</ToggleLabel>
                           <ToggleValue>{user.userName}</ToggleValue>
                         </ToggleItem>
                       ))}
-                    </>
+                    </StageList>
                   )}
                 </ToggleContent>
               </ToggleSection>
