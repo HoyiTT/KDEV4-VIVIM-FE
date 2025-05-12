@@ -172,7 +172,7 @@ const UserInquiryDetail = () => {
         navigate('/login');
         return;
       }
-      fetchInquiryDetail();
+    fetchInquiryDetail();
     }
   }, [id, authLoading, isAuthenticated]);
 
@@ -193,7 +193,7 @@ const UserInquiryDetail = () => {
         alert('접근 권한이 없습니다.');
         navigate('/user/inquiries');
       } else {
-        alert('문의 내용을 불러오는데 실패했습니다.');
+      alert('문의 내용을 불러오는데 실패했습니다.');
       }
     } finally {
       setLoading(false);

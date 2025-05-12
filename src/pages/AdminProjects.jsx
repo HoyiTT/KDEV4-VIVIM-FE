@@ -120,7 +120,9 @@ const AdminProjects = () => {
         ...(filters.isDeleted && { isDeleted: true })
       }).toString();
 
-      const response = await axiosInstance.get(`/projects/search?${queryParams}`);
+      const response = await axiosInstance.get(`/projects/search?${queryParams}`, {
+        withCredentials: true
+      });
       setProjects(response.data.content || []);
       setTotalPages(response.data.totalPages || 1);
       setTotalElements(response.data.totalElements || 0);

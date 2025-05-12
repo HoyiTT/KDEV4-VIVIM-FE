@@ -100,6 +100,7 @@ const Dashboard = () => {
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.RECENT, {
         withCredentials: true
       });
+      console.log('최근 승인요청 응답:', JSON.stringify(data, null, 2));
       setRecentProposals(data.approvalList || []);
     } catch (error) {
       console.error('최근 승인요청 조회 실패:', error);
@@ -270,7 +271,7 @@ const Dashboard = () => {
               <CardContent>
                 {recentProposals.length > 0 ? (
                   recentProposals.map((proposal) => (
-                    <ProjectItem key={proposal.id} onClick={() => navigate(`/approval/${proposal.id}`)}>
+                    <ProjectItem key={proposal.id} onClick={() => navigate(`/approval/${proposal.id}`, { state: { projectId: proposal.projectId } })}>
                       <ProjectInfo>
                         <ProjectName>{proposal.title}</ProjectName>
                         <ProjectDate>

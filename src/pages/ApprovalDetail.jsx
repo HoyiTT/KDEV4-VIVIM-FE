@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
@@ -245,9 +245,9 @@ const ApprovalButtonContainer = styled.div`
 `;
 
 const ApprovalActionButton = styled.button`
-  background: ${props => props.secondary ? '#f8fafc' : '#1E40AF'};
-  color: ${props => props.secondary ? '#475569' : 'white'};
-  border: ${props => props.secondary ? '1px solid #e2e8f0' : 'none'};
+  background: ${props => props.$secondary ? '#f8fafc' : '#1E40AF'};
+  color: ${props => props.$secondary ? '#475569' : 'white'};
+  border: ${props => props.$secondary ? '1px solid #e2e8f0' : 'none'};
   border-radius: 6px;
   padding: 8px 16px;
   font-size: 14px;
@@ -259,8 +259,8 @@ const ApprovalActionButton = styled.button`
   gap: 6px;
 
   &:hover {
-    background: ${props => props.secondary ? '#e2e8f0' : '#1E3A8A'};
-    box-shadow: ${props => props.secondary ? 'none' : '0 2px 8px rgba(30, 64, 175, 0.2)'};
+    background: ${props => props.$secondary ? '#e2e8f0' : '#1E3A8A'};
+    box-shadow: ${props => props.$secondary ? 'none' : '0 2px 8px rgba(30, 64, 175, 0.2)'};
   }
   
   &:disabled {
@@ -607,13 +607,15 @@ const DeleteButton = styled.button`
 const ApprovalDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeMenuItem, setActiveMenuItem] = useState('진행중인 프로젝트');
+  const location = useLocation();
+  const { user } = useAuth();
   const [proposal, setProposal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [projectId, setProjectId] = useState(null);
+  const [isApproversModalOpen, setIsApproversModalOpen] = useState(false);
   const [progressList, setProgressList] = useState([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [projectId, setProjectId] = useState(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [statusSummary, setStatusSummary] = useState(null);
   const [sendingApproval, setSendingApproval] = useState(false);
@@ -633,13 +635,36 @@ const ApprovalDetail = () => {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [deletedFileIds, setDeletedFileIds] = useState([]);
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
-  const { isAdmin, isClient, isDeveloperManager } = useAuth();
+
+  // location.state에서 projectId 가져오기
+  useEffect(() => {
+    console.log('ApprovalDetail location state:', location.state);
+    if (location.state?.projectId) {
+      console.log('state에서 프로젝트 ID를 가져왔습니다:', location.state.projectId);
+      setProjectId(location.state.projectId);
+    } else {
+      // URL에서 projectId 추출 시도
+      const urlMatch = window.location.pathname.match(/\/project\/(\d+)\/approval\/(\d+)/);
+      if (urlMatch && urlMatch[1]) {
+        console.log('URL에서 프로젝트 ID를 가져왔습니다:', urlMatch[1]);
+        setProjectId(urlMatch[1]);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
-    fetchProposalDetail();
-    fetchFiles();
-    fetchLinks();
-  }, [id]);
+    if (!projectId) {
+      console.log('프로젝트 ID가 없습니다. API 응답에서 가져오겠습니다.');
+      fetchProposalDetail();
+      fetchFiles();
+      fetchLinks();
+    } else {
+      console.log('프로젝트 ID로 데이터를 가져옵니다:', projectId);
+      fetchProposalDetail();
+      fetchFiles();
+      fetchLinks();
+    }
+  }, [id, projectId]);
 
   // 프로젝트 진행 상태 조회
   useEffect(() => {
@@ -651,10 +676,18 @@ const ApprovalDetail = () => {
 
   const fetchProposalDetail = async () => {
     try {
-      console.log("승인요청 상세 조회 시작:", id);
+      setLoading(true);
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(id), {
+        withCredentials: true
+      });
+      console.log('승인요청 상세 응답:', JSON.stringify(data, null, 2));
+      setProposal(data);
       
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(id));
-      console.log("승인요청 데이터:", data);
+      // 프로젝트 ID가 URL에 없는 경우 API 응답에서 가져오기
+      if (!projectId && data.progress?.projectId) {
+        console.log('API 응답에서 프로젝트 ID를 가져옵니다:', data.progress.projectId);
+        setProjectId(data.progress.projectId);
+      }
       
       // 백엔드 응답 필드 확인 (proposalStatus 또는 approvalProposalStatus)
       let proposalStatus = data.proposalStatus || data.approvalProposalStatus;
@@ -670,11 +703,7 @@ const ApprovalDetail = () => {
       // 상태가 결정된 후 로그 출력
       if (proposalStatus) {
         console.log("승인요청 상태:", proposalStatus, "→", getApprovalStatusText(proposalStatus));
-        
-        // 상태 값을 임시로 데이터에 저장 (원본 데이터 유지)
         data.displayStatus = proposalStatus;
-      } else {
-        console.warn("승인요청 상태 필드를 찾을 수 없습니다:", Object.keys(data));
       }
       
       // 승인권자 카운트 정보 확인
@@ -709,16 +738,13 @@ const ApprovalDetail = () => {
         setHasChanges(true); // 처음 전송하는 경우 변경사항 있음으로 간주
       }
       
-      setProposal(data);
-      setProjectId(data.projectId);
-      
       // 승인 상태 요약 정보 조회
       fetchStatusSummary();
       
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching proposal detail:', error);
-      setError('승인요청 상세 정보를 불러오는데 실패했습니다.');
+      console.error('승인요청 상세 조회 실패:', error);
+      setError('승인요청을 불러오는데 실패했습니다.');
       setLoading(false);
     }
   };
@@ -760,8 +786,8 @@ const ApprovalDetail = () => {
   // 승인 상태 요약 정보 조회
   const fetchStatusSummary = async () => {
     try {
-      // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
+      // user 객체 null 체크 추가
+      if (!user || (!user.isAdmin && !user.isClient && !user.isDeveloperManager)) {
         console.log('승인 상태 요약 조회 권한이 없습니다.');
         return;
       }
@@ -789,10 +815,6 @@ const ApprovalDetail = () => {
       }
       // 요약 정보는 실패해도 전체 페이지에 영향 없음
     }
-  };
-
-  const handleMenuClick = (menuItem) => {
-    setActiveMenuItem(menuItem);
   };
 
   const handleBack = () => {
@@ -919,13 +941,27 @@ const ApprovalDetail = () => {
 
   // 승인권자 수정 모달 열기 함수
   const handleOpenEditApprovers = () => {
-    // 클래스명을 가진 버튼 찾아서 클릭
-    const editButton = document.querySelector('.approvers-edit-button');
-    if (editButton) {
-      editButton.click();
-    } else {
-      alert('승인권자 수정 기능을 사용할 수 없습니다.');
+    console.log('승인권자 수정 모달 열기 시도:', { projectId, locationState: location.state, proposal });
+    
+    // proposal에서 projectId 가져오기 시도
+    if (!projectId && proposal?.progress?.projectId) {
+      console.log('proposal에서 프로젝트 ID를 가져옵니다:', proposal.progress.projectId);
+      setProjectId(proposal.progress.projectId);
+      setIsApproversModalOpen(true);
+      return;
     }
+    
+    if (!projectId) {
+      console.error('프로젝트 ID를 찾을 수 없습니다. 프로젝트 상세 페이지에서 접근해주세요.');
+      alert('프로젝트 상세 페이지에서 접근해주세요.');
+      return;
+    }
+    
+    setIsApproversModalOpen(true);
+  };
+
+  const handleCloseEditApprovers = () => {
+    setIsApproversModalOpen(false);
   };
 
   // 수정 및 삭제 핸들러 추가
@@ -1106,7 +1142,7 @@ const ApprovalDetail = () => {
   const fetchFiles = async () => {
     try {
       // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
+      if (!user.isAdmin && !user.isClient && !user.isDeveloperManager) {
         console.log('파일 조회 권한이 없습니다.');
         return;
       }
@@ -1127,7 +1163,7 @@ const ApprovalDetail = () => {
   const fetchLinks = async () => {
     try {
       // 권한 체크
-      if (!isAdmin && !isClient && !isDeveloperManager) {
+      if (!user.isAdmin && !user.isClient && !user.isDeveloperManager) {
         console.log('링크 조회 권한이 없습니다.');
         return;
       }
@@ -1152,6 +1188,18 @@ const ApprovalDetail = () => {
     } catch (error) {
       console.error('파일 다운로드 중 오류 발생:', error);
       alert('파일 다운로드에 실패했습니다.');
+    }
+  };
+
+  // 승인권자 저장 처리 함수 추가
+  const handleSaveApprovers = async () => {
+    try {
+      // 승인권자 목록 새로고침
+      await fetchStatusSummary();
+      setIsApproversModalOpen(false);
+    } catch (error) {
+      console.error('승인권자 저장 후 새로고침 중 오류:', error);
+      alert('승인권자 정보를 새로고침하는데 실패했습니다.');
     }
   };
 
@@ -1339,7 +1387,7 @@ const ApprovalDetail = () => {
 
                         <ApprovalButtonContainer>
                           <ApprovalActionButton 
-                            secondary
+                            $secondary
                             onClick={handleCancelEdit}
                           >
                             <FaTimes /> 취소
@@ -1424,7 +1472,7 @@ const ApprovalDetail = () => {
                         <ApprovalButtonContainer>
                           {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
                             <ApprovalActionButton 
-                              secondary
+                              $secondary
                               onClick={handleOpenEditApprovers}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1465,6 +1513,15 @@ const ApprovalDetail = () => {
             </ContentContainer>
           ) : (
             <ErrorMessage>승인요청을 찾을 수 없습니다.</ErrorMessage>
+          )}
+
+          {isApproversModalOpen && projectId && (
+            <ApprovalProposal.EditApproversModal
+              isOpen={isApproversModalOpen}
+              onClose={handleCloseEditApprovers}
+              onSave={handleSaveApprovers}
+              projectId={projectId}
+            />
           )}
         </MainContent>
       </ContentWrapper>
