@@ -13,14 +13,16 @@ const AdminInquiryList = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
+  const [totalElements, setTotalElements] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchParams, setSearchParams] = useState({
     title: '',
+    creatorName: '',
     status: '',
     startDate: '',
     endDate: ''
   });
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -29,42 +31,68 @@ const AdminInquiryList = () => {
       navigate('/dashboard');
       return;
     }
-    fetchInquiries();
-  }, [currentPage, user, authLoading]);
+    if (currentPage === 0 && !searchParams.title && !searchParams.creatorName && !searchParams.status && !searchParams.startDate && !searchParams.endDate) {
+      fetchInquiries();
+    }
+  }, [user, authLoading, currentPage]);
 
   const fetchInquiries = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_LIST, {
+      const params = new URLSearchParams();
+
+      params.append('page', currentPage);
+      params.append('size', '10');
+      params.append('sort', 'createdAt,desc');
+
+      if (searchParams.title?.trim()) {
+        params.append('title', searchParams.title.trim());
+      }
+      if (searchParams.creatorName?.trim()) {
+        params.append('creatorName', searchParams.creatorName.trim());
+      }
+      if (searchParams.status) {
+        params.append('status', searchParams.status);
+      }
+      if (searchParams.startDate) {
+        params.append('startDate', searchParams.startDate);
+      }
+      if (searchParams.endDate) {
+        params.append('endDate', searchParams.endDate);
+      }
+
+      console.log('Search params:', params.toString());
+
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.ADMIN_INQUIRY_SEARCH}?${params.toString()}`, {
         withCredentials: true
       });
-      setInquiries(data || []);
+      
+      setInquiries(data.content || []);
+      setTotalElements(data.totalElements || 0);
     } catch (error) {
       console.error('Error fetching inquiries:', error);
       setInquiries([]);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.ADMIN_INQUIRY_LIST, {
-        withCredentials: true
-      });
-      setInquiries(data || []);
-    } catch (error) {
-      console.error('Error searching inquiries:', error);
-      setInquiries([]);
-    }
-  };
-
-  const handleFilterChange = (e) => {
+  const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
+    setSearchParams(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    fetchInquiries();
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
   };
 
   const formatDate = (dateString) => {
@@ -79,13 +107,23 @@ const AdminInquiryList = () => {
     switch (inquiryStatus) {
       case 'PENDING':
         return { text: '답변 대기', color: '#DC2626' };
-      case 'IN_PROGRESS':
-        return { text: '처리중', color: '#2E7D32' };
       case 'COMPLETED':
         return { text: '답변 완료', color: '#64748B' };
       default:
         return { text: '답변 대기', color: '#64748B' };
     }
+  };
+
+  const handleStatusClick = () => {
+    setIsStatusOpen(!isStatusOpen);
+  };
+
+  const handleStatusSelect = (value) => {
+    setSearchParams(prev => ({
+      ...prev,
+      status: value
+    }));
+    setIsStatusOpen(false);
   };
 
   return (
@@ -95,40 +133,68 @@ const AdminInquiryList = () => {
         <Header>
           <HeaderTop>
             <PageTitle>문의사항 관리</PageTitle>
-            <SearchButton onClick={handleSearch}>
-              검색
-            </SearchButton>
           </HeaderTop>
           <SearchSection>
             <SearchInput
               type="text"
               name="title"
               placeholder="제목 검색"
-              value={filters.title}
-              onChange={handleFilterChange}
-            />
-            <Select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-            >
-              <option value="">상태 선택</option>
-              <option value="PENDING">대기중</option>
-              <option value="IN_PROGRESS">처리중</option>
-              <option value="COMPLETED">완료</option>
-            </Select>
-            <SearchInput
-              type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
+              value={searchParams.title}
+              onChange={handleSearchChange}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             />
             <SearchInput
-              type="date"
-              name="endDate"
-              value={filters.endDate}
-              onChange={handleFilterChange}
+              type="text"
+              name="creatorName"
+              placeholder="작성자 검색"
+              value={searchParams.creatorName}
+              onChange={handleSearchChange}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             />
+            <StatusSelectContainer>
+              <StatusSelectButton onClick={handleStatusClick}>
+                {searchParams.status ? 
+                  (searchParams.status === 'PENDING' ? '답변 대기' : 
+                   searchParams.status === 'COMPLETED' ? '답변 완료' : '전체') 
+                  : '전체'}
+                <SelectArrow isOpen={isStatusOpen}>▼</SelectArrow>
+              </StatusSelectButton>
+              {isStatusOpen && (
+                <StatusDropdown>
+                  <StatusOption onClick={() => handleStatusSelect('')}>전체</StatusOption>
+                  <StatusOption onClick={() => handleStatusSelect('PENDING')}>답변 대기</StatusOption>
+                  <StatusOption onClick={() => handleStatusSelect('COMPLETED')}>답변 완료</StatusOption>
+                </StatusDropdown>
+              )}
+            </StatusSelectContainer>
+            <DateInputGroup>
+              <SearchInput
+                type="date"
+                name="startDate"
+                value={searchParams.startDate}
+                onChange={handleSearchChange}
+                max={searchParams.endDate || undefined}
+              />
+              <DateSeparator>~</DateSeparator>
+              <SearchInput
+                type="date"
+                name="endDate"
+                value={searchParams.endDate}
+                onChange={handleSearchChange}
+                min={searchParams.startDate || undefined}
+              />
+            </DateInputGroup>
+            <SearchButton onClick={handleSearch}>
+              검색
+            </SearchButton>
           </SearchSection>
         </Header>
 
@@ -136,6 +202,9 @@ const AdminInquiryList = () => {
           <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
         ) : (
           <>
+            <TableInfo>
+              총 {totalElements}개의 문의사항
+            </TableInfo>
             <UsersTable>
               <thead>
                 <tr>
@@ -147,32 +216,62 @@ const AdminInquiryList = () => {
                 </tr>
               </thead>
               <tbody>
-                {inquiries.map((inquiry) => {
-                  return (
-                    <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiry/${inquiry.id}`)}>
-                      <TableCell>{inquiry.title}</TableCell>
-                      <TableCell nowrap>{inquiry.creatorName}</TableCell>
-                      <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
-                      <TableCell nowrap>
-                        <StatusBadge status={inquiry.inquiryStatus}>
-                          {getStatusBadge(inquiry.inquiryStatus).text}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell nowrap>
-                        <ActionButtonContainer>
-                          <ActionButton onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/admin/inquiry/${inquiry.id}`);
-                          }}>
-                            상세보기
-                          </ActionButton>
-                        </ActionButtonContainer>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {inquiries.map((inquiry) => (
+                  <TableRow key={inquiry.id} onClick={() => navigate(`/admin/inquiry/${inquiry.id}`)}>
+                    <TableCell>{inquiry.title}</TableCell>
+                    <TableCell nowrap>{inquiry.creatorName}</TableCell>
+                    <TableCell>{formatDate(inquiry.createdAt)}</TableCell>
+                    <TableCell nowrap>
+                      <StatusBadge status={inquiry.inquiryStatus}>
+                        {getStatusBadge(inquiry.inquiryStatus).text}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell nowrap>
+                      <ActionButtonContainer>
+                        <ActionButton onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/inquiry/${inquiry.id}`);
+                        }}>
+                          상세보기
+                        </ActionButton>
+                      </ActionButtonContainer>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </tbody>
             </UsersTable>
+            {totalElements > 0 && (
+              <Pagination>
+                <PageButton
+                  active={currentPage === 0}
+                  onClick={() => handlePageChange(0)}
+                  disabled={currentPage === 0}
+                >
+                  처음
+                </PageButton>
+                <PageButton
+                  active={currentPage > 0}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 0}
+                >
+                  이전
+                </PageButton>
+                <PageButton
+                  active={currentPage < Math.ceil(totalElements / 10) - 1}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === Math.ceil(totalElements / 10) - 1}
+                >
+                  다음
+                </PageButton>
+                <PageButton
+                  active={currentPage === Math.ceil(totalElements / 10) - 1}
+                  onClick={() => handlePageChange(Math.ceil(totalElements / 10) - 1)}
+                  disabled={currentPage === Math.ceil(totalElements / 10) - 1}
+                >
+                  마지막
+                </PageButton>
+              </Pagination>
+            )}
           </>
         )}
       </MainContent>
@@ -227,20 +326,21 @@ const PageTitle = styled.h1`
 
 const SearchSection = styled.div`
   display: flex;
-  gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: nowrap;
+  width: 100%;
 `;
 
 const SearchInput = styled.input`
-  padding: 10px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   font-size: 14px;
-  width: 240px;
+  width: ${props => props.type === 'date' ? '130px' : '140px'};
+  min-width: 0;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   
   &::placeholder {
     color: #94a3b8;
@@ -248,37 +348,84 @@ const SearchInput = styled.input`
 
   &:hover {
     border-color: #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
   
   &:focus {
     outline: none;
     border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+  }
+
+  &[type="date"] {
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      padding: 4px;
+      margin-right: 4px;
+      opacity: 0.6;
+      &:hover {
+        opacity: 1;
+      }
+    }
   }
 `;
 
+const StyledSelect = styled(Select)`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 120px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: #cbd5e1;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+  }
+`;
+
+const DateInputGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+`;
+
+const DateSeparator = styled.span`
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 4px;
+`;
+
 const SearchButton = styled.button`
-  padding: 10px 20px;
+  padding: 8px 20px;
   background: #2E7D32;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-
+  white-space: nowrap;
+  height: 36px;
+  flex-shrink: 0;
+  
   &:hover {
     background: #1B5E20;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
   
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+    box-shadow: none;
   }
 `;
 
@@ -393,6 +540,109 @@ const ActionButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+`;
+
+const TableInfo = styled.div`
+  margin: 16px 0;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+`;
+
+const PageButton = styled.button`
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: ${props => props.active ? '#2E7D32' : 'white'};
+  color: ${props => props.active ? 'white' : '#1e293b'};
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? '#1B5E20' : '#f8fafc'};
+    border-color: ${props => props.active ? '#1B5E20' : '#cbd5e1'};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+`;
+
+const StatusSelectContainer = styled.div`
+  position: relative;
+  width: 120px;
+  flex-shrink: 0;
+`;
+
+const StatusSelectButton = styled.button`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: #cbd5e1;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+  }
+`;
+
+const SelectArrow = styled.span`
+  font-size: 10px;
+  color: #64748b;
+  transition: transform 0.2s;
+  transform: rotate(${props => props.isOpen ? '180deg' : '0deg'});
+`;
+
+const StatusDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  overflow: hidden;
+`;
+
+const StatusOption = styled.div`
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+    color: #2E7D32;
+  }
+
+  &:active {
+    background: #f1f5f9;
   }
 `;
 
