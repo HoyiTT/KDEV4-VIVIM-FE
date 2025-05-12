@@ -62,7 +62,7 @@ const AppContent = () => {
           <Route path="/project/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
           <Route path="/user-edit/:id" element={<ProtectedRoute><UserEdit /></ProtectedRoute>} />
           <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
-          <Route path="/approval/:id" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
+          <Route path="/project/:projectId/approval/:approvalId" element={<ProtectedRoute><ApprovalDetail /></ProtectedRoute>} />
           <Route path="/project/:projectId/post/create" element={<ProtectedRoute><ProjectPostCreate /></ProtectedRoute>} />
           <Route path="/project/:projectId/post/:postId" element={<ProtectedRoute><ProjectPostDetail /></ProtectedRoute>} />
           <Route path="/project/:projectId/post/:postId/modify" element={<ProtectedRoute><ProjectPostModify /></ProtectedRoute>} />

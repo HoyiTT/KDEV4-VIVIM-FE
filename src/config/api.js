@@ -73,6 +73,7 @@ export const API_ENDPOINTS = {
 
   // Admin Inquiry
   ADMIN_INQUIRY_LIST: `${API_BASE_URL}/admininquiry`,
+  ADMIN_INQUIRY_SEARCH: `${API_BASE_URL}/admininquiry/search`,
   USER_INQUIRY_LIST: `${API_BASE_URL}/user/admininquiry`,
   ADMIN_INQUIRY_DETAIL: (id) => `${API_BASE_URL}/admininquiry/${id}`,
   ADMIN_INQUIRY_EDIT: (id) => `${API_BASE_URL}/admininquiry/${id}`,
