@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const UserCreate = () => {
   const navigate = useNavigate();
@@ -23,13 +24,9 @@ const UserCreate = () => {
 
   const fetchCompanies = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANIES, {
-        headers: {
-          'Authorization': token
-        }
+      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
+        withCredentials: true
       });
-      const data = await response.json();
       if (Array.isArray(data)) {
         setCompanies(data);
       } else if (Array.isArray(data.content)) {
@@ -54,17 +51,12 @@ const UserCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.USERS, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.USERS,
+        formData,
+        { withCredentials: true }
+      );
+      if (response.status === 200 || response.status === 201) {
         alert('사용자가 성공적으로 등록되었습니다.');
         navigate('/user-management');
       } else {
