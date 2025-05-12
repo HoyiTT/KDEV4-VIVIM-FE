@@ -211,9 +211,19 @@ const AdminProjects = () => {
   const handleDeleteProject = async (projectId) => {
     if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
       try {
-        await axiosInstance.delete(`/projects/${projectId}`);
-        // 삭제 후 프로젝트 목록 새로고침
-        fetchProjects();
+        const response = await axiosInstance.delete(`/projects/${projectId}`, {
+          withCredentials: true,
+          data: {
+            projectId,
+            deleteReason: '관리자에 의한 삭제'
+          }
+        });
+        if (response.data.statusCode === 200) {
+          alert('프로젝트가 삭제되었습니다.');
+          fetchProjects();
+        } else {
+          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+        }
       } catch (error) {
         console.error('프로젝트 삭제에 실패했습니다:', error);
         alert('프로젝트 삭제에 실패했습니다.');
