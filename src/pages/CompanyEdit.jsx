@@ -197,7 +197,7 @@ const CompanyEdit = () => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), formData, {
+      const response = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), formData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ const CompanyEdit = () => {
         }
       });
 
-      if (data) {
+      if (response.status === 200) {
         alert('회사 정보가 수정되었습니다.');
         navigate('/company-management');
       } else {
