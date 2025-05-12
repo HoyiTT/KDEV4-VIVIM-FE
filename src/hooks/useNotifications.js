@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from './useAuth';
 
-export const useNotifications = () => {
+const NotificationContext = createContext();
+
+export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [showReadNotifications, setShowReadNotifications] = useState(false);
-  const [eventSource, setEventSource] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const eventSourceRef = useRef(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -15,13 +17,14 @@ export const useNotifications = () => {
       fetchNotifications();
       setupSSE();
     }
-
     return () => {
-      if (eventSource) {
-        eventSource.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
     };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const fetchNotifications = async () => {
     try {
@@ -35,13 +38,13 @@ export const useNotifications = () => {
   };
 
   const setupSSE = () => {
-    if (eventSource) {
-      eventSource.close();
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
     }
-
     const sse = new EventSource(API_ENDPOINTS.NOTIFICATIONS.SUBSCRIBE, {
       withCredentials: true
     });
+    eventSourceRef.current = sse;
 
     sse.addEventListener('connect', (event) => {
       console.log('SSE 연결 성공:', event.data);
@@ -62,7 +65,7 @@ export const useNotifications = () => {
       console.error('SSE 연결 에러:', error);
       setIsConnected(false);
       sse.close();
-      
+      eventSourceRef.current = null;
       // 5초 후 재연결 시도
       setTimeout(() => {
         if (user?.id) {
@@ -70,8 +73,6 @@ export const useNotifications = () => {
         }
       }, 5000);
     };
-
-    setEventSource(sse);
   };
 
   const markAsRead = async (notificationId) => {
@@ -99,9 +100,9 @@ export const useNotifications = () => {
   };
 
   const disconnectSSE = () => {
-    if (eventSource) {
-      eventSource.close();
-      setEventSource(null);
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     setIsConnected(false);
   };
@@ -112,14 +113,22 @@ export const useNotifications = () => {
       : notifications.filter(n => !n.read);
   };
 
-  return {
-    notifications,
-    showReadNotifications,
-    setShowReadNotifications,
-    markAsRead,
-    markAllAsRead,
-    disconnectSSE,
-    getFilteredNotifications,
-    isConnected
-  };
-}; 
+  return (
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        showReadNotifications,
+        setShowReadNotifications,
+        markAsRead,
+        markAllAsRead,
+        disconnectSSE,
+        getFilteredNotifications,
+        isConnected
+      }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  );
+};
+
+export const useNotifications = () => useContext(NotificationContext); 
