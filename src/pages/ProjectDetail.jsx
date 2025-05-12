@@ -1299,9 +1299,7 @@ const ProjectDetail = () => {
       projectId: id,
       state: { projectId: id }
     });
-    navigate(`/approval/${approval.id}`, {
-      state: { projectId: id }
-    });
+    navigate(`/project/${id}/approval/${approval.id}`);
   };
   
   // 승인요청 목록 조회
