@@ -26,6 +26,8 @@ import ProjectManagementEdit from './pages/ProjectManagementEdit';
 import ProjectManagementCreate from './pages/ProjectManagementCreate';
 import NotificationButton from './components/NotificationButton';
 import UserProjectList from './pages/UserProjectList';
+import ApprovalDetail from './pages/ApprovalDetail';
+import ApprovalProposal from './components/ApprovalProposal';
 
 const AppContainer = styled.div`
   display: flex;
@@ -147,6 +149,13 @@ const AppContent = () => {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          {/* 승인요청 관련 경로 */}
+          <Route path="/approval/:id" element={
+            <ProtectedRoute>
+              <ApprovalDetail />
             </ProtectedRoute>
           } />
           

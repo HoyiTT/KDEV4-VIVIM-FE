@@ -374,16 +374,40 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchProjectStatusData = async () => {
       try {
-        const { data } = await axiosInstance.get('/api/projects/dashboard/inspection_count');
-        console.log('Project status data:', data);
-        // 프로젝트 현황 데이터 업데이트
-        setSummaryData([
-          { title: '계약중인 프로젝트', value: data.progressCount || 0 },
-          { title: '검수중인 프로젝트', value: data.inspectionCount || 0 },
-          { title: '완료된 프로젝트', value: data.completedCount || 0 }
-        ]);
+        console.log('▶ 프로젝트 상태 데이터 조회 시도');
+        const { data } = await axiosInstance.get('/projects/dashboard/inspection_count', {
+          withCredentials: true
+        });
+        console.log('▶ 프로젝트 상태 데이터 조회 성공:', data);
+        
+        // 도넛 차트 데이터 업데이트
+        setProjectStatusData(prevData => ({
+          ...prevData,
+          datasets: [{
+            ...prevData.datasets[0],
+            data: [
+              data.requirements || 0,
+              data.wireframe || 0,
+              data.design || 0,
+              data.publishing || 0,
+              data.development || 0,
+              data.inspection || 0,
+              data.completed || 0
+            ]
+          }]
+        }));
       } catch (error) {
-        console.error('Error fetching project status data:', error);
+        console.error('▶ 프로젝트 상태 데이터 조회 실패:', error);
+        if (error.response?.status === 401) {
+          console.log('▶ 인증이 필요합니다.');
+          navigate('/login');
+        } else if (error.response?.status === 403) {
+          console.log('▶ 권한이 없습니다.');
+          alert('프로젝트 상태 데이터를 조회할 권한이 없습니다.');
+        } else {
+          console.log('▶ 기타 오류 발생');
+          alert('프로젝트 상태 데이터를 불러오는데 실패했습니다.');
+        }
       }
     };
 
@@ -466,7 +490,9 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchRecentProposals = async () => {
       try {
-        const { data } = await axiosInstance.get('/proposals/recent');
+        const { data } = await axiosInstance.get('/proposals/recent', {
+          withCredentials: true
+        });
         console.log('Recent proposals data:', data);
         setRecentProposals(data.approvalList || []);
       } catch (error) {

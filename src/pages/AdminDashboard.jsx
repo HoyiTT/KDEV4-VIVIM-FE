@@ -103,7 +103,9 @@ const AdminDashboard = () => {
 
   const fetchData = async (endpoint, type) => {
     try {
-      const { data } = await axiosInstance.get(endpoint);
+      const { data } = await axiosInstance.get(endpoint, {
+        withCredentials: true
+      });
       switch (type) {
         case 'approvals':
           setStats(prevStats => ({ ...prevStats, pendingApprovals: data.length }));
