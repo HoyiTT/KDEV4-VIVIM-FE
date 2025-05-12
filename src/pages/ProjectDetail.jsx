@@ -1451,7 +1451,6 @@ const ProjectDetail = () => {
     }
   };
 
-  // 단계 순서 변경 저장
   const handleSavePositions = async () => {
     try {
       // 위치 값 검증
@@ -1772,9 +1771,6 @@ const ProjectDetail = () => {
                                 <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
                                   <FaPlus /> 승인요청 추가
                                 </StageActionButton>
-                                <StageActionButton onClick={() => openStageModal('editPosition')}>
-                                  <FaGripVertical /> 단계 순서 변경
-                                </StageActionButton>
                               </StageHeaderActions>
                             )}
                           </StageHeader>
@@ -1843,48 +1839,6 @@ const ProjectDetail = () => {
                           </BoardTable>
                         </BoardSection>
 
-    {showPositionModal && (
-              <ModalOverlay>
-                <ModalContent>
-          <ModalHeader>
-                    <h2>단계 순서 변경</h2>
-          </ModalHeader>
-          <ModalBody>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                        items={progressList.map(item => item.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <StageList>
-                  {progressList.map((stage) => (
-                    <SortableItem
-                      key={stage.id}
-                      id={stage.id}
-                      name={stage.name}
-                      position={stage.position}
-                              component={SortableStageItem}
-                    />
-                  ))}
-                </StageList>
-              </SortableContext>
-            </DndContext>
-          </ModalBody>
-          <ModalFooter>
-                    <ActionButton onClick={handleSavePositions}>
-              순서 저장
-            </ActionButton>
-                    <CancelButton onClick={() => setShowPositionModal(false)}>
-                      취소
-                    </CancelButton>
-          </ModalFooter>
-                </ModalContent>
-      </ModalOverlay>
-    )}
-
             {isStageModalOpen && (
               <ModalOverlay>
                 <ModalContent>
@@ -1917,11 +1871,48 @@ const ProjectDetail = () => {
                         />
                       </div>
                     )}
+                    {currentStageAction === 'editPosition' && (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                        announcements={{
+                          onDragStart: () => '',
+                          onDragOver: () => '',
+                          onDragEnd: () => '',
+                          onDragCancel: () => ''
+                        }}
+                      >
+                        <SortableContext
+                          items={progressList.map(item => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <StageList>
+                            {progressList
+                              .sort((a, b) => a.position - b.position)  // position 기준으로 정렬
+                              .map((stage, index) => (
+                                <SortableItem
+                                  key={stage.id}
+                                  id={stage.id}
+                                  name={stage.name}
+                                  position={index + 1}  // 1부터 시작하는 순서로 표시
+                                />
+                              ))}
+                          </StageList>
+                        </SortableContext>
+                      </DndContext>
+                    )}
                   </ModalBody>
                   <ModalFooter>
                     {currentStageAction === 'add' && (
                       <>
                         <ActionButton onClick={handleAddStage}>추가</ActionButton>
+                        <CancelButton onClick={handleCloseStageModal}>취소</CancelButton>
+                      </>
+                    )}
+                    {currentStageAction === 'editPosition' && (
+                      <>
+                        <ActionButton onClick={handleSavePositions}>순서 저장</ActionButton>
                         <CancelButton onClick={handleCloseStageModal}>취소</CancelButton>
                       </>
                     )}
