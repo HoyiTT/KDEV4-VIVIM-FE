@@ -1616,6 +1616,13 @@ const ProjectDetail = () => {
     }
   };
 
+  // 상태 텍스트 반환 함수 수정: COMPLETED는 '완료됨'으로, ENDED는 제거
+  const getProjectStatusText = (project) => {
+    if (project.isDeleted) return '삭제됨';
+    if (project.projectStatus === 'COMPLETED') return '완료됨';
+    return '진행중';
+  };
+
   return (
         <MainContent>
       <ContentWrapper>
@@ -1633,8 +1640,8 @@ const ProjectDetail = () => {
             <ProjectInfoSection>
               <ProjectHeader>
                 <StatusBadge $isDeleted={project?.isDeleted}>
-                  {project?.isDeleted ? '삭제됨' : '진행중'}
-                  </StatusBadge>
+                  {getProjectStatusText(project)}
+                </StatusBadge>
                 {isAdmin && !project?.isDeleted && (
                   <ActionButtons>
                     <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>

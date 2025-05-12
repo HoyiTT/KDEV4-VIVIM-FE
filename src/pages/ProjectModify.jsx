@@ -276,8 +276,37 @@ const ProjectModify = () => {
     setProjectFee(formattedValue);
   };
 
+  // 날짜 유효성 검사 함수 추가
+  const validateDates = () => {
+    if (startDate && endDate && startDate > endDate) {
+      alert('시작일은 종료일보다 늦을 수 없습니다.');
+      return false;
+    }
+    return true;
+  };
+
+  // 시작일 입력 완료 후 유효성 검사
+  const handleStartDateBlur = () => {
+    if (startDate && endDate && startDate > endDate) {
+      alert('시작일은 종료일보다 늦을 수 없습니다.');
+      setStartDate('');
+    }
+  };
+
+  // 종료일 입력 완료 후 유효성 검사
+  const handleEndDateBlur = () => {
+    if (startDate && endDate && endDate < startDate) {
+      alert('종료일은 시작일보다 빠를 수 없습니다.');
+      setEndDate('');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!validateDates()) {
+      return;
+    }
     
     // 모든 개발사 사용자 ID를 저장하는 Map
     const allDevUsersMap = new Map();
@@ -590,6 +619,7 @@ const ProjectModify = () => {
                         type="date" 
                         value={startDate} 
                         onChange={(e) => setStartDate(e.target.value)}
+                        onBlur={handleStartDateBlur}
                         required
                       />
                     </FormGroup>
@@ -599,6 +629,8 @@ const ProjectModify = () => {
                         type="date" 
                         value={endDate} 
                         onChange={(e) => setEndDate(e.target.value)}
+                        onBlur={handleEndDateBlur}
+                        min={startDate}
                         required
                       />
                     </FormGroup>
