@@ -121,8 +121,12 @@ const Dashboard = () => {
     try {
       const { data } = await axiosInstance.get('/projects', { params: { userId } });
       if (Array.isArray(data)) {
+        // "deleted": false && "projectStatus" !== "COMPLETED" 인 것만 필터
+        const filtered = data.filter(
+          (project) => !project.deleted && project.projectStatus !== 'COMPLETED'
+        );
         // endDate 오름차순 정렬
-        const sorted = [...data].sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+        const sorted = [...filtered].sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
         setDeadlineProjects(sorted);
       } else {
         setDeadlineProjects([]);
