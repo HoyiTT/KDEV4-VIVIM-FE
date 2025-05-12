@@ -177,6 +177,10 @@ const Dashboard = () => {
     return `D+${Math.abs(diff)}`;
   };
 
+  const handleProposalClick = (proposal) => {
+    navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
+  };
+
   return (
     <PageContainer>
       <ContentWrapper>
@@ -275,7 +279,7 @@ const Dashboard = () => {
               <CardContent>
                 {recentProposals.length > 0 ? (
                   recentProposals.map((proposal) => (
-                    <ProjectItem key={proposal.id} onClick={() => navigate(`/approval/${proposal.id}`, { state: { projectId: proposal.projectId } })}>
+                    <ProjectItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
                       <ProjectInfo>
                         <ProjectName>{proposal.title}</ProjectName>
                         <ProjectDate>
