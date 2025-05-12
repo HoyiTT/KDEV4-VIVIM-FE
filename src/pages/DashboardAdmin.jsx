@@ -685,8 +685,8 @@ const DashboardAdmin = () => {
     navigate('/admin/inquiries');
   };
 
-  const handleProposalClick = (proposalId) => {
-    navigate(`/admin/proposal/${proposalId}`);
+  const handleProposalClick = (proposal) => {
+    navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
   };
 
   const handleChartClick = (elements) => {
@@ -825,7 +825,7 @@ const DashboardAdmin = () => {
               <RecentList>
                 {recentProposals.length > 0 ? (
                   recentProposals.map((proposal) => (
-                    <RecentItem key={proposal.id} onClick={() => handleProposalClick(proposal.id)}>
+                    <RecentItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
                       <RecentInfo>
                         <RecentTitle>{proposal.title}</RecentTitle>
                         <RecentDate>{formatDate(proposal.createdAt)}</RecentDate>

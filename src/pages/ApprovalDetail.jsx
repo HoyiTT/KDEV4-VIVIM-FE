@@ -605,19 +605,17 @@ const DeleteButton = styled.button`
 `;
 
 const ApprovalDetail = () => {
-  const { id } = useParams();
+  const { projectId, approvalId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [proposal, setProposal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [projectId, setProjectId] = useState(null);
   const [isApproversModalOpen, setIsApproversModalOpen] = useState(false);
   const [progressList, setProgressList] = useState([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [progressLoading, setProgressLoading] = useState(false);
-  const [statusSummary, setStatusSummary] = useState(null);
   const [sendingApproval, setSendingApproval] = useState(false);
   const [lastSentAt, setLastSentAt] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -636,58 +634,57 @@ const ApprovalDetail = () => {
   const [deletedFileIds, setDeletedFileIds] = useState([]);
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
 
-  // location.state에서 projectId 가져오기
   useEffect(() => {
-    console.log('ApprovalDetail location state:', location.state);
-    if (location.state?.projectId) {
-      console.log('state에서 프로젝트 ID를 가져왔습니다:', location.state.projectId);
-      setProjectId(location.state.projectId);
-    } else {
-      // URL에서 projectId 추출 시도
-      const urlMatch = window.location.pathname.match(/\/project\/(\d+)\/approval\/(\d+)/);
-      if (urlMatch && urlMatch[1]) {
-        console.log('URL에서 프로젝트 ID를 가져왔습니다:', urlMatch[1]);
-        setProjectId(urlMatch[1]);
+    if (projectId && approvalId) {
+      console.log('프로젝트 ID와 승인 ID로 데이터를 가져옵니다:', { projectId, approvalId });
+      fetchProposalDetail();
+      fetchFiles();
+      fetchLinks();
+    }
+  }, [projectId, approvalId]);
+
+  // 프로젝트 진행 단계 조회
+  const fetchProjectProgress = async () => {
+    try {
+      setProgressLoading(true);
+      console.log("프로젝트 진행 단계 조회 시작:", projectId);
+      
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`);
+      console.log("프로젝트 진행 단계 데이터:", data);
+      
+      if (data.progressList && data.progressList.length > 0) {
+        setProgressList(data.progressList);
+        console.log("프로젝트 진행 단계 설정 완료:", data.progressList.length, "개 항목");
+        
+        // 승인 요청이 속한 단계 찾기
+        const stageIndex = data.progressList.findIndex(
+          stage => stage.id === proposal?.progressId
+        );
+        
+        if (stageIndex >= 0) {
+          console.log("현재 단계 찾음:", stageIndex, data.progressList[stageIndex].name);
+          setCurrentStageIndex(stageIndex);
+        } else {
+          console.log("승인요청의 단계를 찾지 못함. progressId:", proposal?.progressId);
+        }
+      } else {
+        console.log("프로젝트 진행 단계 데이터가 없거나 비어있습니다");
       }
+      setProgressLoading(false);
+    } catch (error) {
+      console.error('Error fetching project progress:', error);
+      setProgressLoading(false);
     }
-  }, [location.state]);
-
-  useEffect(() => {
-    if (!projectId) {
-      console.log('프로젝트 ID가 없습니다. API 응답에서 가져오겠습니다.');
-      fetchProposalDetail();
-      fetchFiles();
-      fetchLinks();
-    } else {
-      console.log('프로젝트 ID로 데이터를 가져옵니다:', projectId);
-      fetchProposalDetail();
-      fetchFiles();
-      fetchLinks();
-    }
-  }, [id, projectId]);
-
-  // 프로젝트 진행 상태 조회
-  useEffect(() => {
-    if (projectId) {
-      console.log("프로젝트 ID 감지됨:", projectId);
-      fetchProjectProgress();
-    }
-  }, [projectId]);
+  };
 
   const fetchProposalDetail = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(id), {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(approvalId), {
         withCredentials: true
       });
       console.log('승인요청 상세 응답:', JSON.stringify(data, null, 2));
       setProposal(data);
-      
-      // 프로젝트 ID가 URL에 없는 경우 API 응답에서 가져오기
-      if (!projectId && data.progress?.projectId) {
-        console.log('API 응답에서 프로젝트 ID를 가져옵니다:', data.progress.projectId);
-        setProjectId(data.progress.projectId);
-      }
       
       // 백엔드 응답 필드 확인 (proposalStatus 또는 approvalProposalStatus)
       let proposalStatus = data.proposalStatus || data.approvalProposalStatus;
@@ -738,82 +735,11 @@ const ApprovalDetail = () => {
         setHasChanges(true); // 처음 전송하는 경우 변경사항 있음으로 간주
       }
       
-      // 승인 상태 요약 정보 조회
-      fetchStatusSummary();
-      
       setLoading(false);
     } catch (error) {
       console.error('승인요청 상세 조회 실패:', error);
       setError('승인요청을 불러오는데 실패했습니다.');
       setLoading(false);
-    }
-  };
-
-  // 프로젝트 진행 단계 조회
-  const fetchProjectProgress = async () => {
-    try {
-      setProgressLoading(true);
-      console.log("프로젝트 진행 단계 조회 시작:", projectId);
-      
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`);
-      console.log("프로젝트 진행 단계 데이터:", data);
-      
-      if (data.progressList && data.progressList.length > 0) {
-        setProgressList(data.progressList);
-        console.log("프로젝트 진행 단계 설정 완료:", data.progressList.length, "개 항목");
-        
-        // 승인 요청이 속한 단계 찾기
-        const stageIndex = data.progressList.findIndex(
-          stage => stage.id === proposal.progressId
-        );
-        
-        if (stageIndex >= 0) {
-          console.log("현재 단계 찾음:", stageIndex, data.progressList[stageIndex].name);
-          setCurrentStageIndex(stageIndex);
-        } else {
-          console.log("승인요청의 단계를 찾지 못함. progressId:", proposal.progressId);
-        }
-      } else {
-        console.log("프로젝트 진행 단계 데이터가 없거나 비어있습니다");
-      }
-      setProgressLoading(false);
-    } catch (error) {
-      console.error('Error fetching project progress:', error);
-      setProgressLoading(false);
-    }
-  };
-
-  // 승인 상태 요약 정보 조회
-  const fetchStatusSummary = async () => {
-    try {
-      // user 객체 null 체크 추가
-      if (!user || (!user.isAdmin && !user.isClient && !user.isDeveloperManager)) {
-        console.log('승인 상태 요약 조회 권한이 없습니다.');
-        return;
-      }
-
-      console.log("승인요청 상태 요약 조회 시작:", id);
-      
-      const response = await axiosInstance.get(API_ENDPOINTS.APPROVAL.STATUS_SUMMARY(id), {
-        withCredentials: true
-      });
-      console.log("승인요청 상태 요약 데이터:", response.data);
-      
-      // 주요 상태 정보 로그 출력
-      console.log(`총 승인권자: ${response.data.totalApproverCount}명`);
-      console.log(`승인 완료: ${response.data.approvedApproverCount}명`);
-      console.log(`반려: ${response.data.modificationRequestedApproverCount}명`);
-      console.log(`대기중: ${response.data.waitingApproverCount}명`);
-      console.log(`요청전: ${response.data.beforeRequestCount}명`);
-      console.log(`최종 상태: ${getApprovalStatusText(response.data.proposalStatus)}`);
-      
-      setStatusSummary(response.data);
-    } catch (error) {
-      console.error('Error fetching status summary:', error);
-      if (error.response?.status === 403) {
-        console.log('승인 상태 요약 조회 권한이 없습니다.');
-      }
-      // 요약 정보는 실패해도 전체 페이지에 영향 없음
     }
   };
 
@@ -930,7 +856,6 @@ const ApprovalDetail = () => {
       setLastSentAt(new Date());
       setHasChanges(false);
       await fetchProposalDetail();
-      await fetchStatusSummary();
     } catch (error) {
       console.error('승인 요청 중 오류 발생:', error);
       alert('승인 요청 중 오류가 발생했습니다.');
@@ -942,14 +867,6 @@ const ApprovalDetail = () => {
   // 승인권자 수정 모달 열기 함수
   const handleOpenEditApprovers = () => {
     console.log('승인권자 수정 모달 열기 시도:', { projectId, locationState: location.state, proposal });
-    
-    // proposal에서 projectId 가져오기 시도
-    if (!projectId && proposal?.progress?.projectId) {
-      console.log('proposal에서 프로젝트 ID를 가져옵니다:', proposal.progress.projectId);
-      setProjectId(proposal.progress.projectId);
-      setIsApproversModalOpen(true);
-      return;
-    }
     
     if (!projectId) {
       console.error('프로젝트 ID를 찾을 수 없습니다. 프로젝트 상세 페이지에서 접근해주세요.');
@@ -1039,7 +956,7 @@ const ApprovalDetail = () => {
     try {
       setSaving(true);
       
-      console.log('수정 요청 시작:', proposal.id);
+      console.log('수정 요청 시작:', approvalId);
       
       // 1. 기본 정보 수정
       const requestData = {
@@ -1047,7 +964,7 @@ const ApprovalDetail = () => {
         content: editContent
       };
       
-      await axiosInstance.patch(API_ENDPOINTS.APPROVAL.MODIFY(proposal.id), requestData);
+      await axiosInstance.patch(API_ENDPOINTS.APPROVAL.MODIFY(approvalId), requestData);
 
       // 2. 삭제된 파일 처리
       for (const fileId of deletedFileIds) {
@@ -1066,7 +983,7 @@ const ApprovalDetail = () => {
 
         // 새 파일인 경우에만 업로드
         const { data: { preSignedUrl, fileId } } = await axiosInstance.post(
-          API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(proposal.id),
+          API_ENDPOINTS.APPROVAL.FILE_PRESIGNED(approvalId),
           {
             fileName: file.name,
             fileSize: file.size,
@@ -1089,7 +1006,7 @@ const ApprovalDetail = () => {
         // 기존 링크인 경우 건너뛰기
         if (link.id) continue;
 
-        await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(proposal.id), link);
+        await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(approvalId), link);
       }
 
       // 6. 파일 목록 새로고침
@@ -1123,14 +1040,14 @@ const ApprovalDetail = () => {
   };
 
   const handleDeleteProposal = async () => {
-    if (!proposal || !proposal.id) return;
+    if (!proposal || !approvalId) return;
     
     if (!window.confirm('정말로 이 승인요청을 삭제하시겠습니까?')) {
       return;
     }
 
     try {
-      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(proposal.id));
+      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(approvalId));
       alert('승인요청이 성공적으로 삭제되었습니다.');
       navigate(-1); // 이전 페이지로 이동
     } catch (error) {
@@ -1147,7 +1064,7 @@ const ApprovalDetail = () => {
         return;
       }
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.FILES(id)}`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.FILES(approvalId)}`, {
         withCredentials: true
       });
       setFiles(response.data);
@@ -1168,7 +1085,7 @@ const ApprovalDetail = () => {
         return;
       }
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.GET_LINKS(id)}`, {
+      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.GET_LINKS(approvalId)}`, {
         withCredentials: true
       });
       setLinks(response.data);
@@ -1194,8 +1111,6 @@ const ApprovalDetail = () => {
   // 승인권자 저장 처리 함수 추가
   const handleSaveApprovers = async () => {
     try {
-      // 승인권자 목록 새로고침
-      await fetchStatusSummary();
       setIsApproversModalOpen(false);
     } catch (error) {
       console.error('승인권자 저장 후 새로고침 중 오류:', error);
@@ -1222,22 +1137,6 @@ const ApprovalDetail = () => {
             <ErrorMessage>{error}</ErrorMessage>
           ) : proposal ? (
             <ContentContainer>
-              {/* 프로젝트 단계 진행 상황 표시 */}
-              {progressLoading ? (
-                <div style={{ marginBottom: '24px', padding: '20px', background: 'white', borderRadius: '8px', textAlign: 'center' }}>
-                  <p>프로젝트 진행 단계를 불러오는 중...</p>
-                </div>
-              ) : progressList && progressList.length > 0 ? (
-                <div style={{ marginBottom: '24px' }}>
-                  <ProjectStageProgress 
-                    progressList={progressList}
-                    currentStageIndex={currentStageIndex}
-                    setCurrentStageIndex={setCurrentStageIndex}
-                    title="프로젝트 진행 단계"
-                  />
-                </div>
-              ) : null}
-              
               {/* 콘텐츠 영역을 그리드로 배치 */}
               <ContentGrid>
                 {/* 왼쪽 영역: 제안 정보 및 승인 결정 */}
@@ -1467,7 +1366,7 @@ const ApprovalDetail = () => {
                             </AttachmentGroup>
                           </AttachmentContainer>
                         </AttachmentsSection>
-                        
+
                         {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
                         <ApprovalButtonContainer>
                           {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
@@ -1504,9 +1403,26 @@ const ApprovalDetail = () => {
                     )}
                   </ProposalInfoSection>
                   
+                  {/* 프로젝트 진행 단계를 ProposalInfoSection 바깥으로 이동 */}
+                  {progressLoading ? (
+                    <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                      <p>프로젝트 진행 단계를 불러오는 중...</p>
+                    </div>
+                  ) : progressList && progressList.length > 0 ? (
+                    <div style={{ marginTop: '24px' }}>
+                      <ProjectStageProgress 
+                        progressList={progressList}
+                        currentStageIndex={currentStageIndex}
+                        setCurrentStageIndex={setCurrentStageIndex}
+                        title="프로젝트 진행 단계"
+                        projectId={projectId}
+                      />
+                    </div>
+                  ) : null}
+
                   {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}
-                  <div id="approvalDecisionComponent">
-                    <ApprovalDecision approvalId={proposal.id} statusSummary={statusSummary} />
+                  <div id="approvalDecisionComponent" style={{ marginTop: '24px' }}>
+                    <ApprovalDecision approvalId={proposal?.id} />
                   </div>
                 </div>
               </ContentGrid>
