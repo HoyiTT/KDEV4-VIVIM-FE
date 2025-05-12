@@ -100,6 +100,7 @@ const Dashboard = () => {
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.RECENT, {
         withCredentials: true
       });
+      console.log('최근 승인요청 응답:', JSON.stringify(data, null, 2));
       setRecentProposals(data.approvalList || []);
     } catch (error) {
       console.error('최근 승인요청 조회 실패:', error);
@@ -183,7 +184,7 @@ const Dashboard = () => {
           <CardGrid>
             <Card>
               <CardTitle>마감 임박 프로젝트</CardTitle>
-              <CardContent>
+              <CardContent scrollable>
                 {deadlineProjects.length > 0 ? (
                   deadlineProjects.map((project) => (
                     <ProjectItem key={project.projectId} onClick={() => navigate(`/project/${project.projectId}`)}>
@@ -274,7 +275,7 @@ const Dashboard = () => {
               <CardContent>
                 {recentProposals.length > 0 ? (
                   recentProposals.map((proposal) => (
-                    <ProjectItem key={proposal.id} onClick={() => navigate(`/approval/${proposal.id}`)}>
+                    <ProjectItem key={proposal.id} onClick={() => navigate(`/approval/${proposal.id}`, { state: { projectId: proposal.projectId } })}>
                       <ProjectInfo>
                         <ProjectName>{proposal.title}</ProjectName>
                         <ProjectDate>
@@ -367,11 +368,25 @@ const CardTitle = styled.h2`
 `;
 
 const CardContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-height: 0;
-  flex: 1;
+  padding: 16px;
+  ${props => props.scrollable && `
+    max-height: 300px;
+    overflow-y: auto;
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  `}
 `;
 
 const PostList = styled.div`

@@ -1,3 +1,4 @@
+/* grammarly-disable */
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -1293,7 +1294,14 @@ const ProjectDetail = () => {
 
   // 승인요청 항목 클릭 시 처리하는 함수
   const handleApprovalClick = (approval) => {
-    navigate(`/project/${id}/approval/${approval.id}`);
+    console.log('승인요청 상세로 이동:', {
+      approvalId: approval.id,
+      projectId: id,
+      state: { projectId: id }
+    });
+    navigate(`/approval/${approval.id}`, {
+      state: { projectId: id }
+    });
   };
   
   // 승인요청 목록 조회
@@ -1754,7 +1762,7 @@ const ProjectDetail = () => {
                         >
                           <StageHeader>
                             <StageTitle title={stage.name} />
-                            {!isAllApprovalsApproved(stage.id) && !stage.isCompleted && (
+                            {!project?.isDeleted && !isAllApprovalsApproved(stage.id) && !stage.isCompleted && (
                               <StageHeaderActions>
                                 <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
                                   <FaPlus /> 승인요청 추가
@@ -1780,9 +1788,11 @@ const ProjectDetail = () => {
                         <BoardSection>
                           <BoardHeader>
                 <SectionTitle>게시글</SectionTitle>
-                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
-                  게시글 작성
-                            </CreateButton>
+                            {!project?.isDeleted && (
+                              <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                                게시글 작성
+                              </CreateButton>
+                            )}
                           </BoardHeader>
                           <BoardTable>
                             <thead>

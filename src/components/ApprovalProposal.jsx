@@ -18,6 +18,14 @@ const LoadingMessage = styled.div`
   color: #64748b;
 `;
 
+const Container = styled.div`
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+`;
+
 const ProposalContainer = styled.div`
   width: 100%;
   max-width: 100%;
@@ -108,7 +116,9 @@ const ProposalActions = styled.div`
   justify-content: flex-end;
 `;
 
-const ActionButton = styled.button`
+const ActionButton = styled.button.attrs({
+  className: 'approval-proposal-action-button'
+})`
   padding: 6px 12px;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
@@ -123,7 +133,9 @@ const ActionButton = styled.button`
   }
 `;
 
-const DeleteButton = styled.button`
+const DeleteButton = styled.button.attrs({
+  className: 'approval-proposal-delete-button'
+})`
   background: none;
   border: none;
   color: #64748b;
@@ -140,7 +152,9 @@ const DeleteButton = styled.button`
   }
 `;
 
-const SendButton = styled(ActionButton)`
+const SendButton = styled(ActionButton).attrs({
+  className: 'approval-proposal-send-button'
+})`
   background: #2E7D32;
   border: none;
   color: white;
@@ -165,7 +179,9 @@ const SendButton = styled(ActionButton)`
   }
 `;
 
-const ShowMoreButton = styled.button`
+const ShowMoreButton = styled.button.attrs({
+  className: 'approval-proposal-show-more-button'
+})`
   width: 100%;
   padding: 8px 16px;
   background: white;
@@ -181,7 +197,9 @@ const ShowMoreButton = styled.button`
   }
 `;
 
-const AddButton = styled.button`
+const AddButton = styled.button.attrs({
+  className: 'approval-proposal-add-button'
+})`
   padding: 12px 24px;
   background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #3b82f6, #2563eb)'};
   border: none;
@@ -253,7 +271,9 @@ const ModalTitle = styled.h2`
   margin: 0;
 `;
 
-const CloseButton = styled.button`
+const CloseButton = styled.button.attrs({
+  className: 'approval-proposal-close-button'
+})`
   background: none;
   border: none;
   font-size: 24px;
@@ -691,7 +711,9 @@ const HeaderActions = styled.div`
   align-items: center;
 `;
 
-const SendButtonSmall = styled.button`
+const SendButtonSmall = styled.button.attrs({
+  className: 'approval-proposal-send-button-small'
+})`
   padding: 4px 8px;
   background: white;
   color: #2E7D32;
@@ -759,7 +781,9 @@ const ActionIcons = styled.div`
   margin-left: 8px;
 `;
 
-const ActionIcon = styled.button`
+const ActionIcon = styled.button.attrs({
+  className: 'approval-proposal-action-icon'
+})`
   background: none;
   border: none;
   cursor: pointer;
@@ -800,7 +824,9 @@ const HiddenFileInput = styled.input`
   display: none;
 `;
 
-const FileButton = styled.button`
+const FileButton = styled.button.attrs({
+  className: 'approval-proposal-file-button'
+})`
   padding: 8px 16px;
   background-color: white;
   border: 1px solid #e2e8f0;
@@ -882,6 +908,187 @@ const ErrorMessage = styled.span`
   margin-top: 4px;
 `;
 
+// 승인권자 수정 모달 관련 스타일 컴포넌트 추가
+const ModalContainer = styled.div`
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+`;
+
+const ModalButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 12px;
+`;
+
+const CancelButton = styled.button`
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const SaveButton = styled.button`
+  background: #1E40AF;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #1E3A8A;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
+  }
+`;
+
+// 승인권자 수정 모달 컴포넌트
+const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
+  const [companies, setCompanies] = useState([]);
+  const [companyEmployees, setCompanyEmployees] = useState({});
+  const [expandedCompanies, setExpandedCompanies] = useState(new Set());
+  const [selectedApprovers, setSelectedApprovers] = useState([]);
+
+  // 회사 목록 조회
+  const fetchCompanies = async () => {
+    try {
+      if (!projectId) {
+        console.error('프로젝트 ID가 없습니다.');
+        return;
+      }
+
+      console.log('프로젝트 연결 고객사 목록 조회 시작:', projectId);
+      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
+        withCredentials: true
+      });
+      console.log('프로젝트 연결 고객사 목록:', data);
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching project companies:', error);
+      alert('고객사 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  // 회사별 직원 목록 조회
+  const fetchCompanyEmployees = async (companyId) => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY.EMPLOYEES(companyId), {
+        withCredentials: true
+      });
+      setCompanyEmployees(prev => ({
+        ...prev,
+        [companyId]: data
+      }));
+    } catch (error) {
+      console.error('Error fetching company employees:', error);
+      alert('직원 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  // 회사 토글 처리
+  const toggleCompany = async (company) => {
+    const newExpandedCompanies = new Set(expandedCompanies);
+    if (newExpandedCompanies.has(company.id)) {
+      newExpandedCompanies.delete(company.id);
+    } else {
+      newExpandedCompanies.add(company.id);
+      if (!companyEmployees[company.id]) {
+        await fetchCompanyEmployees(company.id);
+      }
+    }
+    setExpandedCompanies(newExpandedCompanies);
+  };
+
+  // 승인권자 선택 처리
+  const handleSelectApprover = (employee, checked) => {
+    if (checked) {
+      setSelectedApprovers(prev => [...prev, employee]);
+    } else {
+      setSelectedApprovers(prev => prev.filter(approver => approver.userId !== employee.userId));
+    }
+  };
+
+  // 모달이 열릴 때 회사 목록 조회
+  useEffect(() => {
+    if (isOpen) {
+      fetchCompanies();
+    } else {
+      setCompanies([]);
+      setCompanyEmployees({});
+      setExpandedCompanies(new Set());
+      setSelectedApprovers([]);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <ModalOverlay>
+      <ModalContainer>
+        <ModalHeader>
+          <ModalTitle>승인권자 수정</ModalTitle>
+          <CloseButton onClick={onClose}>×</CloseButton>
+        </ModalHeader>
+        <ModalContent>
+          <InputGroup>
+            <Label>승인권자 목록</Label>
+          </InputGroup>
+          <ApproverSection>
+            {companies.length === 0 ? (
+              <EmptyState>연결된 고객사가 없습니다.</EmptyState>
+            ) : (
+              companies.map(company => (
+                <div key={company.id}>
+                  <CompanyToggle onClick={() => toggleCompany(company)}>
+                    <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
+                    <span>{expandedCompanies.has(company.id) ? '▼' : '▶'}</span>
+                  </CompanyToggle>
+                  {expandedCompanies.has(company.id) && (
+                    <EmployeeList>
+                      {(companyEmployees[company.id] || []).map(emp => (
+                        <EmployeeItem key={emp.id}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedApprovers.some(a => a.userId === emp.id)} 
+                            onChange={e => handleSelectApprover(emp, e.target.checked)} 
+                          />
+                          <span>{emp.name}</span>
+                        </EmployeeItem>
+                      ))}
+                    </EmployeeList>
+                  )}
+                </div>
+              ))
+            )}
+          </ApproverSection>
+          <ModalButtonContainer>
+            <CancelButton onClick={onClose}>취소</CancelButton>
+            <SaveButton onClick={() => onSave(selectedApprovers.map(approver => approver.userId))}>
+              저장
+            </SaveButton>
+          </ModalButtonContainer>
+        </ModalContent>
+      </ModalContainer>
+    </ModalOverlay>
+  );
+};
+
 const ApprovalProposal = ({ 
   progressId, 
   projectId,
@@ -918,6 +1125,7 @@ const ApprovalProposal = ({
   const [fileError, setFileError] = useState('');
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [links, setLinks] = useState([]);
+  const [projectInfo, setProjectInfo] = useState(null);
   
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -980,9 +1188,35 @@ const ApprovalProposal = ({
     }
   };
 
+  // 프로젝트 정보 조회 함수 추가
+  const fetchProjectInfo = async () => {
+    try {
+      if (!projectId) {
+        console.log('▶ 프로젝트 정보 조회 실패 - 프로젝트 ID 없음');
+        return;
+      }
+
+      console.log('▶ 프로젝트 정보 조회 시도:', projectId);
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
+        withCredentials: true
+      });
+      console.log('▶ 프로젝트 정보 조회 성공:', data);
+      setProjectInfo(data);
+    } catch (error) {
+      console.error('▶ 프로젝트 정보 조회 실패:', error);
+      if (error.response?.status === 401) {
+        console.log('▶ 프로젝트 정보 조회 실패 - 인증 필요');
+      } else if (error.response?.status === 403) {
+        console.log('▶ 프로젝트 정보 조회 실패 - 권한 없음');
+      }
+      setProjectInfo(null);
+    }
+  };
+
   useEffect(() => {
     if (projectId) {
       fetchProjectUsers();
+      fetchProjectInfo();  // 프로젝트 정보 조회 추가
     }
   }, [projectId]);
 
@@ -1090,8 +1324,8 @@ const ApprovalProposal = ({
         return;
       }
       
-      setSelectedProposal(data);
-      setIsProposalModalOpen(true);
+      // 모달 대신 페이지로 이동
+      navigate(`/approval/${proposal.id}`);
     } catch (error) {
       console.error('Error fetching proposal detail:', error);
       if (error.response?.status === 403) {
@@ -1105,7 +1339,13 @@ const ApprovalProposal = ({
   };
 
   const handleAddProposal = async () => {
+    console.log('▶ 승인요청 생성 시도 - 사용자 정보:', user);
+    console.log('▶ 승인요청 생성 시도 - 프로젝트 정보:', projectInfo);
+    console.log('▶ 승인요청 생성 시도 - 단계 완료 여부:', isStageCompleted);
+    console.log('▶ 승인요청 생성 시도 - 고객사 여부:', isCustomer);
+
     if (!user) {
+      console.log('▶ 승인요청 생성 실패 - 사용자 정보 없음');
       navigate('/login');
       return;
     }
@@ -1117,6 +1357,12 @@ const ApprovalProposal = ({
 
     try {
       // 1. 승인요청 생성
+      console.log('▶ 승인요청 생성 요청 시작:', {
+        progressId,
+        title: newProposal.title,
+        content: newProposal.content
+      });
+
       const { data } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         title: newProposal.title,
         content: newProposal.content
@@ -1331,10 +1577,6 @@ const ApprovalProposal = ({
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
-  const handleShowMore = () => {
-    // 더 이상 필요 없음
-  };
-
   // 현재 단계의 상태 확인
   const isStageCompleted = progressStatus?.progressList?.find(
     status => status.progressId === progressId
@@ -1375,7 +1617,6 @@ const ApprovalProposal = ({
       return;
     }
 
-    // URL 형식 검증
     try {
       new URL(newLink.url);
     } catch (e) {
@@ -1383,7 +1624,6 @@ const ApprovalProposal = ({
       return;
     }
 
-    // 새 링크 추가
     setLinks(prevLinks => [...prevLinks, { ...newLink }]);
     
     // 입력 필드 초기화
@@ -1417,7 +1657,7 @@ const ApprovalProposal = ({
   }
 
   return (
-    <>
+    <Container>
       <ProposalContainer>
         <ProposalList ref={contentRef}>
           {proposals.length === 0 ? (
@@ -1477,7 +1717,7 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!isStageCompleted && !isCustomer && (
+        {!isStageCompleted && !isCustomer && !Boolean(projectInfo?.isDeleted) && (
           <AddButtonContainer>
             <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
               + 승인요청 추가
@@ -1644,48 +1884,6 @@ const ApprovalProposal = ({
         </ModalOverlay>
       )}
 
-      {isProposalModalOpen && selectedProposal && (
-        <ModalOverlay onClick={() => setIsProposalModalOpen(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>승인요청 상세</ModalTitle>
-              <CloseButton onClick={() => setIsProposalModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <ProposalTitle>{selectedProposal.title}</ProposalTitle>
-              <ProposalInfo>
-                <InfoItem>
-                  <InfoLabel>작성자</InfoLabel>
-                  <InfoValue>{selectedProposal.creator.name} ({selectedProposal.creator.companyName})</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>작성일</InfoLabel>
-                  <InfoValue>{formatDate(selectedProposal.createdAt)}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>상태</InfoLabel>
-                  <InfoValue>
-                    <ResponseStatus status={selectedProposal.approvalProposalStatus}>
-                      {getApprovalStatusText(selectedProposal.approvalProposalStatus)}
-                    </ResponseStatus>
-                  </InfoValue>
-                </InfoItem>
-              </ProposalInfo>
-              <ContentSection>
-                {selectedProposal.content}
-              </ContentSection>
-              <ProposalSubtitle withMargin>
-                <span>승인권자별 응답목록</span>
-              </ProposalSubtitle>
-              <ApprovalDecision approvalId={selectedProposal.id} />
-            </ModalBody>
-            <ModalFooter>
-              <ModalButton onClick={() => setIsProposalModalOpen(false)}>닫기</ModalButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-
       {isEditModalOpen && editingProposal && (
         <ModalOverlay onClick={handleCloseModal}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
@@ -1816,8 +2014,11 @@ const ApprovalProposal = ({
           </ModalContent>
         </ModalOverlay>
       )}
-    </>
+    </Container>
   );
 };
+
+// EditApproversModal을 ApprovalProposal의 정적 프로퍼티로 추가
+ApprovalProposal.EditApproversModal = EditApproversModal;
 
 export default ApprovalProposal; 

@@ -115,7 +115,9 @@ const StatusBadge = styled.span`
   }}
 `;
 
-const ToggleButton = styled.button`
+const ToggleButton = styled.button.attrs({
+  className: 'approval-toggle-button'
+})`
   width: 100%;
   padding: 12px;
   background: transparent;
@@ -214,7 +216,9 @@ const DecisionActions = styled.div`
   gap: 8px;
 `;
 
-const DeleteAction = styled.button`
+const DeleteAction = styled.button.attrs({
+  className: 'approval-delete-action'
+})`
   padding: 6px 12px;
   font-size: 13px;
   color: #ef4444;
@@ -230,7 +234,9 @@ const DeleteAction = styled.button`
   }
 `;
 
-const AddResponseButton = styled.button`
+const AddResponseButton = styled.button.attrs({
+  className: 'approval-add-response-button'
+})`
   width: 100%;
   padding: 12px 16px;
   margin-top: 16px;
@@ -540,7 +546,9 @@ const StatusSelect = styled.select`
   }
 `;
 
-const CancelButton = styled.button`
+const CancelButton = styled.button.attrs({
+  className: 'approval-cancel-button'
+})`
   background: #f1f5f9;
   color: #475569;
   border: 1px solid #e2e8f0;
@@ -562,7 +570,9 @@ const CancelButton = styled.button`
   }
 `;
 
-const SaveButton = styled.button`
+const SaveButton = styled.button.attrs({
+  className: 'approval-save-button'
+})`
   background: #2E7D32;
   color: white;
   padding: 10px 20px;
@@ -584,7 +594,9 @@ const SaveButton = styled.button`
   }
 `;
 
-const DeleteButton = styled.button`
+const DeleteButton = styled.button.attrs({
+  className: 'approval-delete-button'
+})`
   padding: 6px 12px;
   background: #fee2e2;
   border: none;
@@ -646,7 +658,9 @@ const ApproversHeaderButtons = styled.div`
   gap: 12px;
 `;
 
-const EditApproversButton = styled.button`
+const EditApproversButton = styled.button.attrs({
+  className: 'approval-edit-approvers-button'
+})`
   background: #2E7D32;
   color: white;
   border: none;
@@ -676,7 +690,9 @@ const EditApproversButton = styled.button`
   }
 `;
 
-const SendApprovalButton = styled.button`
+const SendApprovalButton = styled.button.attrs({
+  className: 'approval-send-approval-button'
+})`
   background: #1E40AF;
   color: white;
   border: none;
