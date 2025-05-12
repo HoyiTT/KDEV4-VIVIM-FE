@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS } from '../config/api';
+import axiosInstance from '../utils/axiosInstance';
 
 const CompanyCreate = () => {
   const navigate = useNavigate();
@@ -33,17 +34,12 @@ const CompanyCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API_ENDPOINTS.COMPANIES, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.COMPANIES,
+        formData,
+        { withCredentials: true }
+      );
+      if (response.status === 200 || response.status === 201) {
         alert('회사가 성공적으로 등록되었습니다.');
         navigate('/company-management');
       } else {

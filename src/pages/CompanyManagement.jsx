@@ -28,23 +28,14 @@ const CompanyManagement = () => {
     fetchCompanies();
   }, [currentPage]);
 
-  // 회사 삭제 함수 추가
+  // 회사 삭제 함수 수정: axiosInstance 사용, withCredentials: true 추가
   const handleDeleteCompany = async (companyId) => {
     if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(API_ENDPOINTS.COMPANY_DETAIL(companyId), {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token
-          }
+        await axiosInstance.delete(API_ENDPOINTS.COMPANY_DETAIL(companyId), {
+          withCredentials: true
         });
-        
-        if (response.ok) {
-          fetchCompanies();
-        } else {
-          alert('회사 삭제에 실패했습니다.');
-        }
+        fetchCompanies();
       } catch (error) {
         console.error('Error deleting company:', error);
         alert('회사 삭제 중 오류가 발생했습니다.');
