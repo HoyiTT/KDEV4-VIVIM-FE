@@ -68,6 +68,75 @@ const TableCell = styled.td`
   vertical-align: middle;
 `;
 
+const SearchInput = styled.input`
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 200px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  &::placeholder {
+    color: #94a3b8;
+  }
+  
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+  }
+`;
+
+const SearchInputField = React.memo(({ name, placeholder, value, onChange, onKeyDown }) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+  
+  const handleChange = (e) => {
+    setLocalValue(e.target.value);
+  };
+  
+  const handleCompositionEnd = (e) => {
+    onChange({ target: { name, value: e.target.value, type: 'text' } });
+  };
+  
+  const handleBlur = () => {
+    onChange({ target: { name, value: localValue, type: 'text' } });
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      onChange({ target: { name, value: localValue, type: 'text' } });
+      if (onKeyDown) onKeyDown(e);
+    } else if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+  
+  return (
+    <SearchInput
+      type="text"
+      name={name}
+      placeholder={placeholder}
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onCompositionEnd={handleCompositionEnd}
+      onKeyDown={handleKeyDown}
+    />
+  );
+});
+
+SearchInputField.displayName = 'SearchInputField';
+
 const AdminProjects = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
@@ -341,31 +410,6 @@ const AdminProjects = () => {
     width: 100%;
   `;
 
-  const SearchInput = styled.input`
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    width: 200px;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    
-    &::placeholder {
-      color: #94a3b8;
-    }
-    
-    &:hover {
-      border-color: #cbd5e1;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-    
-    &:focus {
-      outline: none;
-      border-color: #2E7D32;
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-    }
-  `;
-
   const StyledSelect = styled(Select)`
     width: 120px;
     padding: 10px 16px;
@@ -535,16 +579,14 @@ const AdminProjects = () => {
             </div>
             <SearchSection>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
-                <SearchInput
-                  type="text"
+                <SearchInputField
                   name="name"
                   placeholder="프로젝트명 검색"
                   value={searchParams.name}
                   onChange={handleFilterChange}
                   onKeyDown={handleKeyPress}
                 />
-                <SearchInput
-                  type="text"
+                <SearchInputField
                   name="description"
                   placeholder="프로젝트 설명 검색"
                   value={searchParams.description}
