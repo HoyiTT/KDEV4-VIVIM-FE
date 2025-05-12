@@ -29,6 +29,7 @@ import UserInquiryList from './pages/UserInquiryList';
 import UserInquiryCreate from './pages/UserInquiryCreate';
 import UserInquiryDetail from './pages/UserInquiryDetail';
 import styled from 'styled-components';
+import { NotificationProvider } from './hooks/useNotifications';
 
 const AppContent = () => {
   const navigate = useNavigate();
@@ -74,7 +75,9 @@ const AppContent = () => {
 const App = () => {
   return (
     <Router>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </Router>
   );
 };
