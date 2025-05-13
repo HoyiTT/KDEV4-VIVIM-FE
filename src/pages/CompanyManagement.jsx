@@ -29,7 +29,7 @@ const CompanyManagement = () => {
   const [companyToDelete, setCompanyToDelete] = useState(null);
 
   useEffect(() => {
-    fetchCompanies();
+    fetchCompanies(filters, currentPage);
   }, [currentPage]);
 
   const handleDeleteClick = (companyId) => {
@@ -44,7 +44,7 @@ const CompanyManagement = () => {
           withCredentials: true
         });
         alert('회사가 삭제되었습니다.');
-        fetchCompanies();
+        fetchCompanies(filters, currentPage);
       } catch (error) {
         console.error('Error soft deleting company:', error);
         if (error.response?.status === 403) {
@@ -61,7 +61,7 @@ const CompanyManagement = () => {
   const fetchCompanies = async (customFilters = filters, page = currentPage) => {
     try {
       setLoading(true);
-      // 필터가 모두 비어있으면 page/size만, 아니면 필터 파라미터 추가
+      // 필터가 모두 비어있어도 isDeleted=false를 항상 포함
       const hasActiveFilter = Object.values(customFilters).some(
         v => v !== '' && v !== false
       );
@@ -75,11 +75,13 @@ const CompanyManagement = () => {
         }, {});
         queryParams = new URLSearchParams({
           ...activeFilters,
+          isDeleted: filters.isDeleted,
           page,
           size: 10
         }).toString();
       } else {
         queryParams = new URLSearchParams({
+          isDeleted: filters.isDeleted,
           page,
           size: 10
         }).toString();
@@ -120,11 +122,6 @@ const CompanyManagement = () => {
         return role;
     }
   };
-
-  // 페이지 변경 시
-  useEffect(() => {
-    fetchCompanies(filters, currentPage);
-  }, [currentPage]);
 
   return (
     <PageContainer>
