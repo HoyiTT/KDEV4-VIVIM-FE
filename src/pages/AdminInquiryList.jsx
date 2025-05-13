@@ -129,7 +129,6 @@ const AdminInquiryList = () => {
 
   return (
     <PageContainer>
-      <Sidebar />
       <MainContent>
         <Header>
           <HeaderTop>
