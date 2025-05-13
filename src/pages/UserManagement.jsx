@@ -8,6 +8,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, L
 import { API_ENDPOINTS } from '../config/api';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
+import Pagination from '../components/common/Pagination';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const PageContainer = styled.div`
   display: flex;
@@ -148,54 +150,6 @@ const TableCell = styled.td`
         box-shadow: none;
       }
     `}
-  `;
-
-  const PaginationContainer = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 24px;
-  `;
-
-  const PaginationButton = styled.button`
-    padding: 8px 16px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    color: #1e293b;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover:not(:disabled) {
-      background: #f8fafc;
-    }
-
-    &:disabled {
-      background: #f1f5f9;
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
-  `;
-
-  const PaginationNumber = styled.button`
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: ${props => props.$active ? '#2E7D32' : 'white'};
-    border: 1px solid ${props => props.$active ? '#2E7D32' : '#e2e8f0'};
-    border-radius: 6px;
-    color: ${props => props.$active ? 'white' : '#1e293b'};
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover:not(:disabled) {
-      background: ${props => props.$active ? '#2E7D32' : '#f8fafc'};
-    }
   `;
 
   const SearchCard = styled.div`
@@ -395,6 +349,8 @@ const UserManagement = () => {
     isDeleted: false
   });
   const itemsPerPage = 10;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -471,19 +427,26 @@ const UserManagement = () => {
     }));
   };
 
-  const handleDeleteUser = async (userId, userName) => {
-    if (window.confirm(`정말로 ${userName} 유저를 삭제하시겠습니까?`)) {
-      try {
-        await axiosInstance.delete(API_ENDPOINTS.USER_DETAIL(userId), {
-          withCredentials: true
-        });
-        alert(`${userName} 유저가 삭제되었습니다.`);
-        fetchUsers();
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('유저 삭제 중 오류가 발생했습니다.');
-      }
+  const handleDeleteClick = (userId, userName) => {
+    setUserToDelete({ id: userId, name: userName });
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      await axiosInstance.delete(API_ENDPOINTS.USER_DETAIL(userToDelete.id), {
+        withCredentials: true
+      });
+      alert(`${userToDelete.name} 유저가 삭제되었습니다.`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('유저 삭제 중 오류가 발생했습니다.');
     }
+    setDeleteModalOpen(false);
+    setUserToDelete(null);
   };
 
   const getRoleBadge = (role) => {
@@ -625,7 +588,7 @@ const UserManagement = () => {
                             <DeleteButton 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteUser(user.id, user.name);
+                                handleDeleteClick(user.id, user.name);
                               }}
                               disabled={user.isDeleted}
                             >
@@ -640,32 +603,27 @@ const UserManagement = () => {
               </tbody>
             </UsersTable>
             {users.length > 0 && (
-              <PaginationContainer>
-                <PaginationButton 
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  이전
-                </PaginationButton>
-                {[...Array(totalPages)].map((_, index) => (
-                  <PaginationNumber
-                    key={index + 1}
-                    $active={currentPage === index + 1}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </PaginationNumber>
-                ))}
-                <PaginationButton
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  다음
-                </PaginationButton>
-              </PaginationContainer>
+              <Pagination
+                currentPage={currentPage - 1}
+                totalElements={totalPages * itemsPerPage}
+                pageSize={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page + 1)}
+              />
             )}
           </>
         )}
+
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="사용자 삭제"
+          message={`정말로 ${userToDelete?.name} 사용자를 삭제하시겠습니까?
+삭제된 사용자는 복구할 수 없습니다.`}
+          confirmText="삭제"
+          cancelText="취소"
+          type="delete"
+        />
       </MainContent>
     </PageContainer>
   );
