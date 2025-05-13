@@ -334,6 +334,7 @@ const CompanyToggle = styled.div`
 `;
 
 const EmployeeList = styled.div`
+  font-size: 14px;
   background: white;
   padding: 8px 0;
   overflow-y: auto;
@@ -749,19 +750,26 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
   // 회사별 직원 목록 조회
   const fetchCompanyEmployees = async (companyId) => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
+      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
         withCredentials: true
       });
+      console.log('회사 직원 목록 응답:', response);
+      
+      // API 응답의 data 배열 사용
+      const employees = response.data || [];
+      console.log('처리된 직원 목록:', employees);
       
       // CUSTOMER 회사의 직원만 필터링
-      const customerEmployees = data.filter(emp => emp.companyRole === 'CUSTOMER');
+      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 직원 목록:', customerEmployees);
       
       setCompanyEmployees(prev => ({
         ...prev,
         [companyId]: customerEmployees
       }));
     } catch (error) {
-      console.error('Error fetching company employees:', error);
+      console.error('회사 직원 목록 조회 중 오류:', error);
+      console.error('에러 상세:', error.response?.data);
       alert('직원 목록을 불러오는데 실패했습니다.');
     }
   };
@@ -769,25 +777,24 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
   // 회사 목록 조회
   const fetchCompanies = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
         withCredentials: true
       });
-      console.log('회사 목록:', data);
+      console.log('회사 목록 응답:', data);
       
       // CUSTOMER 회사만 필터링
-      const customerCompany = data.find(company => company.companyRole === 'CUSTOMER');
-      if (customerCompany) {
-        setCompanies([customerCompany]);
-        // CUSTOMER 회사 직원 목록 자동으로 가져오기
-        fetchCompanyEmployees(customerCompany.id);
-        // 회사 자동으로 펼치기
-        setExpandedCompanies(new Set([customerCompany.id]));
-      } else {
-        setCompanies([]);
+      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 목록:', customerCompanies);
+      
+      setCompanies(customerCompanies);
+      
+      // 각 회사의 직원 목록 가져오기
+      for (const company of customerCompanies) {
+        await fetchCompanyEmployees(company.id);
       }
-    } catch (error) {
-      console.error('회사 목록 조회 중 오류 발생:', error);
-      setCompanies([]);
+    } catch (err) {
+      console.error('회사 목록 조회 중 오류:', err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
     }
   };
 
@@ -1008,6 +1015,30 @@ const ApprovalProposal = ({
           }] 
         : prev.filter(a => a.userId !== employee.id)
     );
+  };
+
+    // 회사 목록 조회
+  const fetchCompanies = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
+        withCredentials: true
+      });
+      console.log('회사 목록 응답:', data);
+      
+      // CUSTOMER 회사만 필터링
+      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 목록:', customerCompanies);
+      
+      setCompanies(customerCompanies);
+      
+      // 각 회사의 직원 목록 가져오기
+      for (const company of customerCompanies) {
+        await fetchCompanyEmployees(company.id);
+      }
+    } catch (err) {
+      console.error('회사 목록 조회 중 오류:', err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -1311,17 +1342,6 @@ const ApprovalProposal = ({
     }
   };
 
-  const fetchCompanies = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId));
-      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
-      setCompanies(customerCompanies);
-    } catch (err) {
-      console.error(err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
   const handleAddLink = () => {
     if (!newLink.title.trim() || !newLink.url.trim()) {
       alert('링크 제목과 URL을 모두 입력해주세요.');
@@ -1369,6 +1389,33 @@ const ApprovalProposal = ({
 
   const handleLinksChange = (newLinks) => {
     setLinks(newLinks);
+  };
+
+  // 회사별 직원 목록 조회 함수 추가
+  const fetchCompanyEmployees = async (companyId) => {
+    try {
+      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
+        withCredentials: true
+      });
+      console.log('회사 직원 목록 응답:', response);
+      
+      // API 응답의 data 배열 사용
+      const employees = response.data || [];
+      console.log('처리된 직원 목록:', employees);
+      
+      // CUSTOMER 회사의 직원만 필터링
+      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 직원 목록:', customerEmployees);
+      
+      setCompanyEmployees(prev => ({
+        ...prev,
+        [companyId]: customerEmployees
+      }));
+    } catch (error) {
+      console.error('회사 직원 목록 조회 중 오류:', error);
+      console.error('에러 상세:', error.response?.data);
+      alert('직원 목록을 불러오는데 실패했습니다.');
+    }
   };
 
   if (loading) {
