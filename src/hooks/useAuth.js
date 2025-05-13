@@ -17,7 +17,7 @@ export const fetchCurrentUser = () =>
   }).then(res => res.data.data);
 
 export const logoutRequest = () =>
-  axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT);
+  axiosInstance.post(API_ENDPOINTS.AUTH_LOGOUT, {}, { withCredentials: true });
 
 // React hook for auth state
 export const useAuth = () => {
