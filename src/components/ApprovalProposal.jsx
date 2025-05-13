@@ -724,7 +724,7 @@ const ErrorMessage = styled.span`
   margin-top: 4px;
 `;
 
-const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId }) => {
+const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, proposalStatus }) => {
   const [companies, setCompanies] = useState([]);
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
@@ -812,17 +812,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId }) 
   const handleSelectApprover = async (employee, checked) => {
     // 현재 승인권자인지 확인
     const isCurrentApprover = currentApprovers.some(approver => approver.userId === employee.id);
-    
-    // 체크 해제 시도인 경우 (현재 승인권자를 제거하려는 경우)
-    if (!checked && isCurrentApprover) {
-      const confirmRemove = window.confirm(
-        `${employee.name}님을 승인권자에서 제외하시겠습니까?\n이 작업은 되돌릴 수 있습니다.`
-      );
-      
-      if (!confirmRemove) {
-        return; // 사용자가 취소한 경우
-      }
-    }
 
     // 승인권자 상태 업데이트
     setSelectedApprovers(prev => {
@@ -875,13 +864,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId }) 
 
   // 저장 버튼 클릭 시 변경된 승인권자만 처리
   const handleSave = () => {
-    // 변경된 승인권자만 필터링
-    const changedApproverIds = Array.from(changedApprovers);
-    if (changedApproverIds.length === 0) {
-      alert('변경된 승인권자가 없습니다.');
-      return;
-    }
-
     // 전체 승인권자 ID 목록 전달
     const allApproverIds = selectedApprovers.map(approver => approver.userId);
 
@@ -897,80 +879,96 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId }) 
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         <ModalContent>
-          <InputGroup>
-            <Label>승인권자 목록</Label>
-            {changedApprovers.size > 0 && (
-              <div style={{ 
-                fontSize: '13px', 
-                color: '#64748b', 
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span>•</span>
-                <span>{changedApprovers.size}명의 승인권자가 변경되었습니다.</span>
-              </div>
-            )}
-          </InputGroup>
-          <ApproverSection>
-            {companies.length === 0 ? (
-              <EmptyState>연결된 고객사가 없습니다.</EmptyState>
-            ) : (
-              companies.map(company => (
-                <div key={company.id}>
-                  <CompanyToggle>
-                    <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
-                  </CompanyToggle>
-                  <EmployeeList>
-                    {(companyEmployees[company.id] || []).map(emp => {
-                      const isChanged = changedApprovers.has(emp.id);
-                      return (
-                        <EmployeeItem 
-                          key={emp.id}
-                          style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>{emp.name}</span>
-                            <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
-                            {isChanged && (
-                              <span style={{ 
-                                fontSize: '12px', 
-                                color: '#2E7D32',
-                                backgroundColor: '#f0fdf4',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                변경됨
-                              </span>
-                            )}
-                          </div>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                            onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                          />
-                        </EmployeeItem>
-                      );
-                    })}
-                  </EmployeeList>
-                </div>
-              ))
-            )}
-          </ApproverSection>
+          {proposalStatus === 'BEFORE_REQUEST_PROPOSAL' ? (
+            <>
+              <InputGroup>
+                <Label>승인권자 목록</Label>
+                {changedApprovers.size > 0 && (
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: '#64748b', 
+                    marginTop: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>•</span>
+                    <span>{changedApprovers.size}명의 승인권자가 변경되었습니다.</span>
+                  </div>
+                )}
+              </InputGroup>
+              <ApproverSection>
+                {companies.length === 0 ? (
+                  <EmptyState>연결된 고객사가 없습니다.</EmptyState>
+                ) : (
+                  companies.map(company => (
+                    <div key={company.id}>
+                      <CompanyToggle>
+                        <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
+                      </CompanyToggle>
+                      <EmployeeList>
+                        {(companyEmployees[company.id] || []).map(emp => {
+                          const isChanged = changedApprovers.has(emp.id);
+                          return (
+                            <EmployeeItem 
+                              key={emp.id}
+                              style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{emp.name}</span>
+                                <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
+                                {isChanged && (
+                                  <span style={{ 
+                                    fontSize: '12px', 
+                                    color: '#2E7D32',
+                                    backgroundColor: '#f0fdf4',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px'
+                                  }}>
+                                    변경됨
+                                  </span>
+                                )}
+                              </div>
+                              <input 
+                                type="checkbox" 
+                                checked={selectedApprovers.some(a => a.userId === emp.id)} 
+                                onChange={e => handleSelectApprover(emp, e.target.checked)} 
+                              />
+                            </EmployeeItem>
+                          );
+                        })}
+                      </EmployeeList>
+                    </div>
+                  ))
+                )}
+              </ApproverSection>
+            </>
+          ) : (
+            <div style={{ 
+              padding: '20px', 
+              textAlign: 'center', 
+              color: '#64748b',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              승인요청이 이미 전송되어 승인권자를 수정할 수 없습니다.
+            </div>
+          )}
         </ModalContent>
         <ModalButtonContainer>
           <CancelButton onClick={onClose}>취소</CancelButton>
-          <SaveButton 
-            onClick={handleSave}
-            disabled={changedApprovers.size === 0}
-            style={{ 
-              opacity: changedApprovers.size === 0 ? 0.5 : 1,
-              cursor: changedApprovers.size === 0 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            저장
-          </SaveButton>
+          {proposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
+            <SaveButton 
+              onClick={handleSave}
+              style={{
+                opacity: 1,
+                cursor: 'pointer'
+              }}
+            >
+              저장
+            </SaveButton>
+          )}
         </ModalButtonContainer>
       </ModalContainer>
     </ModalOverlay>

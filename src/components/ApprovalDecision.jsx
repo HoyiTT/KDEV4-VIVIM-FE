@@ -35,19 +35,14 @@ const ApproversSectionTitle = styled.h3`
 const ResponseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
 `;
 
 const ResponseItem = styled.div`
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
   overflow: hidden;
-  transition: all 0.2s;
   
   &:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background-color: #f8fafc;
   }
 `;
 

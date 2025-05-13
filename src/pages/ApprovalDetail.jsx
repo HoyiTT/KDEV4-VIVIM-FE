@@ -698,6 +698,15 @@ const StatusMessage = styled.div`
   color: #475569;
   font-size: 14px;
   line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  svg {
+    color: #2E7D32;
+    flex-shrink: 0;
+  }
 `;
 
 const ApprovalDetail = () => {
@@ -730,6 +739,7 @@ const ApprovalDetail = () => {
   const [deletedFileIds, setDeletedFileIds] = useState([]);
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
   const [approvers, setApprovers] = useState([]);
+  const [showApproverGuide, setShowApproverGuide] = useState(false);
 
   useEffect(() => {
     if (projectId && approvalId) {
@@ -1426,10 +1436,10 @@ const ApprovalDetail = () => {
                         </AttachmentsSection>
 
                         {/* 승인권자 목록 섹션 수정 */}
-                        <ApproversSection>
-                          <ApproversHeader>
-                            <ApproversTitle>승인권자 목록</ApproversTitle>
-                            {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
+                        {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
+                          <ApproversSection>
+                            <ApproversHeader>
+                              <ApproversTitle>승인권자 목록</ApproversTitle>
                               <ApprovalActionButton 
                                 $secondary
                                 onClick={handleOpenEditApprovers}
@@ -1443,55 +1453,55 @@ const ApprovalDetail = () => {
                                 </svg>
                                 승인권자 수정
                               </ApprovalActionButton>
-                            )}
-                          </ApproversHeader>
-                          <ApproversList>
-                            {approvers.length > 0 ? (
-                              approvers.map((approver) => (
-                                <ApproverItem key={approver.approverId}>
-                                  <ApproverInfo>
-                                    <ApproverName>{approver.name}</ApproverName>
-                                    {approver.companyName && (
-                                      <ApproverCompany>{approver.companyName}</ApproverCompany>
-                                    )}
-                                  </ApproverInfo>
-                                  <ApproverStatus $status={approver.approverStatus}>
-                                    {getApproverStatusText(approver.approverStatus)}
-                                  </ApproverStatus>
-                                </ApproverItem>
-                              ))
-                            ) : (
-                              <div style={{ 
-                                padding: '16px', 
-                                textAlign: 'center', 
-                                color: '#64748b', 
-                                fontSize: '14px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '8px'
-                              }}>
-                                <svg 
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  width="24" 
-                                  height="24" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round" 
-                                  style={{ color: '#9ca3af' }}
-                                >
-                                  <circle cx="12" cy="12" r="10" />
-                                  <line x1="12" y1="8" x2="12" y2="12" />
-                                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                                </svg>
-                                등록된 승인권자가 없습니다.
-                              </div>
-                            )}
-                          </ApproversList>
-                        </ApproversSection>
+                            </ApproversHeader>
+                            <ApproversList>
+                              {approvers.length > 0 ? (
+                                approvers.map((approver) => (
+                                  <ApproverItem key={approver.approverId}>
+                                    <ApproverInfo>
+                                      <ApproverName>{approver.name}</ApproverName>
+                                      {approver.companyName && (
+                                        <ApproverCompany>{approver.companyName}</ApproverCompany>
+                                      )}
+                                    </ApproverInfo>
+                                    <ApproverStatus $status={approver.approverStatus}>
+                                      {getApproverStatusText(approver.approverStatus)}
+                                    </ApproverStatus>
+                                  </ApproverItem>
+                                ))
+                              ) : (
+                                <div style={{ 
+                                  padding: '16px', 
+                                  textAlign: 'center', 
+                                  color: '#64748b', 
+                                  fontSize: '14px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}>
+                                  <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    width="24" 
+                                    height="24" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    style={{ color: '#9ca3af' }}
+                                  >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                  </svg>
+                                  등록된 승인권자가 없습니다.
+                                </div>
+                              )}
+                            </ApproversList>
+                          </ApproversSection>
+                        )}
 
                         {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}
                         {proposal?.displayStatus !== ApprovalProposalStatus.DRAFT && (
@@ -1541,6 +1551,7 @@ const ApprovalDetail = () => {
               onSave={handleSaveApprovers}
               projectId={projectId}
               approvalId={approvalId}
+              proposalStatus={proposal?.approvalProposalStatus}
             />
           )}
         </MainContent>
