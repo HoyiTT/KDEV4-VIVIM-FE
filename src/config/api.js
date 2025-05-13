@@ -45,7 +45,7 @@ export const API_ENDPOINTS = {
     LIST: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
     RECENT: `${API_BASE_URL}/proposals/recent`,
     DETAIL: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
-    CREATE: (progressId) => `${API_BASE_URL}/approval/${progressId}`,
+    CREATE: (progressId) => `${API_BASE_URL}/progress/${progressId}/approval`,
     MODIFY: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
     DELETE: (approvalId) => `${API_BASE_URL}/approval/${approvalId}`,
     SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
