@@ -564,7 +564,7 @@ const ProjectStageProgress = ({
                     {currentStage && (
                       <>
                         <DropdownItem onClick={() => {
-                          openStageModal('edit', currentStage);
+                          openStageModal('editName', currentStage);
                           setShowMenu(false);
                         }}>
                           <FaEdit /> 현재 단계명 수정

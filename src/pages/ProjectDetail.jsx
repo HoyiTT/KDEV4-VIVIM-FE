@@ -933,7 +933,7 @@ const SortableStageItem = styled.div`
 
 const ActionButton = styled.button`
   padding: 10px 16px;
-  background-color: #4f46e5;
+  background-color: #2E7D32;
   color: white;
   border: none;
   border-radius: 4px;
@@ -942,7 +942,7 @@ const ActionButton = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #4338ca;
+    background-color:rgba(46, 125, 50, 0.93);
   }
 `;
 
@@ -1020,9 +1020,38 @@ const ProjectDetail = () => {
   const [comments, setComments] = useState({});
 
   const openStageModal = (action, stage = null) => {
+    if (action === 'delete') {
+      if (window.confirm('정말로 이 단계를 삭제하시겠습니까?')) {
+        handleDeleteStage(stage);
+      }
+      return;
+    }
+    
     setCurrentStageAction(action);
     setCurrentStage(stage);
+    if (action === 'editName' && stage) {
+      setNewStageName(stage.name);
+    } else {
+      setNewStageName('');
+    }
     setIsStageModalOpen(true);
+  };
+
+  const handleDeleteStage = async (stage) => {
+    try {
+      await axiosInstance.delete(
+        `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}`,
+        {
+          withCredentials: true
+        }
+      );
+
+      await fetchProjectProgress();
+      alert('단계가 삭제되었습니다.');
+    } catch (error) {
+      console.error('Error deleting stage:', error);
+      alert('단계 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const handleCloseStageModal = () => {
@@ -1030,6 +1059,32 @@ const ProjectDetail = () => {
     setCurrentStageAction(null);
     setCurrentStage(null);
     setNewStageName('');
+  };
+
+  const handleEditStageName = async () => {
+    if (!newStageName.trim()) {
+      alert('단계 이름을 입력해주세요.');
+      return;
+    }
+
+    try {
+      await axiosInstance.put(
+        `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${currentStage.id}/naming`,
+        {
+          name: newStageName
+        },
+        {
+          withCredentials: true
+        }
+      );
+
+      await fetchProjectProgress();
+      handleCloseStageModal();
+      alert('단계 이름이 수정되었습니다.');
+    } catch (error) {
+      console.error('Error editing stage name:', error);
+      alert('단계 이름 수정 중 오류가 발생했습니다.');
+    }
   };
 
   const handleAddStage = async () => {
@@ -1845,15 +1900,14 @@ const ProjectDetail = () => {
                   <ModalHeader>
                     <h2>
                       {currentStageAction === 'add' && '새 단계 추가'}
-                      {currentStageAction === 'edit' && '단계 수정'}
-                      {currentStageAction === 'delete' && '단계 삭제'}
+                      {currentStageAction === 'editName' && '단계 이름 수정'}
                       {currentStageAction === 'editPosition' && '단계 순서 변경'}
                     </h2>
                     <ModalCloseButton onClick={handleCloseStageModal}>×</ModalCloseButton>
                   </ModalHeader>
                   <ModalBody>
                     {currentStageAction === 'add' && (
-                      <div>
+                      <div style={{ boxSizing: 'border-box', width: '100%' }}>
                         <label htmlFor="stageName">단계 이름</label>
                         <input
                           type="text"
@@ -1866,7 +1920,28 @@ const ProjectDetail = () => {
                             padding: '8px',
                             marginTop: '8px',
                             border: '1px solid #e2e8f0',
-                            borderRadius: '4px'
+                            borderRadius: '4px',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    )}
+                    {currentStageAction === 'editName' && (
+                      <div style={{ boxSizing: 'border-box', width: '100%' }}>
+                        <label htmlFor="editStageName">단계 이름</label>
+                        <input
+                          type="text"
+                          id="editStageName"
+                          value={newStageName}
+                          onChange={(e) => setNewStageName(e.target.value)}
+                          placeholder="단계 이름을 입력하세요"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            marginTop: '8px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            boxSizing: 'border-box'
                           }}
                         />
                       </div>
@@ -1907,6 +1982,12 @@ const ProjectDetail = () => {
                     {currentStageAction === 'add' && (
                       <>
                         <ActionButton onClick={handleAddStage}>추가</ActionButton>
+                        <CancelButton onClick={handleCloseStageModal}>취소</CancelButton>
+                      </>
+                    )}
+                    {currentStageAction === 'editName' && (
+                      <>
+                        <ActionButton onClick={handleEditStageName}>저장</ActionButton>
                         <CancelButton onClick={handleCloseStageModal}>취소</CancelButton>
                       </>
                     )}
