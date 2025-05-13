@@ -6,6 +6,10 @@ export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,
   USER_INFO: `${API_BASE_URL}/auth/user`,
   
+  //File,Link
+  FILE_DELETE: (fileId) => `${API_BASE_URL}/files/${fileId}/delete`,
+  LINK_DELETE: (linkId) => `${API_BASE_URL}/links/${linkId}/delete`,
+
   // Users
   USERS: `${API_BASE_URL}/users`,
   USER_DETAIL: (id) => `${API_BASE_URL}/users/${id}`,
@@ -69,7 +73,6 @@ export const API_ENDPOINTS = {
     FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
     GET_LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
     LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
-    DELETE_LINK: (linkId) => `${API_BASE_URL}/links/${linkId}`
   },
   PROJECT_COMPANIES: (projectId) => `${API_BASE_URL}/projects/${projectId}/companies`,
 

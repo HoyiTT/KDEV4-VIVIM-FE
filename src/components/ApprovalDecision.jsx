@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
+import FileLinkUploader from './common/FileLinkUploader';
 
 const { getApproverStatusText } = approvalUtils;
 
@@ -1023,103 +1024,6 @@ const StatusCount = styled.div`
   }
 `;
 
-// 파일 관련 스타일 컴포넌트
-const FileInputContainer = styled.div`
-  margin-bottom: 16px;
-
-  &::after {
-    content: '* 파일 크기는 10MB 이하여야 합니다.';
-    display: block;
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-  }
-`;
-
-const HiddenFileInput = styled.input`
-  display: none;
-`;
-
-const FileButton = styled.button`
-  padding: 8px 16px;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-
-`;
-
-const FileList = styled.ul`
-  list-style: none;
-  padding: 8px 16px;
-  margin: 8px 0 0 0;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  max-height: 200px;
-  overflow-y: auto;
-`;
-
-const FileItem = styled.li`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 14px;
-
-
-`;
-
-const FileContent = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-
-
-  span {
-    pointer-events: none;
-  }
-`;
-
-const LinkList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const LinkItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-`;
-
-const LinkIcon = styled.span`
-  font-size: 16px;
-`;
-
-const LinkTitle = styled.span`
-  color: #2563eb;
-  text-decoration: underline;
-  font-size: 14px;
-`;
-
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [approversData, setApproversData] = useState([]);
   const [isInputOpen, setIsInputOpen] = useState(false);
@@ -1692,99 +1596,21 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
               </InputGroup>
               <InputGroup>
                 <Label>파일 첨부 (선택사항)</Label>
-                <FileInputContainer>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <HiddenFileInput
-                      type="file"
-                      onChange={handleFileChange}
-                      multiple
-                      accept="*/*"
-                      id="fileInput"
-                    />
-                    <FileButton 
-                      type="button" 
-                      onClick={() => document.getElementById('fileInput').click()}
-                    >
-                      파일 선택
-                    </FileButton>
-                  </div>
-                  {files.length > 0 && (
-                    <FileList>
-                      {Array.from(files).map((file, index) => (
-                        <FileItem 
-                          key={index}
-                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                        >
-                          <FileContent>
-                            <span style={{ fontSize: '16px' }}>📎</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
-                              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                {(file.size / 1024).toFixed(1)} KB
-                              </span>
-                            </div>
-                          </FileContent>
-                          <DeleteButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileDelete(index);
-                            }}
-                          >
-                            ✕
-                          </DeleteButton>
-                        </FileItem>
-                      ))}
-                    </FileList>
-                  )}
-                </FileInputContainer>
+                <FileLinkUploader
+                  onFilesChange={(newFiles) => setFiles(newFiles)}
+                  onLinksChange={(newLinks) => setLinks(newLinks)}
+                  initialFiles={files}
+                  initialLinks={links}
+                />
               </InputGroup>
               <InputGroup>
                 <Label>링크 추가 (선택사항)</Label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <Input
-                    type="text"
-                    placeholder="링크 제목"
-                    value={newLink.title}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                    style={{ flex: 1 }}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="URL"
-                    value={newLink.url}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                    style={{ flex: 2 }}
-                  />
-                  <FileButton 
-                    type="button" 
-                    onClick={handleAddLink}
-                  >
-                    추가
-                  </FileButton>
-                </div>
-                {links.length > 0 && (
-                  <FileList>
-                    {links.map((link, index) => (
-                      <FileItem 
-                        key={index}
-                        onClick={() => window.open(link.url, '_blank')}
-                      >
-                        <LinkItem>
-                          <LinkIcon>🔗</LinkIcon>
-                          <LinkTitle>{link.title}</LinkTitle>
-                        </LinkItem>
-                        <DeleteButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLinkDelete(index);
-                          }}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
+                <FileLinkUploader
+                  onFilesChange={(newFiles) => setFiles(newFiles)}
+                  onLinksChange={(newLinks) => setLinks(newLinks)}
+                  initialFiles={files}
+                  initialLinks={links}
+                />
               </InputGroup>
               <ModalButtonContainer>
                 <CancelButton onClick={() => {
@@ -1840,40 +1666,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
               </InputGroup>
               {selectedDecision.files && selectedDecision.files.length > 0 && (
                 <InputGroup>
-                  <Label>첨부 파일</Label>
-                  <FileList>
-                    {selectedDecision.files.map((file, index) => {
-                      console.log('File object:', file);
-                      console.log('File name:', file.name);
-                      console.log('File fileName:', file.fileName);
-                      return (
-                        <FileItem 
-                          key={index}
-                          onClick={() => handleFileDownload(file.id, file.fileName)}
-                        >
-                          <FileContent>
-                            <span style={{ fontSize: '16px' }}>📎</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.fileName}</span>
-                            </div>
-                          </FileContent>
-                        </FileItem>
-                      );
-                    })}
-                  </FileList>
-                </InputGroup>
-              )}
-              {selectedDecision.links && selectedDecision.links.length > 0 && (
-                <InputGroup>
-                  <Label>첨부 링크</Label>
-                  <LinkList>
-                    {selectedDecision.links.map((link, index) => (
-                      <LinkItem key={index} onClick={() => window.open(link.url, '_blank')}>
-                        <LinkIcon>🔗</LinkIcon>
-                        <LinkTitle>{link.title}</LinkTitle>
-                      </LinkItem>
-                    ))}
-                  </LinkList>
+                  <Label>첨부 파일 및 링크</Label>
+                  <FileLinkUploader
+                    initialFiles={selectedDecision.files}
+                    initialLinks={selectedDecision.links}
+                    readOnly={true}
+                    onFileDownload={handleFileDownload}
+                  />
                 </InputGroup>
               )}
               <ModalButtonContainer>
