@@ -255,6 +255,16 @@ const ProjectCreate = () => {
     const value = e.target.value;
     // 숫자와 쉼표만 허용
     const onlyNumbers = value.replace(/[^0-9]/g, '');
+    
+    // 20억 제한
+    const maxAmount = 2000000000;
+    const numericValue = parseInt(onlyNumbers) || 0;
+    
+    if (numericValue > maxAmount) {
+      alert('계약금은 최대 20억원까지만 입력 가능합니다.');
+      return;
+    }
+    
     // 쉼표 추가
     const formattedValue = onlyNumbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     setProjectFee(formattedValue);
@@ -402,8 +412,10 @@ const ProjectCreate = () => {
                 value={projectName} 
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="프로젝트 이름을 입력하세요"
+                maxLength={20}
                 required
               />
+              <CharacterCount>{projectName.length}/20</CharacterCount>
             </FormGroup>
 
             <FormGroup>
@@ -412,8 +424,10 @@ const ProjectCreate = () => {
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="프로젝트 설명을 입력하세요"
+                maxLength={50}
                 required
               />
+              <CharacterCount>{description.length}/50</CharacterCount>
             </FormGroup>
 
             <FormRow>
@@ -449,6 +463,9 @@ const ProjectCreate = () => {
                 placeholder="계약금을 입력하세요"
                 required
               />
+              <CharacterCount>
+                {projectFee ? `${parseInt(projectFee.replace(/,/g, '')).toLocaleString()}원` : '0원'} / 2,000,000,000원
+              </CharacterCount>
             </FormGroup>
 
             <SectionDivider>고객사 정보</SectionDivider>
@@ -1277,6 +1294,14 @@ const SelectCompanyButton = styled.button`
   &:hover {
     background-color: #f1f5f9;
   }
+`;
+
+// Add this styled component at the end of the file, before the last export statement
+const CharacterCount = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  text-align: right;
+  margin-top: 4px;
 `;
 
 export default ProjectCreate;
