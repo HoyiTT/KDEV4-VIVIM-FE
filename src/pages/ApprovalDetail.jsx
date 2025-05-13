@@ -714,6 +714,7 @@ const ApprovalDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const isDeveloper = user?.projectUserManagerRole === 'DEVELOPER';
   const [proposal, setProposal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1436,23 +1437,26 @@ const ApprovalDetail = () => {
                         </AttachmentsSection>
 
                         {/* 승인권자 목록 섹션 수정 */}
-                        {proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' && (
+                        {(proposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT || 
+                          proposal.approvalProposalStatus === ApprovalProposalStatus.BEFORE_REQUEST_PROPOSAL) && (
                           <ApproversSection>
                             <ApproversHeader>
                               <ApproversTitle>승인권자 목록</ApproversTitle>
-                              <ApprovalActionButton 
-                                $secondary
-                                onClick={handleOpenEditApprovers}
-                                style={{ padding: '4px 8px', fontSize: '13px' }}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                  <circle cx="9" cy="7" r="4"></circle>
-                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
-                                승인권자 수정
-                              </ApprovalActionButton>
+                              {proposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && (
+                                <ApprovalActionButton 
+                                  $secondary
+                                  onClick={handleOpenEditApprovers}
+                                  style={{ padding: '4px 8px', fontSize: '13px' }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                  </svg>
+                                  승인권자 수정
+                                </ApprovalActionButton>
+                              )}
                             </ApproversHeader>
                             <ApproversList>
                               {approvers.length > 0 ? (
@@ -1514,6 +1518,7 @@ const ApprovalDetail = () => {
                                   ? "승인요청이 전송되었습니다. 고객사의 승인응답을 기다리고 있습니다."
                                   : null
                               }
+                              isDeveloper={isDeveloper}
                             />
                           </div>
                         )}

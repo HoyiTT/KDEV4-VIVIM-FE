@@ -256,8 +256,12 @@ const Sidebar = () => {
         </ProfileImage>
         <ProfileInfo>
           <UserName>{user?.name || '사용자'}</UserName>
-          {user?.companyRole && (
-            <UserRole>{user.companyRole === 'ADMIN' ? '관리자' : '일반 사용자'}</UserRole>
+          {user?.projectUserManagerRole && (
+            <UserRole>
+              {user.projectUserManagerRole === 'PROJECT_MANAGER' ? '프로젝트 매니저' :
+               user.projectUserManagerRole === 'DEVELOPER' ? '개발자' :
+               user.projectUserManagerRole === 'CUSTOMER' ? '고객사' : '일반 사용자'}
+            </UserRole>
           )}
           <UserCompany>{user?.companyName || '회사 정보 없음'}</UserCompany>
           <UserEmail>{user?.email || '이메일 정보 없음'}</UserEmail>

@@ -5,6 +5,7 @@ import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enu
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
 import FileLinkUploader from './common/FileLinkUploader';
+import { useAuth } from '../hooks/useAuth';
 
 const { getApproverStatusText } = approvalUtils;
 
@@ -856,51 +857,33 @@ const StatusCount = styled.div`
 `;
 
 const ApprovalDecision = ({ approvalId, statusSummary }) => {
+  // 모달 상태를 하나로 통합
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: null, // 'add' 또는 'detail'
+    selectedApprover: null,
+    selectedDecision: null
+  });
+
+  // 기존 상태들
   const [approversData, setApproversData] = useState([]);
-  const [isInputOpen, setIsInputOpen] = useState(false);
-  const [selectedApprover, setSelectedApprover] = useState(null);
   const [newDecision, setNewDecision] = useState({ content: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [expandedApprovers, setExpandedApprovers] = useState(new Set());
-  const [isDeveloper, setIsDeveloper] = useState(false);
-  const [isCustomer, setIsCustomer] = useState(false);
   const [files, setFiles] = useState([]);
   const [links, setLinks] = useState([]);
   const [newLink, setNewLink] = useState({ title: '', url: '' });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedDecision, setSelectedDecision] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  
+  // useAuth 훅 사용
+  const { user } = useAuth();
+  const isDeveloper = user?.companyRole === 'DEVELOPER' || 
+                     user?.projectUserManagerRole === 'DEVELOPER_MANAGER' || 
+                     user?.projectUserManagerRole === 'DEVELOPER_USER';
   
   // 승인요청 전송 여부 확인
   const isRequestSent = statusSummary && 
     (statusSummary.proposalStatus !== ApprovalProposalStatus.DRAFT || statusSummary.lastSentAt);
-
-  // 개발사 확인 함수
-  const checkDeveloperStatus = async () => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.AUTH.CHECK_ROLE);
-      const isDeveloperUser = response.data.role === 'DEVELOPER';
-      console.log('Is Developer:', isDeveloperUser);
-      setIsDeveloper(isDeveloperUser);
-    } catch (error) {
-      console.error('Error checking developer status:', error);
-      setIsDeveloper(false);
-    }
-  };
-
-  // 고객사 확인 함수
-  const checkCustomerStatus = async () => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.AUTH.CHECK_ROLE);
-      const isCustomerUser = response.data.role === 'CUSTOMER';
-      console.log('Is Customer:', isCustomerUser);
-      setIsCustomer(isCustomerUser);
-    } catch (error) {
-      console.error('Error checking customer status:', error);
-      setIsCustomer(false);
-    }
-  };
 
   // 현재 사용자 정보 가져오기
   const fetchCurrentUser = async () => {
@@ -912,16 +895,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       setCurrentUser(null);
     }
   };
-
-  useEffect(() => {
-    const checkRoles = async () => {
-      await Promise.all([
-        checkDeveloperStatus(),
-        checkCustomerStatus()
-      ]);
-    };
-    checkRoles();
-  }, []);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -1021,62 +994,20 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
   };
 
-  const handleCreateDecision = async () => {
-    if (!newDecision.content || !newDecision.status) {
-      alert('내용과 상태를 모두 입력해주세요.');
-      return;
-    }
-
-    if (!selectedApprover?.approverId) {
-      alert('승인권자 정보가 없습니다.');
-      return;
-    }
-
-    try {
-      console.log('승인응답 생성 요청:', {
-        content: newDecision.content,
-        decisionStatus: newDecision.status,
-        approverId: selectedApprover.approverId
-      });
-
-      const response = await axiosInstance.post(
-        API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId),
-        {
-          content: newDecision.content,
-          decisionStatus: newDecision.status
-        }
-      );
-
-      console.log('승인응답 생성 응답:', response.data);
-
-      if (response.status === 200) {
-        // 모든 상태 초기화
-        setIsModalOpen(false);
-        setSelectedApprover(null);
-        setNewDecision({ content: '', status: '' });
-        setFiles([]);
-        setLinks([]);
-        setNewLink({ title: '', url: '' });
-        
-        // 성공 메시지 표시 및 목록 새로고침
-        alert('승인응답이 등록되었습니다.');
-        await fetchDecisions();
-      }
-    } catch (error) {
-      console.error('승인응답 생성 오류:', error);
-      const errorMessage = error.response?.data?.message || '승인응답 생성에 실패했습니다.';
-      alert(errorMessage);
-    }
+  const openModal = (type, data = null) => {
+    setModalState({
+      isOpen: true,
+      type,
+      selectedApprover: type === 'add' ? data : null,
+      selectedDecision: type === 'detail' ? data : null
+    });
   };
 
-  // 모달 닫기 함수 추가
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedApprover(null);
-    setNewDecision({ content: '', status: '' });
-    setFiles([]);
-    setLinks([]);
-    setNewLink({ title: '', url: '' });
+  const closeModal = () => {
+    setModalState(prev => ({
+      ...prev,
+      isOpen: false
+    }));
   };
 
   const handleDeleteDecision = async (decisionId, status, approverId, approverName) => {
@@ -1099,14 +1030,67 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       const response = await axiosInstance.delete(API_ENDPOINTS.DECISION.DELETE(decisionId));
 
       if (response.status === 200) {
-        alert('승응답이 성공적으로 삭제되었습니다.');
+        alert('승인응답이 성공적으로 삭제되었습니다.');
         await fetchDecisions();
       }
     } catch (error) {
-      console.error('승응답 삭제 오류:', error);
-      alert(`승응답 삭제에 실패했습니다: ${error.message}`);
+      console.error('승인응답 삭제 오류:', error);
+      alert(`승인응답 삭제에 실패했습니다: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateDecision = async () => {
+    if (!newDecision.content || !newDecision.status) {
+      alert('내용과 상태를 모두 입력해주세요.');
+      return;
+    }
+
+    if (!modalState.selectedApprover?.approverId) {
+      alert('승인권자 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      console.log('승인응답 생성 요청:', {
+        content: newDecision.content,
+        decisionStatus: newDecision.status,
+        approverId: modalState.selectedApprover.approverId
+      });
+
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(modalState.selectedApprover.approverId),
+        {
+          content: newDecision.content,
+          decisionStatus: newDecision.status
+        }
+      );
+
+      console.log('승인응답 생성 응답:', response.data);
+
+      if (response.status === 200) {
+        // 상태 초기화
+        setNewDecision({ content: '', status: '' });
+        setFiles([]);
+        setLinks([]);
+        setNewLink({ title: '', url: '' });
+        
+        // 모달 닫기
+        setModalState({
+          isOpen: false,
+          type: null,
+          selectedApprover: null,
+          selectedDecision: null
+        });
+        
+        alert('승인응답이 등록되었습니다.');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('승인응답 생성 오류:', error);
+      const errorMessage = error.response?.data?.message || '승인응답 생성에 실패했습니다.';
+      alert(errorMessage);
     }
   };
 
@@ -1151,12 +1135,14 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       const linksData = linksResponse.data;
 
       // 파일과 링크 정보를 포함하여 상태 업데이트
-      setSelectedDecision({
-        ...decision,
-        files: filesData,
-        links: linksData
-      });
-      setIsDetailModalOpen(true);
+      setModalState(prev => ({
+        ...prev,
+        selectedDecision: {
+          ...decision,
+          files: filesData,
+          links: linksData
+        }
+      }));
     } catch (error) {
       console.error('상세 정보 조회 오류:', error);
       alert('상세 정보를 불러오는데 실패했습니다.');
@@ -1253,7 +1239,19 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                   <ResponseName>
                     {approver.approverName}
                     {hasApprovedDecision(approver) && (
-                      <CompletedBadge>승인 완료</CompletedBadge>
+                      <StatusBadge $status={ApprovalDecisionStatus.APPROVED}>
+                        승인 완료
+                      </StatusBadge>
+                    )}
+                    {!hasApprovedDecision(approver) && hasRejectedDecision(approver) && (
+                      <StatusBadge $status={ApprovalDecisionStatus.REJECTED}>
+                        반려
+                      </StatusBadge>
+                    )}
+                    {!hasApprovedDecision(approver) && !hasRejectedDecision(approver) && approver.decisionResponses?.length > 0 && (
+                      <StatusBadge $status={ApprovalDecisionStatus.UNDER_REVIEW}>
+                        검토중
+                      </StatusBadge>
                     )}
                   </ResponseName>
                   <svg 
@@ -1326,13 +1324,9 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                           </ResponseDecision>
                         ))}
                         
-                        {!isDeveloper && !isCustomer && !hasApprovedDecision(approver) && (
+                        {!isDeveloper && !hasApprovedDecision(approver) && (
                           <AddResponseButton 
-                            onClick={() => {
-                              setIsModalOpen(true);
-                              setSelectedApprover(approver);
-                              setNewDecision({ content: '', status: '' });
-                            }}
+                            onClick={() => openModal('add', approver)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1362,13 +1356,9 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                           아직 등록된 응답이 없습니다
                         </div>
                         
-                        {!isDeveloper && !isCustomer && !hasApprovedDecision(approver) && (
+                        {!isDeveloper && !hasApprovedDecision(approver) && (
                           <AddResponseButton 
-                            onClick={() => {
-                              setIsModalOpen(true);
-                              setSelectedApprover(approver);
-                              setNewDecision({ content: '', status: '' });
-                            }}
+                            onClick={() => openModal('add', approver)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1388,12 +1378,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       </ResponseSection>
 
       {/* 승인응답 추가 모달 */}
-      {isModalOpen && (
-        <ModalOverlay onClick={handleCloseModal}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
+      {modalState.isOpen && modalState.type === 'add' && (
+        <ModalOverlay>
+          <ModalContainer>
             <ModalHeader>
               <ModalTitle>승인응답 추가</ModalTitle>
-              <CloseButton onClick={handleCloseModal}>×</CloseButton>
+              <CloseButton onClick={closeModal}>×</CloseButton>
             </ModalHeader>
             <ModalContent>
               <InputGroup>
@@ -1440,7 +1430,7 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                 />
               </InputGroup>
               <ModalButtonContainer>
-                <CancelButton onClick={handleCloseModal}>취소</CancelButton>
+                <CancelButton onClick={closeModal}>취소</CancelButton>
                 <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
               </ModalButtonContainer>
             </ModalContent>
@@ -1449,24 +1439,18 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       )}
 
       {/* 승인응답 상세보기 모달 */}
-      {isDetailModalOpen && selectedDecision && (
-        <ModalOverlay onClick={() => {
-          setIsDetailModalOpen(false);
-          setSelectedDecision(null);
-        }}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
+      {modalState.isOpen && modalState.type === 'detail' && modalState.selectedDecision && (
+        <ModalOverlay>
+          <ModalContainer>
             <ModalHeader>
               <ModalTitle>승인응답 상세</ModalTitle>
-              <CloseButton onClick={() => {
-                setIsDetailModalOpen(false);
-                setSelectedDecision(null);
-              }}>×</CloseButton>
+              <CloseButton onClick={closeModal}>×</CloseButton>
             </ModalHeader>
             <ModalContent>
               <InputGroup>
                 <Label>승인 상태</Label>
-                <StatusBadge $status={selectedDecision.status}>
-                  {getStatusText(selectedDecision.status)}
+                <StatusBadge $status={modalState.selectedDecision.status}>
+                  {getStatusText(modalState.selectedDecision.status)}
                 </StatusBadge>
               </InputGroup>
               <InputGroup>
@@ -1478,31 +1462,28 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                   border: '1px solid #e2e8f0',
                   minHeight: '100px'
                 }}>
-                  {selectedDecision.content || '내용 없음'}
+                  {modalState.selectedDecision.content || '내용 없음'}
                 </div>
               </InputGroup>
               <InputGroup>
                 <Label>응답 일시</Label>
                 <div style={{ color: '#64748b' }}>
-                  {formatDate(selectedDecision.decidedAt)}
+                  {formatDate(modalState.selectedDecision.decidedAt)}
                 </div>
               </InputGroup>
-              {selectedDecision.files && selectedDecision.files.length > 0 && (
+              {modalState.selectedDecision.files && modalState.selectedDecision.files.length > 0 && (
                 <InputGroup>
                   <Label>첨부 파일 및 링크</Label>
                   <FileLinkUploader
-                    initialFiles={selectedDecision.files}
-                    initialLinks={selectedDecision.links}
+                    initialFiles={modalState.selectedDecision.files}
+                    initialLinks={modalState.selectedDecision.links}
                     readOnly={true}
                     onFileDownload={handleFileDownload}
                   />
                 </InputGroup>
               )}
               <ModalButtonContainer>
-                <CancelButton onClick={() => {
-                  setIsDetailModalOpen(false);
-                  setSelectedDecision(null);
-                }}>닫기</CancelButton>
+                <CancelButton onClick={closeModal}>닫기</CancelButton>
               </ModalButtonContainer>
             </ModalContent>
           </ModalContainer>

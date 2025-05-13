@@ -494,23 +494,6 @@ const BoardHeaderCell = styled.th`
   &:nth-child(5) { width: 15%; }
 `;
 
-const BoardRow = styled.tr`
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: #f8fafc;
-    
-    ${BoardCell} {
-      background: #f8fafc;
-    }
-  }
-
-  &:last-child ${BoardCell} {
-    border-bottom: none;
-  }
-`;
-
 const BoardCell = styled.td`
   padding: 10px 16px;
   font-size: 13px;
@@ -552,6 +535,23 @@ const BoardCell = styled.td`
     color: #64748b;
     font-size: 12px;
     height: 36px;
+  }
+`;
+
+const BoardRow = styled.tr`
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    
+    ${BoardCell} {
+      background: #f8fafc;
+    }
+  }
+
+  &:last-child ${BoardCell} {
+    border-bottom: none;
   }
 `;
 
