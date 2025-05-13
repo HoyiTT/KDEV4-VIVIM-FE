@@ -162,7 +162,7 @@ const TableCell = styled.td`
 
   const SearchSection = styled.div`
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     flex-wrap: nowrap;
     margin-bottom: 24px;
@@ -436,14 +436,18 @@ const UserManagement = () => {
     if (!userToDelete) return;
     
     try {
-      await axiosInstance.delete(API_ENDPOINTS.USER_DETAIL(userToDelete.id), {
+      await axiosInstance.delete(API_ENDPOINTS.USER_SOFT_DELETE(userToDelete.id), {
         withCredentials: true
       });
-      alert(`${userToDelete.name} 유저가 삭제되었습니다.`);
+      alert(`${userToDelete.name} 사용자가 삭제되었습니다.`);
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('유저 삭제 중 오류가 발생했습니다.');
+      console.error('Error soft deleting user:', error);
+      if (error.response?.status === 403) {
+        alert('사용자를 삭제할 권한이 없습니다.');
+      } else {
+        alert('사용자 삭제 중 오류가 발생했습니다.');
+      }
     }
     setDeleteModalOpen(false);
     setUserToDelete(null);
@@ -484,7 +488,7 @@ const UserManagement = () => {
             </ButtonContainer>
           </Header>
           <SearchSection>
-            <SearchRow style={{ flex: 1 }}>
+            <SearchRow style={{ marginRight: '0' }}>
               <SearchInput
                 type="text"
                 name="name"
@@ -532,12 +536,10 @@ const UserManagement = () => {
                 />
                 <span>삭제된 사용자만 검색</span>
               </SearchCheckbox>
-            </SearchRow>
-            <div>
               <SearchButton onClick={handleSearch}>
                 검색
               </SearchButton>
-            </div>
+            </SearchRow>
           </SearchSection>
         </Card>
 

@@ -170,11 +170,9 @@ const AuditLog = () => {
               <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
               <Input type="number" name="size" value={filters.size} onChange={handleFilterChange} min={1} max={100} style={{ width: 80 }} />
+              <SearchButton onClick={handleSearch}>검색</SearchButton>
             </FilterContainer>
           </HeaderLeft>
-          <HeaderRight>
-            <SearchButton onClick={handleSearch}>검색</SearchButton>
-          </HeaderRight>
         </Header>
 
         {loading ? (

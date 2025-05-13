@@ -40,13 +40,18 @@ const CompanyManagement = () => {
   const handleDeleteConfirm = async () => {
     if (companyToDelete) {
       try {
-        await axiosInstance.delete(API_ENDPOINTS.COMPANY_DETAIL(companyToDelete), {
+        await axiosInstance.delete(API_ENDPOINTS.COMPANY_SOFT_DELETE(companyToDelete), {
           withCredentials: true
         });
+        alert('회사가 삭제되었습니다.');
         fetchCompanies();
       } catch (error) {
-        console.error('Error deleting company:', error);
-        alert('회사 삭제 중 오류가 발생했습니다.');
+        console.error('Error soft deleting company:', error);
+        if (error.response?.status === 403) {
+          alert('회사를 삭제할 권한이 없습니다.');
+        } else {
+          alert('회사 삭제 중 오류가 발생했습니다.');
+        }
       }
     }
     setDeleteModalOpen(false);
@@ -135,7 +140,7 @@ const CompanyManagement = () => {
           </Header>
 
           <SearchSection>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginRight: '0' }}>
               <SearchInput
                 type="text"
                 placeholder="회사명 검색"
@@ -166,8 +171,6 @@ const CompanyManagement = () => {
                 />
                 삭제된 회사만 검색
               </SearchCheckbox>
-            </div>
-            <div>
               <SearchButton onClick={handleSearch}>
                 검색
               </SearchButton>
@@ -340,7 +343,7 @@ const AddButton = styled.button`
 
 const SearchSection = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: nowrap;
   margin-bottom: 24px;
