@@ -6,6 +6,7 @@ import MainContent from '../components/common/MainContent';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios'; 
+import FileLinkDeleter from '../components/common/FileLinkDeleter';
 
 // 파일 크기 제한 상수 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -235,7 +236,7 @@ const ProjectPostModify = () => {
   
       // Delete links that were marked for deletion
       for (const linkId of linksToDelete) {
-        const deleteLinkResponse = await fetch(API_ENDPOINTS.DECISION.DELETE_LINK(linkId), {
+        const deleteLinkResponse = await fetch(API_ENDPOINTS.LINK_DELETE(linkId), {
           method: 'PATCH',
           credentials: 'include'
         });
@@ -246,7 +247,7 @@ const ProjectPostModify = () => {
       }
 
       for (const fileId of filesToDelete) {
-        const deleteFileResponse = await fetch(API_ENDPOINTS.APPROVAL.FILE_DELETE(fileId), {
+        const deleteFileResponse = await fetch(API_ENDPOINTS.FILE_DELETE(fileId), {
           method: 'PATCH',
           credentials: 'include'
         });
@@ -434,135 +435,89 @@ const ProjectPostModify = () => {
               </CharacterCount>
             </InputGroup>
 
-  <InputGroup>
-    <Label>링크 (선택사항)</Label>
-    <LinkInputContainer>
-      <LinkInputGroup>
-        <Input
-          type="text"
-          value={linkTitle}
-          onChange={(e) => {
-            if (e.target.value.length <= 60) {
-              setLinkTitle(e.target.value);
-            }
-          }}
-          placeholder="링크 제목을 입력하세요"
-          maxLength={60}
-        />
-        <CharacterCount>
-          {linkTitle.length}/60
-        </CharacterCount>
-      </LinkInputGroup>
-      
-      <LinkInputGroup>
-        <Input
-          type="url"
-          value={linkUrl}
-          onChange={(e) => {
-            if (e.target.value.length <= 1000) {
-              setLinkUrl(e.target.value);
-            }
-          }}
-          placeholder="URL을 입력하세요"
-          maxLength={1000}
-        />
-        <CharacterCount>
-          {linkUrl.length}/1000
-        </CharacterCount>
-      </LinkInputGroup>
-      <AddButton
-        type="button"
-        onClick={handleAddLink}
-        disabled={!linkTitle || !linkUrl}
-      >
-        추가
-      </AddButton>
-    </LinkInputContainer>
-    
-    {(existingLinks.length > 0 || newLinks.length > 0) && (
-      <LinkList>
-        {existingLinks.map((link, index) => (
-          <LinkItem key={`existing-${index}`}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              🔗 {link.title}
-              <span style={{ color: '#64748b', marginLeft: '8px' }}>
-                ({link.url})
-              </span>
-            </div>
-            <DeleteButton
-              type="button"
-              onClick={() => handleLinkDelete(index, true)}
-            >
-              ✕
-            </DeleteButton>
-          </LinkItem>
-        ))}
-        {newLinks.map((link, index) => (
-          <LinkItem key={`new-${index}`}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              🔗 {link.title}
-              <span style={{ color: '#64748b', marginLeft: '8px' }}>
-                ({link.url})
-              </span>
-            </div>
-            <DeleteButton
-              type="button"
-              onClick={() => handleLinkDelete(index, false)}
-            >
-              ✕
-            </DeleteButton>
-          </LinkItem>
-        ))}
-      </LinkList>
-    )}
-  </InputGroup>
-  <InputGroup>
-  <Label>파일 첨부 (선택사항)</Label>
-  <FileInputContainer>
-    <div style={{ display: 'flex', gap: '12px' }}>
-      <HiddenFileInput
-        type="file"
-        onChange={handleAddFile}
-        multiple
-        accept={allowedMimeTypes.join(',')}
-        id="fileInput"
-      />
-      <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
-        파일 선택
-      </FileButton>
-    </div>
-    {(existingFiles.length > 0 || newFiles.length > 0) && (
-      <FileList>
-                      {existingFiles.map((file, index) => (
-                        <FileItem key={`existing-${index}`}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            📎 {file.name}
-                          </div>
-                          <DeleteButton
-                            type="button"
-                            onClick={() => handleFileDelete(index, true)}
-                          >
-                            ✕
-                          </DeleteButton>
-                        </FileItem>
-                      ))}
-                      {newFiles.map((file, index) => (
-                        <FileItem key={`new-${index}`}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            📎 {file.name}
-                          </div>
-                          <DeleteButton
-                            type="button"
-                            onClick={() => handleFileDelete(index, false)}
-                          >
-                            ✕
-                          </DeleteButton>
-                        </FileItem>
-                      ))}
-      </FileList>
-    )}
-  </FileInputContainer>
-</InputGroup>
+            <InputGroup>
+              <Label>파일 첨부 (선택사항)</Label>
+              <FileInputContainer>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <HiddenFileInput
+                    type="file"
+                    onChange={handleAddFile}
+                    multiple
+                    accept={allowedMimeTypes.join(',')}
+                    id="fileInput"
+                  />
+                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
+                    파일 선택
+                  </FileButton>
+                  <FileSizeGuide>* 파일 크기는 500MB 이하여야 합니다.</FileSizeGuide>
+                </div>
+                {(existingFiles.length > 0 || newFiles.length > 0) && (
+                  <FileLinkDeleter
+                    files={[...existingFiles, ...newFiles]}
+                    onFileDelete={(index) => {
+                      const isExisting = index < existingFiles.length;
+                      handleFileDelete(index, isExisting);
+                    }}
+                  />
+                )}
+              </FileInputContainer>
+            </InputGroup>
+
+            <InputGroup>
+              <Label>링크 (선택사항)</Label>
+              <LinkInputContainer>
+                <LinkInputGroup>
+                  <Input
+                    type="text"
+                    value={linkTitle}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 60) {
+                        setLinkTitle(e.target.value);
+                      }
+                    }}
+                    placeholder="링크 제목을 입력하세요"
+                    maxLength={60}
+                  />
+                  <CharacterCount>
+                    {linkTitle.length}/60
+                  </CharacterCount>
+                </LinkInputGroup>
+                
+                <LinkInputGroup>
+                  <Input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 1000) {
+                        setLinkUrl(e.target.value);
+                      }
+                    }}
+                    placeholder="URL을 입력하세요"
+                    maxLength={1000}
+                  />
+                  <CharacterCount>
+                    {linkUrl.length}/1000
+                  </CharacterCount>
+                </LinkInputGroup>
+                <AddButton
+                  type="button"
+                  onClick={handleAddLink}
+                  disabled={!linkTitle || !linkUrl}
+                >
+                  추가
+                </AddButton>
+              </LinkInputContainer>
+              
+              {(existingLinks.length > 0 || newLinks.length > 0) && (
+                <FileLinkDeleter
+                  links={[...existingLinks, ...newLinks]}
+                  onLinkDelete={(index) => {
+                    const isExisting = index < existingLinks.length;
+                    handleLinkDelete(index, isExisting);
+                  }}
+                />
+              )}
+            </InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
@@ -583,15 +538,16 @@ const ProjectPostModify = () => {
 const FileInputContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   
-  &::after {
-    content: '* 파일 크기는 500MB 이하여야 합니다.';
-    display: block;
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
+  & > div {
+    margin-bottom: 8px;
   }
+`;
+
+const FileSizeGuide = styled.span`
+  font-size: 12px;
+  color: #64748b;
 `;
 
 const Button = styled.button`
