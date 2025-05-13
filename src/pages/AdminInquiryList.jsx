@@ -7,6 +7,7 @@ import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
+import Pagination from '../components/common/Pagination';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
@@ -212,7 +213,7 @@ const AdminInquiryList = () => {
                   <TableHeaderCell>작성자</TableHeaderCell>
                   <TableHeaderCell>작성일</TableHeaderCell>
                   <TableHeaderCell>상태</TableHeaderCell>
-                  <TableHeaderCell>액션</TableHeaderCell>
+                  <TableHeaderCell>상세보기</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -241,36 +242,12 @@ const AdminInquiryList = () => {
               </tbody>
             </UsersTable>
             {totalElements > 0 && (
-              <Pagination>
-                <PageButton
-                  active={currentPage === 0}
-                  onClick={() => handlePageChange(0)}
-                  disabled={currentPage === 0}
-                >
-                  처음
-                </PageButton>
-                <PageButton
-                  active={currentPage > 0}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 0}
-                >
-                  이전
-                </PageButton>
-                <PageButton
-                  active={currentPage < Math.ceil(totalElements / 10) - 1}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === Math.ceil(totalElements / 10) - 1}
-                >
-                  다음
-                </PageButton>
-                <PageButton
-                  active={currentPage === Math.ceil(totalElements / 10) - 1}
-                  onClick={() => handlePageChange(Math.ceil(totalElements / 10) - 1)}
-                  disabled={currentPage === Math.ceil(totalElements / 10) - 1}
-                >
-                  마지막
-                </PageButton>
-              </Pagination>
+              <Pagination
+                currentPage={currentPage}
+                totalElements={totalElements}
+                pageSize={10}
+                onPageChange={handlePageChange}
+              />
             )}
           </>
         )}
@@ -548,34 +525,6 @@ const TableInfo = styled.div`
   font-size: 14px;
   color: #64748b;
   font-weight: 500;
-`;
-
-const Pagination = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PageButton = styled.button`
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#1B5E20' : '#f8fafc'};
-    border-color: ${props => props.active ? '#1B5E20' : '#cbd5e1'};
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
 `;
 
 const StatusSelectContainer = styled.div`

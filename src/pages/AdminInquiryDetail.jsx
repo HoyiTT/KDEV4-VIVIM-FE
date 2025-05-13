@@ -7,6 +7,7 @@ import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import { FaTrashAlt } from 'react-icons/fa';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const AdminInquiryDetail = () => {
   const navigate = useNavigate();
@@ -17,14 +18,14 @@ const AdminInquiryDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteCommentModalOpen, setDeleteCommentModalOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
 
   useEffect(() => {
     if (authLoading) return;
     
-    if (!user || user.companyRole !== 'ADMIN') {
-      navigate('/dashboard');
-      return;
-    }
+
     fetchInquiryDetail();
     fetchComments();
   }, [id, user, authLoading]);
@@ -108,30 +109,38 @@ const AdminInquiryDetail = () => {
     }
   };
 
-  const handleDeleteInquiry = async () => {
-    if (window.confirm('정말로 이 문의를 삭제하시겠습니까?')) {
-      try {
-        await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
-        alert('문의가 삭제되었습니다.');
-        navigate('/admin/inquiries');
-      } catch (error) {
-        console.error('Error deleting inquiry:', error);
-        alert('문의 삭제 중 오류가 발생했습니다.');
-      }
-    }
+  const handleDeleteClick = () => {
+    setDeleteModalOpen(true);
   };
 
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm('정말로 이 답변을 삭제하시겠습니까?')) {
-      try {
-        await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_DELETE(id, commentId));
-        alert('답변이 삭제되었습니다.');
-        fetchComments();
-      } catch (error) {
-        console.error('Error deleting comment:', error);
-        alert('답변 삭제 중 오류가 발생했습니다.');
-      }
+  const handleDeleteConfirm = async () => {
+    try {
+      await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_DELETE(id));
+      alert('문의가 삭제되었습니다.');
+      navigate('/admin/inquiries');
+    } catch (error) {
+      console.error('Error deleting inquiry:', error);
+      alert('문의 삭제 중 오류가 발생했습니다.');
     }
+    setDeleteModalOpen(false);
+  };
+
+  const handleDeleteCommentClick = (commentId) => {
+    setCommentToDelete(commentId);
+    setDeleteCommentModalOpen(true);
+  };
+
+  const handleDeleteCommentConfirm = async () => {
+    try {
+      await axiosInstance.patch(API_ENDPOINTS.ADMIN_INQUIRY_COMMENT_DELETE(id, commentToDelete));
+      alert('답변이 삭제되었습니다.');
+      fetchComments();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('답변 삭제 중 오류가 발생했습니다.');
+    }
+    setDeleteCommentModalOpen(false);
+    setCommentToDelete(null);
   };
 
   if (loading) {
@@ -185,7 +194,7 @@ const AdminInquiryDetail = () => {
                     답변 완료하기
                   </CreateButton>
                 )}
-                <CreateButton onClick={handleDeleteInquiry} style={{ background: '#dc2626' }}>
+                <CreateButton onClick={handleDeleteClick} style={{ background: '#dc2626' }}>
                   <FaTrashAlt /> 문의사항 삭제
                 </CreateButton>
               </div>
@@ -236,7 +245,7 @@ const AdminInquiryDetail = () => {
                         }).replace(/\. /g, '.').slice(0, -1)}
                       </CommentDate>
                     </CommentInfo>
-                    <DeleteButton onClick={() => handleDeleteComment(comment.id)}>
+                    <DeleteButton onClick={() => handleDeleteCommentClick(comment.id)}>
                       <FaTrashAlt /> 삭제
                     </DeleteButton>
                   </CommentHeader>
@@ -266,6 +275,30 @@ const AdminInquiryDetail = () => {
             </AnswerInputContainer>
           </AnswerSection>
         </ContentContainer>
+
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="문의 삭제"
+          message={`정말로 이 문의를 삭제하시겠습니까?
+삭제된 문의는 복구할 수 없습니다.`}
+          confirmText="삭제"
+          cancelText="취소"
+          type="delete"
+        />
+
+        <ConfirmModal
+          isOpen={deleteCommentModalOpen}
+          onClose={() => setDeleteCommentModalOpen(false)}
+          onConfirm={handleDeleteCommentConfirm}
+          title="답변 삭제"
+          message={`정말로 이 답변을 삭제하시겠습니까?
+삭제된 답변은 복구할 수 없습니다.`}
+          confirmText="삭제"
+          cancelText="취소"
+          type="delete"
+        />
       </MainContent>
     </PageContainer>
   );

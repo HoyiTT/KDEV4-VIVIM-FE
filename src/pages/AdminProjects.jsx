@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
+import Pagination from '../components/common/Pagination';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const AdminProjects = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const AdminProjects = () => {
     description: '',
     isDeleted: false
   });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -107,32 +111,42 @@ const AdminProjects = () => {
     }
   };
 
-  const handleDeleteProject = async (projectId) => {
-    if (window.confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
-      try {
-        const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
-          withCredentials: true,
-          data: {
-            projectId: projectId,
-            deleteReason: '사용자에 의한 삭제'
-          }
-        });
-        
-        if (response.data.statusCode === 200) {
-          alert('프로젝트가 삭제되었습니다.');
-          fetchProjects();
-        } else {
-          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+  const handleDeleteClick = (projectId) => {
+    setProjectToDelete(projectId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      const response = await axiosInstance.delete(`${API_ENDPOINTS.PROJECTS}/${projectToDelete}`, {
+        withCredentials: true,
+        data: {
+          projectId: projectToDelete,
+          deleteReason: '사용자에 의한 삭제'
         }
-      } catch (error) {
-        console.error('Error deleting project:', error);
-        if (error.response?.status === 403) {
-          alert('프로젝트를 삭제할 권한이 없습니다.');
-        } else {
-          alert('프로젝트 삭제 중 오류가 발생했습니다.');
-        }
+      });
+      
+      if (response.data.statusCode === 200) {
+        alert('프로젝트가 삭제되었습니다.');
+        fetchProjects();
+      } else {
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      if (error.response?.status === 403) {
+        alert('프로젝트를 삭제할 권한이 없습니다.');
+      } else {
+        alert('프로젝트 삭제 중 오류가 발생했습니다.');
       }
     }
+    setDeleteModalOpen(false);
+    setProjectToDelete(null);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchProjects(filters, page);
   };
 
   return (
@@ -149,7 +163,7 @@ const AdminProjects = () => {
           </Header>
 
           <SearchSection>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginRight: '0' }}>
               <SearchInput
                 type="text"
                 placeholder="프로젝트명 검색"
@@ -173,8 +187,6 @@ const AdminProjects = () => {
                 />
                 삭제된 프로젝트만 검색
               </SearchCheckbox>
-            </div>
-            <div>
               <SearchButton onClick={handleSearch}>
                 검색
               </SearchButton>
@@ -228,7 +240,7 @@ const AdminProjects = () => {
                               <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
                                 수정
                               </ActionButton>
-                              <DeleteButton onClick={() => handleDeleteProject(project.projectId)}>
+                              <DeleteButton onClick={() => handleDeleteClick(project.projectId)}>
                                 삭제
                               </DeleteButton>
                             </>
@@ -247,31 +259,31 @@ const AdminProjects = () => {
               </TableBody>
             </ProjectTable>
 
-            <PaginationContainer>
-              <PaginationButton 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
-                disabled={currentPage === 0}
-              >
-                이전
-              </PaginationButton>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <PaginationButton
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  active={currentPage === i}
-                >
-                  {i + 1}
-                </PaginationButton>
-              ))}
-              <PaginationButton 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
-                disabled={currentPage === totalPages - 1}
-              >
-                다음
-              </PaginationButton>
-            </PaginationContainer>
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalElements={totalPages * 10}
+                pageSize={10}
+                onPageChange={handlePageChange}
+              />
+            )}
           </>
         )}
+
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setProjectToDelete(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+          title="프로젝트 삭제"
+          message={`정말로 이 프로젝트를 삭제하시겠습니까?
+삭제된 프로젝트는 복구할 수 없습니다.`}
+          confirmText="삭제"
+          cancelText="취소"
+          type="delete"
+        />
       </MainContent>
     </PageContainer>
   );
@@ -360,7 +372,7 @@ const AddButton = styled.button`
 
 const SearchSection = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: nowrap;
   margin-bottom: 24px;
@@ -627,35 +639,6 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PaginationButton = styled.button`
-  padding: 8px 16px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
-  border-radius: 6px;
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
-  }
-
-  &:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
-  }
 `;
 
 export default AdminProjects;

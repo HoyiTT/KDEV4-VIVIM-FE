@@ -11,10 +11,12 @@ export const API_ENDPOINTS = {
   USER_DETAIL: (id) => `${API_BASE_URL}/users/${id}`,
   USER_PASSWORD_MODIFY: (userId, password) => `${API_BASE_URL}/users/modifypassword/${userId}?password=${password}`,
   USERS_SEARCH: `${API_BASE_URL}/users/search`,
+  USER_SOFT_DELETE: (id) => `${API_BASE_URL}/users/soft/${id}`,
 
   // Companies
   COMPANIES: `${API_BASE_URL}/companies`,
   COMPANY_DETAIL: (id) => `${API_BASE_URL}/companies/${id}`,
+  COMPANY_SOFT_DELETE: (id) => `${API_BASE_URL}/companies/soft/${id}`,
   COMPANY_EMPLOYEES: (companyId) => `${API_BASE_URL}/companies/${companyId}/employees`,
   COMPANIES_SEARCH: `${API_BASE_URL}/companies/search`,
 
