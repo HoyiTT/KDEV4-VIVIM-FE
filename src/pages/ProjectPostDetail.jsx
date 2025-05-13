@@ -161,6 +161,8 @@ const ProjectPostDetail = () => {
   const fetchComments = async () => {
     try {
       const response = await axiosInstance.get(`${API_BASE_URL}/posts/${postId}/comments`);
+      console.log('댓글 목록:', response.data);
+      console.log('현재 로그인한 사용자:', user);
       setComments(response.data);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -207,9 +209,14 @@ const ProjectPostDetail = () => {
 
     try {
       const parentId = parentComment ? (parentComment.parentId === null ? parentComment.commentId : parentComment.parentId) : null;
+      
+      // 부모 댓글이 있는 경우 작성자 이름을 멘션(@) 형식으로 추가
+      const content = parentComment 
+        ? `@${parentComment.creatorName} ${commentContent}`
+        : commentContent;
 
       await axiosInstance.post(`${API_BASE_URL}/posts/${postId}/comments`, {
-        content: commentContent,
+        content: content,
         parentId: parentId
       });
 
@@ -265,7 +272,7 @@ const ProjectPostDetail = () => {
                       <DateText>· {new Date(post.createdAt).toLocaleString()}</DateText>
                     </PostCreatorInfo>
                   </div>
-                  {(isAdmin || user?.userId === post.creatorId) && (
+                  {(isAdmin || user?.id === post.creatorId) && (
                     <ButtonContainer>
                       <EditButton onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}>
                         수정
@@ -370,49 +377,70 @@ const ProjectPostDetail = () => {
                     .map((parentComment) => (
                       <CommentThread key={parentComment.commentId}>
                         <CommentItem>
-                          {/* Parent Comment Content */}
                           {editingCommentId === parentComment.commentId ? (
                             <EditCommentForm>
                               <CommentInput
                                 value={editedComment}
                                 onChange={(e) => setEditedComment(e.target.value)}
-                                maxLength={1000}  // Add this line
-                                placeholder="댓글을 입력하세요 (최대 1000자)"  // Add this line
+                                maxLength={1000}
+                                placeholder="댓글을 입력하세요 (최대 1000자)"
                               />
                               <EditButtonContainer>
-                                <SaveButton onClick={() => handleUpdateComment(parentComment.commentId)}>
-                                  완료
-                                </SaveButton>
+                                <ActionButton 
+                                  onClick={() => handleUpdateComment(parentComment.commentId)}
+                                >
+                                  저장
+                                </ActionButton>
+                                <ActionButton 
+                                  onClick={() => {
+                                    setEditingCommentId(null);
+                                    setEditedComment('');
+                                  }}
+                                >
+                                  취소
+                                </ActionButton>
                               </EditButtonContainer>
                             </EditCommentForm>
                           ) : (
                             <>
                               <CommentAuthor>
                                 <AuthorName>{parentComment.creatorName}</AuthorName>
-                                <RoleTag role={parentComment.creatorRole}>{translateRole(parentComment.creatorRole)}</RoleTag>
+                                <RoleTag role={parentComment.creatorRole}>
+                                  {translateRole(parentComment.creatorRole)}
+                                </RoleTag>
                               </CommentAuthor>
                               <CommentText>{parentComment.content}</CommentText>
-                              <CommentMoreOptionsContainer $isChild={true}>
-                              {(isAdmin || user?.userId === parentComment.creatorId) && (
-                              <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
-                                  prev === parentComment.commentId ? null : parentComment.commentId
-                                )}>
-                                  ⋮
-                              </MoreOptionsButton>
-                              )}
-                                {activeCommentOptions === parentComment.commentId && (
-                                  <OptionsDropdown>
-                                    <OptionButton onClick={() => {
-                                      setEditingCommentId(parentComment.commentId);
-                                      setEditedComment(parentComment.content);
-                                      setActiveCommentOptions(null);
-                                    }}>
-                                      수정
-                                    </OptionButton>
-                                    <OptionButton onClick={() => handleDeleteComment(parentComment.commentId)}>
-                                      삭제
-                                    </OptionButton>
-                                  </OptionsDropdown>
+                              <CommentMoreOptionsContainer>
+                                {(isAdmin || user?.id === parentComment.creatorId) && (
+                                  <>
+                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(prev => 
+                                      prev === parentComment.commentId ? null : parentComment.commentId
+                                    )}>
+                                      ⋮
+                                    </MoreOptionsButton>
+                                    {activeCommentOptions === parentComment.commentId && (
+                                      <OptionsDropdown>
+                                        <OptionButton onClick={() => {
+                                          setEditingCommentId(parentComment.commentId);
+                                          setEditedComment(parentComment.content);
+                                          setActiveCommentOptions(null);
+                                        }}>
+                                          수정
+                                        </OptionButton>
+                                        <OptionButton 
+                                          className="delete"
+                                          onClick={() => {
+                                            if (window.confirm('댓글을 삭제하시겠습니까?')) {
+                                              handleDeleteComment(parentComment.commentId);
+                                              setActiveCommentOptions(null);
+                                            }
+                                          }}
+                                        >
+                                          삭제
+                                        </OptionButton>
+                                      </OptionsDropdown>
+                                    )}
+                                  </>
                                 )}
                               </CommentMoreOptionsContainer>
                               <CommentActions>
@@ -436,6 +464,7 @@ const ProjectPostDetail = () => {
                               value={commentContent}
                               onChange={(e) => setCommentContent(e.target.value)}
                               maxLength={1000}
+                              placeholder={`@${parentComment.creatorName}님에게 답글 작성...`}
                             />
                             <CharacterCount>
                               {commentContent.length}/1000
@@ -455,29 +484,42 @@ const ProjectPostDetail = () => {
                           .map((childComment, index, array) => (
                             <React.Fragment key={childComment.commentId}>
                               <ChildCommentItem>
-                                <ReplyIcon>↳</ReplyIcon>
                                 {editingCommentId === childComment.commentId ? (
                                   <EditCommentForm>
                                     <CommentInput
                                       value={editedComment}
                                       onChange={(e) => setEditedComment(e.target.value)}
+                                      maxLength={1000}
+                                      placeholder="댓글을 입력하세요 (최대 1000자)"
                                     />
                                     <EditButtonContainer>
-                                      <SaveButton onClick={() => handleUpdateComment(childComment.commentId)}>
-                                        완료
-                                      </SaveButton>
+                                      <ActionButton 
+                                        onClick={() => handleUpdateComment(childComment.commentId)}
+                                      >
+                                        저장
+                                      </ActionButton>
+                                      <ActionButton 
+                                        onClick={() => {
+                                          setEditingCommentId(null);
+                                          setEditedComment('');
+                                        }}
+                                      >
+                                        취소
+                                      </ActionButton>
                                     </EditButtonContainer>
                                   </EditCommentForm>
                                 ) : (
                                   <>
                                       <CommentAuthor>
                                       <AuthorName>{childComment.creatorName}</AuthorName>
-                                      <RoleTag role={childComment.creatorRole}>{translateRole(childComment.creatorRole)}</RoleTag>
+                                      <RoleTag role={childComment.creatorRole}>
+                                        {translateRole(childComment.creatorRole)}
+                                      </RoleTag>
                                      </CommentAuthor>
                                     <CommentText>{childComment.content}</CommentText>
-                                    <CommentMoreOptionsContainer $isChild={true}>
-                                      {(isAdmin || user?.userId === childComment.creatorId) && (
-                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(prev =>
+                                    <CommentMoreOptionsContainer>
+                                      {(isAdmin || user?.id === childComment.creatorId) && (
+                                    <MoreOptionsButton onClick={() => setActiveCommentOptions(prev => 
                                       prev === childComment.commentId ? null : childComment.commentId
                                     )}>
                                       ⋮
@@ -492,7 +534,15 @@ const ProjectPostDetail = () => {
                                           }}>
                                             수정
                                           </OptionButton>
-                                          <OptionButton onClick={() => handleDeleteComment(childComment.commentId)}>
+                                          <OptionButton 
+                                            className="delete"
+                                            onClick={() => {
+                                              if (window.confirm('댓글을 삭제하시겠습니까?')) {
+                                                handleDeleteComment(childComment.commentId);
+                                                setActiveCommentOptions(null);
+                                              }
+                                            }}
+                                          >
                                             삭제
                                           </OptionButton>
                                         </OptionsDropdown>
@@ -518,6 +568,7 @@ const ProjectPostDetail = () => {
                                     value={commentContent}
                                     onChange={(e) => setCommentContent(e.target.value)}
                                     maxLength={1000}
+                                    placeholder={`@${parentComment.creatorName}님에게 답글 작성...`}
                                   />
                                   <CharacterCount>
                                     {commentContent.length}/1000
@@ -555,14 +606,12 @@ const FormContainer = styled.form`
   margin-bottom: 20px;
 `;
 
-const CommentInput = styled.textarea`
-  width: 100%;
-  height: 100px;
+const CommentInput = styled.input`
+  width: 98%;
   font-size: 14px;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  resize: none;
+  border-radius: 6px;
 
   &:focus {
     outline: none;
@@ -759,7 +808,20 @@ const CommentMoreOptionsContainer = styled.div`
   right: 16px;
   top: 16px;
   z-index: 1;
-  padding-left: 8px;
+`;
+
+const MoreOptionsButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  color: #64748b;
+  
+  &:hover {
+    color: #1e293b;
+  }
 `;
 
 const OptionsDropdown = styled.div`
@@ -772,6 +834,30 @@ const OptionsDropdown = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 2;
   min-width: 80px;
+  margin-top: 4px;
+`;
+
+const OptionButton = styled.button`
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+
+  &.delete {
+    color: #dc2626;
+    
+    &:hover {
+      background-color: #fee2e2;
+    }
+  }
 `;
 
 const CommentText = styled.p`
@@ -1001,36 +1087,38 @@ const PostMoreOptionsContainer = styled.div`
   position: relative;
 `;
 
-const MoreOptionsButton = styled.button`
-  background: none;
+const EditButton = styled.button`
+  padding: 8px 16px;
+  background-color: #2563eb;
+  color: white;
   border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px;
-  line-height: 1;
-  color: #64748b;
-  
-  &:hover {
-    color: #1e293b;
-  }
-`;
-
-const OptionButton = styled.button`
-  width: 100%;
-  padding: 10px 16px;
-  background: none;
-  border: none;
-  text-align: left;
+  border-radius: 6px;
   font-size: 14px;
-  color: #1e293b;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: #f1f5f9;
+    background-color: #1d4ed8;
   }
 `;
 
-// 스타일 컴포넌트 추가
+const DeleteButton = styled.button`
+  padding: 8px 16px;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+`;
+
 const QuestionResponseContainer = styled.div`
   margin-top: 32px;
   padding-top: 32px;
@@ -1093,38 +1181,6 @@ const ResponseResult = styled.div`
   font-size: 14px;
   color: #1e293b;
   font-weight: 500;
-`;
-
-const EditButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 8px 16px;
-  background-color: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #b91c1c;
-  }
 `;
 
 export default ProjectPostDetail;

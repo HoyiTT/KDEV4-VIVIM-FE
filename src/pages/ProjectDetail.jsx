@@ -425,25 +425,40 @@ const BoardHeader = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: #1e293b;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 18px;
+    background: #2E7D32;
+    border-radius: 2px;
+  }
 `;
 
 const CreateButton = styled.button`
   padding: 8px 16px;
-  background: ${props => props.$delete ? '#dc2626' : '#2E7D32'};
+  background: #2E7D32;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 
   &:hover {
-    background: ${props => props.$delete ? '#b91c1c' : '#1B5E20'};
+    background: #1B5E20;
     transform: translateY(-1px);
   }
 `;
@@ -454,68 +469,159 @@ const BoardTable = styled.table`
   border-spacing: 0;
   table-layout: fixed;
   box-sizing: border-box;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 `;
 
 const BoardHeaderCell = styled.th`
-  padding: 16px;
+  padding: 12px 16px;
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #64748b;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
   box-sizing: border-box;
+  white-space: nowrap;
+  height: 40px;
 
   &:nth-child(1) { width: 40%; }
-  &:nth-child(2) { width: 20%; }
+  &:nth-child(2) { width: 10%; }
   &:nth-child(3) { width: 20%; }
-  &:nth-child(4) { width: 20%; }
+  &:nth-child(4) { width: 15%; }
+  &:nth-child(5) { width: 15%; }
 `;
 
 const BoardCell = styled.td`
-  padding: 16px;
-  font-size: 14px;
+  padding: 10px 16px;
+  font-size: 13px;
   color: #1e293b;
   border-bottom: 1px solid #e2e8f0;
-  min-height: 30px;
+  min-height: 24px;
   white-space: normal;
   word-break: break-word;
   background: transparent;
   vertical-align: middle;
-  line-height: 1.5;
+  line-height: 1.4;
   box-sizing: border-box;
+  transition: background-color 0.2s;
+  height: 40px;
 
   &.title-cell {
     display: table-cell;
-    align-items: center;
     width: 40%;
     font-weight: 500;
+    cursor: pointer;
+    color: #334155;
+    padding-right: 8px;
+
+    &:hover {
+      color: #0f172a;
+    }
+
+    > div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+      font-size: 13px;
+    }
   }
 
   &.child-post {
-    padding-left: 40px;
+    padding-left: 32px;
+    color: #64748b;
+    font-size: 12px;
+    height: 36px;
   }
 `;
 
+const RoleBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  white-space: nowrap;
+  height: 20px;
+  line-height: 1;
+  
+  &.admin {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+  }
+  
+  &.developer {
+    background-color: #dbeafe;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+  
+  &.client {
+    background-color: #fef9c3;
+    color: #ca8a04;
+    border: 1px solid #fde047;
+  }
+`;
+
+const AuthorCell = styled(BoardCell)`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 45px;
+  padding: 0 16px;
+
+  > span {
+    font-size: 13px;
+    color: #1e293b;
+  }
+
+  ${RoleBadge} {
+    height: 20px;
+    line-height: 1;
+  }
+`;
+
+
+
 const BoardRow = styled.tr`
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 
   &:hover {
     background: #f8fafc;
+    
+    ${BoardCell} {
+      background: #f8fafc;
+    }
+  }
+
+  &:last-child ${BoardCell} {
+    border-bottom: none;
   }
 `;
 
 const ReplyButton = styled.button`
-  padding: 6px 12px;
+  padding: 3px 8px;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: #e2e8f0;
@@ -524,9 +630,13 @@ const ReplyButton = styled.button`
 `;
 
 const ReplyIndicator = styled.span`
-  color: #64748b;
-  margin-right: 8px;
-  font-size: 14px;
+  color: #94a3b8;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
 `;
 
 const StageContainer = styled.div`
@@ -1855,52 +1965,107 @@ const ProjectDetail = () => {
 
                         <BoardSection>
                           <BoardHeader>
-                <SectionTitle>게시글</SectionTitle>
-                            {!project?.isDeleted && (
-                              <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
-                                게시글 작성
-                              </CreateButton>
-                            )}
+                            <SectionTitle>게시판</SectionTitle>
+                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                              글쓰기
+                            </CreateButton>
                           </BoardHeader>
                           <BoardTable>
                             <thead>
                               <tr>
                                 <BoardHeaderCell>제목</BoardHeaderCell>
+                                <BoardHeaderCell>상태</BoardHeaderCell>
                                 <BoardHeaderCell>작성자</BoardHeaderCell>
                                 <BoardHeaderCell>작성일</BoardHeaderCell>
-                    <BoardHeaderCell>댓글</BoardHeaderCell>
+                                <BoardHeaderCell>답글</BoardHeaderCell>
                               </tr>
                             </thead>
                             <tbody>
-                  {posts.length > 0 ? (
-                    posts.map((post) => (
-                      <BoardRow key={post.postId} onClick={() => handlePostClick(post)}>
-                        <BoardCell className="title-cell">
-                          {post.title}
-                          {post.replyCount > 0 && (
-                            <ReplyIndicator>
-                              [{post.replyCount}]
-                            </ReplyIndicator>
-                          )}
-                        </BoardCell>
-                        <BoardCell>{post.creatorName}</BoardCell>
-                        <BoardCell>{formatDate(post.createdAt)}</BoardCell>
-                        <BoardCell>
-                          {comments[post.postId]?.length || 0}
-                        </BoardCell>
-                      </BoardRow>
-                    ))
-                  ) : (
-                    <tr>
-                      <EmptyBoardCell colSpan="4">
+                              {posts.length === 0 ? (
+                                <tr>
+                                  <EmptyBoardCell colSpan="5">
                                     <EmptyStateContainer>
-                          <EmptyStateTitle>게시글이 없습니다</EmptyStateTitle>
+                                      <EmptyStateTitle>등록된 게시글이 없습니다</EmptyStateTitle>
                                       <EmptyStateDescription>
-                            첫 게시글을 작성해보세요.
+                                        새로운 게시글을 작성하여 프로젝트 소식을 공유해보세요
                                       </EmptyStateDescription>
                                     </EmptyStateContainer>
                                   </EmptyBoardCell>
                                 </tr>
+                              ) : (
+                                posts
+                                  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                                  .reduce((acc, post) => {
+                                    if (!post.parentId) {
+                                      acc.push(post);
+                                      const replies = posts.filter(reply => reply.parentId === post.postId);
+                                      acc.push(...replies);
+                                      replies.forEach(reply => {
+                                        const nestedReplies = posts.filter(nestedReply => nestedReply.parentId === reply.postId);
+                                        acc.push(...nestedReplies);
+                                      });
+                                    }
+                                    return acc;
+                                  }, [])
+                                  .map((post) => (
+                                    <BoardRow key={post.postId}>
+                                      <BoardCell 
+                                        className={`title-cell ${post.parentId ? 'child-post' : ''}`}
+                                        onClick={() => navigate(`/project/${id}/post/${post.postId}`)}
+                                      >
+                                        <div>
+                                          {post.parentId && <ReplyIndicator>↳</ReplyIndicator>}
+                                          {post.title}
+                                        </div>
+                                      </BoardCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.projectPostStatus === 'NOTIFICATION' ? '공지' : 
+                                         post.projectPostStatus === 'QUESTION' ? '질문' : '일반'}
+                                      </BoardCell>
+                                      <AuthorCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        <span>{post.creatorName}</span>
+                                        <RoleBadge className={
+                                          post.creatorRole === 'ADMIN' ? 'admin' :
+                                          post.creatorRole.includes('DEVELOPER') ? 'developer' :
+                                          post.creatorRole.includes('CLIENT') ? 'client' : ''
+                                        }>
+                                          {post.creatorRole === 'ADMIN' ? '관리자' :
+                                           post.creatorRole.includes('DEVELOPER') ? '개발사' :
+                                           post.creatorRole.includes('CLIENT') ? '고객사' : ''}
+                                        </RoleBadge>
+                                      </AuthorCell>
+                                      <BoardCell onClick={() => navigate(`/project/${id}/post/${post.postId}`)}>
+                                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
+                                      </BoardCell>
+                                      <BoardCell>
+                                        {!post.parentId && (
+                                          <ReplyButton onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/project/${id}/post/create`, {
+                                              state: { parentPost: post }
+                                            });
+                                          }}>
+                                            답글
+                                          </ReplyButton>
+                                        )}
+                                        {post.parentId && (
+                                          <ReplyButton onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/project/${id}/post/create`, {
+                                              state: { 
+                                                parentPost: {
+                                                  ...post,
+                                                  parentId: post.parentId
+                                                }
+                                              }
+                                            });
+                                          }}>
+                                            답글
+                                          </ReplyButton>
+                                        )}
+                                      </BoardCell>
+                                    </BoardRow>
+                                  ))
                               )}
                             </tbody>
                           </BoardTable>

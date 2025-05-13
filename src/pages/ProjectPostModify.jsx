@@ -263,7 +263,7 @@ const ProjectPostModify = () => {
           url: link.url
         };
   
-        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(postId), {
+        const linkResponse = await fetch(API_ENDPOINTS.PROJECT_POST_LINK(projectId, postId), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
