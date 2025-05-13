@@ -46,6 +46,7 @@ const AdminProjects = () => {
         }).toString();
       } else {
         queryParams = new URLSearchParams({
+          isDeleted: false,
           page,
           size: 10
         }).toString();
@@ -68,10 +69,17 @@ const AdminProjects = () => {
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFilters(prev => ({
-      ...prev,
+    const newFilters = {
+      ...filters,
       [name]: type === 'checkbox' ? checked : value
-    }));
+    };
+    
+    // 체크박스가 해제되면 isDeleted를 false로 설정
+    if (name === 'isDeleted' && !checked) {
+      newFilters.isDeleted = false;
+    }
+    
+    setFilters(newFilters);
   };
 
   const getProjectStatus = (status, deleted) => {
