@@ -1531,7 +1531,7 @@ const ProjectDetail = () => {
       }
       
       alert('단계 순서가 성공적으로 변경되었습니다.');
-      setShowPositionModal(false);
+      setIsStageModalOpen(false);
       fetchProjectProgress(); // 단계 목록 새로고침
     } catch (error) {
       console.error('단계 순서 변경 중 오류 발생:', error);
@@ -1895,8 +1895,13 @@ const ProjectDetail = () => {
                         </BoardSection>
 
             {isStageModalOpen && (
-              <ModalOverlay>
-                <ModalContent>
+              <ModalOverlay onClick={(e) => {
+                // 모달 컨텐츠 영역 클릭 시 이벤트 전파 중단
+                if (e.target === e.currentTarget) {
+                  handleCloseStageModal();
+                }
+              }}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
                   <ModalHeader>
                     <h2>
                       {currentStageAction === 'add' && '새 단계 추가'}
@@ -1963,14 +1968,29 @@ const ProjectDetail = () => {
                           strategy={verticalListSortingStrategy}
                         >
                           <StageList>
+                            {isSavingPositions && (
+                              <div style={{
+                                padding: '12px',
+                                marginBottom: '12px',
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '4px',
+                                color: '#64748b',
+                                textAlign: 'center',
+                                fontSize: '14px'
+                              }}>
+                                단계 순서 저장 중입니다...
+                              </div>
+                            )}
                             {progressList
-                              .sort((a, b) => a.position - b.position)  // position 기준으로 정렬
+                              .sort((a, b) => a.position - b.position)
                               .map((stage, index) => (
                                 <SortableItem
                                   key={stage.id}
                                   id={stage.id}
                                   name={stage.name}
-                                  position={index + 1}  // 1부터 시작하는 순서로 표시
+                                  position={index + 1}
+                                  disabled={isSavingPositions}
                                 />
                               ))}
                           </StageList>

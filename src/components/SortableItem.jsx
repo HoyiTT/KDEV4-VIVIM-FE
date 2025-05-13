@@ -3,22 +3,33 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import styled from 'styled-components';
 
-const SortableItem = ({ id, name, position }) => {
+const SortableItem = ({ id, name, position, disabled }) => {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id });
+  } = useSortable({ 
+    id,
+    disabled 
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: disabled ? 0.6 : 1,
+    cursor: disabled ? 'not-allowed' : 'grab',
   };
 
   return (
-    <ItemContainer ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <ItemContainer 
+      ref={setNodeRef} 
+      style={style} 
+      {...(!disabled && attributes)} 
+      {...(!disabled && listeners)}
+      $disabled={disabled}
+    >
       <ItemContent>
         <ItemName>{name}</ItemName>
         <ItemPosition>순서: {position}</ItemPosition>
@@ -32,18 +43,17 @@ const ItemContainer = styled.div`
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  cursor: grab;
   user-select: none;
   transition: all 0.2s;
 
   &:hover {
-    background: #f8fafc;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: ${props => props.$disabled ? 'white' : '#f8fafc'};
+    transform: ${props => props.$disabled ? 'none' : 'translateY(-1px)'};
+    box-shadow: ${props => props.$disabled ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.05)'};
   }
 
   &:active {
-    cursor: grabbing;
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'grabbing'};
   }
 `;
 
@@ -64,4 +74,4 @@ const ItemPosition = styled.span`
   color: #64748b;
 `;
 
-export default SortableItem; 
+export default SortableItem;
