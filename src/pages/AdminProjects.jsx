@@ -86,6 +86,10 @@ const AdminProjects = () => {
     switch (progress) {
       case 'REQUIREMENTS':
         return '요구사항';
+      case 'COMPLETED':
+        return '완료';
+      case 'INSPECTION':
+        return '검수';
       case 'WIREFRAME':
         return '와이어프레임';
       case 'DESIGN':
@@ -219,12 +223,16 @@ const AdminProjects = () => {
                       </TableCell>
                       <TableCell>
                         <ActionButtonContainer>
-                          <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
-                            수정
-                          </ActionButton>
-                          <DeleteButton onClick={() => handleDeleteProject(project.projectId)}>
-                            삭제
-                          </DeleteButton>
+                          {!project.deleted && (
+                            <>
+                              <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                                수정
+                              </ActionButton>
+                              <DeleteButton onClick={() => handleDeleteProject(project.projectId)}>
+                                삭제
+                              </DeleteButton>
+                            </>
+                          )}
                         </ActionButtonContainer>
                       </TableCell>
                     </TableRow>
@@ -457,6 +465,7 @@ const TableHeaderCell = styled.th`
   color: #0F172A;
   border-bottom: 1px solid #e2e8f0;
   font-family: 'SUIT', sans-serif;
+  font-weight: 600;
 `;
 
 const TableRow = styled.tr`
@@ -483,6 +492,7 @@ const StatusBadge = styled.span`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  white-space: nowrap;
   transition: all 0.15s ease;
   background: ${props => {
     if (props.deleted) return '#FEE2E2';
@@ -517,6 +527,7 @@ const ProgressBadge = styled.span`
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
   letter-spacing: -0.02em;
   transition: all 0.15s ease;
   background: ${props => {
@@ -528,6 +539,8 @@ const ProgressBadge = styled.span`
       case 'DEVELOPMENT': return '#E0E7FF';
       case 'TESTING': return '#FEF9C3';
       case 'DEPLOYMENT': return '#F3E8FF';
+      case 'INSPECTION': return '#FEF2F2';
+      case 'COMPLETED': return '#F0FDF4';
       default: return '#F1F5F9';
     }
   }};
@@ -540,6 +553,8 @@ const ProgressBadge = styled.span`
       case 'DEVELOPMENT': return '#3730A3';
       case 'TESTING': return '#854D0E';
       case 'DEPLOYMENT': return '#6B21A8';
+      case 'INSPECTION': return '#B91C1C';
+      case 'COMPLETED': return '#15803D';
       default: return '#64748B';
     }
   }};
@@ -558,6 +573,7 @@ const ProgressBadge = styled.span`
 const ActionButtonContainer = styled.div`
   display: flex;
   gap: 8px;
+  white-space: nowrap;
 `;
 
 const ActionButton = styled.button`
