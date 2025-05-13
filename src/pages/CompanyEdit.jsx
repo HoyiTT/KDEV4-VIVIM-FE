@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
@@ -159,6 +159,74 @@ const SubmitButton = styled.button`
   }
 `;
 
+const SearchButton = styled.button`
+  padding: 8px 16px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  white-space: nowrap;
+  min-width: 60px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
+  }
+`;
+
+const AddressModal = ({ onSelect, onClose }) => {
+  const elementRef = useRef(null);
+
+  React.useEffect(() => {
+    let postcode = null;
+    let timeout = setTimeout(() => {
+      if (elementRef.current && window.daum && window.daum.Postcode) {
+        postcode = new window.daum.Postcode({
+          oncomplete: function(data) {
+            onSelect(data.roadAddress || data.address);
+          },
+          width: '100%',
+          height: '100%',
+        });
+        postcode.embed(elementRef.current);
+      }
+    }, 0);
+
+    return () => {
+      clearTimeout(timeout);
+      if (elementRef.current) {
+        elementRef.current.innerHTML = '';
+      }
+    };
+  }, [onSelect]);
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{ background: '#fff', borderRadius: 8, width: 400, height: 500, position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>닫기</button>
+        <div ref={elementRef} style={{ width: '100%', height: '100%' }} />
+      </div>
+    </div>
+  );
+};
+
 const CompanyEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -172,6 +240,42 @@ const CompanyEdit = () => {
     companyRole: '',
     coOwner: ''
   });
+  const [addressDetail, setAddressDetail] = useState('');
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [companyPhone, setCompanyPhone] = useState('');
+
+  // 사업자 번호 입력 핸들러
+  const handleBusinessNumberChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length > 10) value = value.slice(0, 10);
+    let formatted = value;
+    if (value.length > 5) {
+      formatted = `${value.slice(0,3)}-${value.slice(3,5)}-${value.slice(5)}`;
+    } else if (value.length > 3) {
+      formatted = `${value.slice(0,3)}-${value.slice(3)}`;
+    }
+    setFormData(prevState => ({
+      ...prevState,
+      businessNumber: formatted
+    }));
+  };
+
+  // 회사 번호 입력 핸들러
+  const handleCompanyPhoneChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    let formatted = value;
+    if (value.length <= 2) {
+      formatted = value;
+    } else if (value.length <= 5) {
+      formatted = value.slice(0, 2) + '-' + value.slice(2);
+    } else if (value.length <= 9) {
+      formatted = value.slice(0, 2) + '-' + value.slice(2, value.length - 4) + '-' + value.slice(-4);
+    } else {
+      formatted = value.slice(0, 3) + '-' + value.slice(3, value.length - 4) + '-' + value.slice(-4);
+    }
+    setCompanyPhone(formatted);
+    setFormData(prev => ({ ...prev, phone: formatted }));
+  };
 
   useEffect(() => {
     const fetchCompanyData = async () => {
@@ -183,6 +287,13 @@ const CompanyEdit = () => {
           }
         });
         setFormData(data);
+        if (data.address) {
+          const arr = data.address.split(' ');
+          setFormData(prev => ({ ...prev, address: arr.slice(0, 3).join(' ') }));
+          setAddressDetail(arr.slice(3).join(' '));
+        }
+        // 회사 번호 상태 동기화
+        setCompanyPhone(data.phone || '');
       } catch (error) {
         console.error('Error fetching company:', error);
         alert('회사 정보를 불러오는데 실패했습니다.');
@@ -196,8 +307,22 @@ const CompanyEdit = () => {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    // 사업자 번호 유효성 검사
+    const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
+    if (!businessNumberRegex.test(formData.businessNumber)) {
+      alert('사업자 번호는 xxx-xx-xxxxx 형식으로 입력해주세요.');
+      return;
+    }
+    // 회사 번호 유효성 검사 (02-1234-5678, 031-123-4567 등)
+    const phoneRegex = /^(0\d{1,2})-\d{3,4}-\d{4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      alert('회사 번호는 02-1234-5678 또는 031-123-4567 형식으로 입력해주세요.');
+      return;
+    }
+    const fullAddress = formData.address + (addressDetail ? ' ' + addressDetail : '');
+    const submitData = { ...formData, address: fullAddress };
     try {
-      const response = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), formData, {
+      const response = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), submitData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -215,15 +340,33 @@ const CompanyEdit = () => {
       console.error('Error updating company:', error);
       alert('회사 수정 중 오류가 발생했습니다.');
     }
-  }, [formData, id, navigate]);
+  }, [formData, addressDetail, id, navigate]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
+    if (name === 'addressDetail') {
+      setAddressDetail(value);
+      return;
+    }
+    if (name === 'businessNumber') {
+      handleBusinessNumberChange(e);
+      return;
+    }
+    if (name === 'phone') {
+      handleCompanyPhoneChange(e);
+      return;
+    }
     setFormData(prevState => ({
       ...prevState,
       [name]: value
     }));
   }, []);
+
+  const handleAddressSearch = () => setIsAddressModalOpen(true);
+  const handleAddressSelect = (address) => {
+    setFormData(prev => ({ ...prev, address }));
+    setIsAddressModalOpen(false);
+  };
 
   const handleBack = () => {
     navigate(-1);
@@ -264,21 +407,41 @@ const CompanyEdit = () => {
               name="businessNumber"
               value={formData.businessNumber || ''}
               onChange={handleChange}
-              placeholder="사업자 번호를 입력하세요" 
+              placeholder="123-45-67890"
               required
             />
           </FormGroup>
 
           <FormGroup>
             <Label>주소</Label>
-            <Input 
-              type="text" 
-              name="address"
-              value={formData.address || ''}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input 
+                type="text" 
+                name="address"
+                value={formData.address || ''}
+                onChange={handleChange}
+                placeholder="도로명 주소를 입력하세요"
+                required
+                readOnly
+              />
+              <SearchButton type="button" onClick={handleAddressSearch}>
+                검색
+              </SearchButton>
+            </div>
+            <Input
+              type="text"
+              name="addressDetail"
+              value={addressDetail}
               onChange={handleChange}
-              placeholder="주소를 입력하세요" 
-              required
+              placeholder="상세 주소를 입력하세요"
+              style={{ marginTop: 8 }}
             />
+            {isAddressModalOpen && (
+              <AddressModal
+                onSelect={handleAddressSelect}
+                onClose={() => setIsAddressModalOpen(false)}
+              />
+            )}
           </FormGroup>
 
           <FormGroup>
@@ -286,9 +449,9 @@ const CompanyEdit = () => {
             <Input 
               type="text" 
               name="phone"
-              value={formData.phone || ''}
+              value={companyPhone}
               onChange={handleChange}
-              placeholder="전화번호를 입력하세요" 
+              placeholder="02-1234-5678"
               required
             />
           </FormGroup>

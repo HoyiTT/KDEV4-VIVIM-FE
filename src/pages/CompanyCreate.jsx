@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -9,6 +9,9 @@ const CompanyCreate = () => {
   const navigate = useNavigate();
   const [activeMenuItem, setActiveMenuItem] = useState('회사 관리');
   
+  // 주소 모달 상태
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+
   const handleMenuClick = (menuItem) => {
     setActiveMenuItem(menuItem);
   };
@@ -23,20 +26,91 @@ const CompanyCreate = () => {
     companyRole: ''
   });
 
+  const [addressDetail, setAddressDetail] = useState('');
+
+  // 회사 번호 상태 및 핸들러 추가
+  const [companyPhone, setCompanyPhone] = useState('');
+
+  const handleCompanyPhoneChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    // 지역번호(2~3자리) + 중간(3~4자리) + 끝(4자리)
+    let formatted = value;
+    if (value.length <= 2) {
+      formatted = value;
+    } else if (value.length <= 5) {
+      formatted = value.slice(0, 2) + '-' + value.slice(2);
+    } else if (value.length <= 9) {
+      formatted = value.slice(0, 2) + '-' + value.slice(2, value.length - 4) + '-' + value.slice(-4);
+    } else {
+      formatted = value.slice(0, 3) + '-' + value.slice(3, value.length - 4) + '-' + value.slice(-4);
+    }
+    setCompanyPhone(formatted);
+    setFormData(prev => ({ ...prev, phone: formatted }));
+  };
+
+  // 사업자 번호 입력 핸들러 추가
+  const handleBusinessNumberChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length > 10) value = value.slice(0, 10);
+    let formatted = value;
+    if (value.length > 5) {
+      formatted = `${value.slice(0,3)}-${value.slice(3,5)}-${value.slice(5)}`;
+    } else if (value.length > 3) {
+      formatted = `${value.slice(0,3)}-${value.slice(3)}`;
+    }
+    setFormData(prevState => ({
+      ...prevState,
+      businessNumber: formatted
+    }));
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'addressDetail') {
+      setAddressDetail(value);
+      return;
+    }
+    if (name === 'businessNumber') {
+      handleBusinessNumberChange(e);
+      return;
+    }
+    if (name === 'phone') {
+      handleCompanyPhoneChange(e);
+      return;
+    }
     setFormData(prevState => ({
       ...prevState,
       [name]: value
     }));
   };
 
+  const handleAddressSearch = () => setIsAddressModalOpen(true);
+  const handleAddressSelect = (address) => {
+    setFormData(prev => ({ ...prev, address }));
+    setIsAddressModalOpen(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // 사업자 번호 유효성 검사
+    const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
+    if (!businessNumberRegex.test(formData.businessNumber)) {
+      alert('사업자 번호는 xxx-xx-xxxxx 형식으로 입력해주세요.');
+      return;
+    }
+    // 회사 번호 유효성 검사 (02-1234-5678, 031-123-4567 등)
+    const phoneRegex = /^(0\d{1,2})-\d{3,4}-\d{4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      alert('회사 번호는 02-1234-5678 또는 031-123-4567 형식으로 입력해주세요.');
+      return;
+    }
+    // 주소 + 상세주소 합치기
+    const fullAddress = formData.address + (addressDetail ? ' ' + addressDetail : '');
+    const submitData = { ...formData, address: fullAddress };
     try {
       const response = await axiosInstance.post(
         API_ENDPOINTS.COMPANIES,
-        formData,
+        submitData,
         { withCredentials: true }
       );
       if (response.status === 200 || response.status === 201) {
@@ -78,31 +152,54 @@ const CompanyCreate = () => {
               name="businessNumber"
               value={formData.businessNumber}
               onChange={handleChange}
-              placeholder="000-00-00000" 
+              placeholder="123-45-67890" 
+              maxLength={13}
               required
             />
           </FormGroup>
 
           <FormGroup>
             <Label>사업장 주소</Label>
-            <Input 
-              type="text" 
-              name="address"
-              value={formData.address}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Input 
+                type="text" 
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="도로명 주소를 입력하세요"
+                required
+                readOnly
+              />
+              <SearchButton type="button" onClick={handleAddressSearch}>
+                검색
+              </SearchButton>
+            </div>
+            <Input
+              type="text"
+              name="addressDetail"
+              value={addressDetail}
               onChange={handleChange}
-              placeholder="사업장 주소를 입력하세요" 
-              required
+              placeholder="상세 주소를 입력하세요"
+              style={{ marginTop: 8 }}
             />
           </FormGroup>
+
+          {/* 주소 검색 모달 */}
+          {isAddressModalOpen && (
+            <AddressModal
+              onSelect={handleAddressSelect}
+              onClose={() => setIsAddressModalOpen(false)}
+            />
+          )}
 
           <FormGroup>
             <Label>회사 번호</Label>
             <Input 
               type="text" 
               name="phone"
-              value={formData.phone}
+              value={companyPhone}
               onChange={handleChange}
-              placeholder="02-0000-0000" 
+              placeholder="02-1234-5678"
               required
             />
           </FormGroup>
@@ -200,9 +297,6 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
-// Remove duplicate FormContainer declaration
-// const FormContainer = styled.form`...`
-
 const FormGroup = styled.div`
   margin-bottom: 20px;
 `;
@@ -288,5 +382,75 @@ const SubmitButton = styled.button`
     background: #2563eb;
   }
 `;
+
+// SearchButton 추가
+const SearchButton = styled.button`
+  padding: 8px 16px;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  white-space: nowrap;
+  min-width: 60px;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    background: #2563eb;
+  }
+`;
+
+// 주소 검색 모달 컴포넌트
+const AddressModal = ({ onSelect, onClose }) => {
+  const elementRef = useRef(null);
+
+  React.useEffect(() => {
+    let postcode = null;
+    let timeout = setTimeout(() => {
+      if (elementRef.current && window.daum && window.daum.Postcode) {
+        postcode = new window.daum.Postcode({
+          oncomplete: function(data) {
+            onSelect(data.roadAddress || data.address);
+          },
+          width: '100%',
+          height: '100%',
+        });
+        postcode.embed(elementRef.current);
+      }
+    }, 0); // 한 프레임 뒤에 실행
+
+    return () => {
+      clearTimeout(timeout);
+      if (elementRef.current) {
+        elementRef.current.innerHTML = '';
+      }
+    };
+  }, [onSelect]);
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{ background: '#fff', borderRadius: 8, width: 400, height: 500, position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>닫기</button>
+        <div ref={elementRef} style={{ width: '100%', height: '100%' }} />
+      </div>
+    </div>
+  );
+};
 
 export default CompanyCreate;
