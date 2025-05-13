@@ -40,8 +40,25 @@ const UserCreate = () => {
     }
   };
 
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    let formatted = value;
+    if (value.length <= 3) {
+      formatted = value;
+    } else if (value.length <= 7) {
+      formatted = value.slice(0, 3) + '-' + value.slice(3);
+    } else {
+      formatted = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+    }
+    setFormData(prev => ({ ...prev, phone: formatted }));
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'phone') {
+      handlePhoneChange(e);
+      return;
+    }
     setFormData(prevState => ({
       ...prevState,
       [name]: value
@@ -50,6 +67,11 @@ const UserCreate = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      alert('전화번호는 010-1234-5678 형식으로 입력해주세요.');
+      return;
+    }
     try {
       const response = await axiosInstance.post(
         API_ENDPOINTS.USERS,

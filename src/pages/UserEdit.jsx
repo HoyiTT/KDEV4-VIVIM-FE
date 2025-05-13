@@ -267,6 +267,7 @@ const UserEdit = () => {
   const [loading, setLoading] = useState(true);
   const [newPassword, setNewPassword] = useState('');
   const [companies, setCompanies] = useState([]);
+  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -325,8 +326,10 @@ const UserEdit = () => {
               ...userDataFromApi,
               companyId: matchingCompany.id
             });
+            setPhone(userDataFromApi.phone || '');
           } else {
             setUserData(userDataFromApi);
+            setPhone(userDataFromApi.phone || '');
           }
         } else {
           throw new Error(userResponse.statusMessage || 'Failed to fetch user data');
@@ -354,6 +357,20 @@ const UserEdit = () => {
     fetchUserData();
   }, [userId, navigate, user, authLoading]);
 
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    let formatted = value;
+    if (value.length <= 3) {
+      formatted = value;
+    } else if (value.length <= 7) {
+      formatted = value.slice(0, 3) + '-' + value.slice(3);
+    } else {
+      formatted = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+    }
+    setPhone(formatted);
+    setUserData(prev => ({ ...prev, phone: formatted }));
+  };
+
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     if (name === 'companyId') {
@@ -363,6 +380,8 @@ const UserEdit = () => {
         companyId: value,
         companyRole: selectedCompany ? selectedCompany.companyRole : ''
       }));
+    } else if (name === 'phone') {
+      handlePhoneChange(e);
     } else {
       setUserData(prevState => ({
         ...prevState,
@@ -373,6 +392,12 @@ const UserEdit = () => {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    // 전화번호 유효성 검사
+    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
+    if (!phoneRegex.test(userData.phone)) {
+      alert('전화번호는 010-1234-5678 형식으로 입력해주세요.');
+      return;
+    }
     try {
       const { data } = await axiosInstance.put(API_ENDPOINTS.USER_DETAIL(userId), {
         name: userData.name,
@@ -508,9 +533,9 @@ const UserEdit = () => {
               <Input 
                 type="text" 
                 name="phone"
-                value={userData.phone || ''}
+                value={phone}
                 onChange={handleChange}
-                placeholder="전화번호를 입력하세요" 
+                placeholder="010-0000-0000"
                 required
               />
             </FormGroup>
