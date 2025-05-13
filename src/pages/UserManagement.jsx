@@ -37,27 +37,25 @@ const StatusBadge = styled.span`
   letter-spacing: -0.02em;
   transition: all 0.15s ease;
   background: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#FEF3C7';
-      case 'IN_PROGRESS': return '#DBEAFE';
-      case 'COMPLETED': return '#DCFCE7';
-      case 'ON_HOLD': return '#FEE2E2';
-      default: return '#F8FAFC';
+    switch (props.role) {
+      case 'ADMIN': return '#E2E8F0';
+      case 'DEVELOPER': return '#E0F2FE';
+      case 'CUSTOMER': return '#F0FDF4';
+      default: return '#F1F5F9';
     }
   }};
   color: ${props => {
-    switch (props.status) {
-      case 'PENDING': return '#D97706';
-      case 'IN_PROGRESS': return '#2563EB';
-      case 'COMPLETED': return '#16A34A';
-      case 'ON_HOLD': return '#DC2626';
+    switch (props.role) {
+      case 'ADMIN': return '#475569';
+      case 'DEVELOPER': return '#0369A1';
+      case 'CUSTOMER': return '#15803D';
       default: return '#64748B';
     }
   }};
 
   &::before {
     content: '';
-  display: inline-block;
+    display: inline-block;
     width: 4px;
     height: 4px;
     border-radius: 50%;
@@ -456,13 +454,13 @@ const UserManagement = () => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'ADMIN':
-        return { text: '관리자', color: '#0F172A' };
+        return { text: '관리자', role: 'ADMIN' };
       case 'DEVELOPER':
-        return { text: '개발사', color: '#16A34A' };
+        return { text: '개발사', role: 'DEVELOPER' };
       case 'CUSTOMER':
-        return { text: '고객사', color: '#7C3AED' };
+        return { text: '고객사', role: 'CUSTOMER' };
       default:
-        return { text: '일반', color: '#64748B' };
+        return { text: '일반', role: 'DEFAULT' };
     }
   };
 
@@ -571,7 +569,7 @@ const UserManagement = () => {
                       <TableCell $nowrap>{user.phone}</TableCell>
                       <TableCell $nowrap>{user.companyName}</TableCell>
                       <TableCell $nowrap>
-                        <StatusBadge status={user.status}>
+                        <StatusBadge role={roleBadge.role}>
                           {roleBadge.text}
                         </StatusBadge>
                       </TableCell>
