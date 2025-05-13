@@ -103,5 +103,8 @@ export const API_ENDPOINTS = {
     READ: (id) => `${API_BASE_URL}/notifications/${id}/read`,
     READ_ALL: `${API_BASE_URL}/notifications/read-all`,
     UNREAD_COUNT: `${API_BASE_URL}/notifications/unread/count`
-  }
+  },
+
+  REQUEST_RESET: `${API_BASE_URL}/users/request-reset`,
+  CONFIRM_RESET: `${API_BASE_URL}/users/confirm-reset`,
 };
