@@ -185,9 +185,19 @@ const ProjectCreate = () => {
         setShowDevUserModal(true);
       } else {
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+        setDevCompanySelections(prev => prev.filter(selection => selection.id !== selectedDevCompany.id));
+        setShowDevCompanyModal(false);
       }
     } catch (error) {
-      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      if (error.response?.status === 404) {
+        alert('해당 회사에 직원이 없습니다.');
+        setDevCompanySelections(prev => prev.filter(selection => selection.id !== selectedDevCompany.id));
+        setShowDevCompanyModal(false);
+      } else {
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+        setDevCompanySelections(prev => prev.filter(selection => selection.id !== selectedDevCompany.id));
+        setShowDevCompanyModal(false);
+      }
     }
   };
 
@@ -370,7 +380,12 @@ const ProjectCreate = () => {
         alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
       }
     } catch (error) {
-      alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      if (error.response?.status === 404) {
+        alert('해당 회사에 직원이 없습니다.');
+        setSelectedClientCompany(null);
+      } else {
+        alert('사용자 데이터를 가져오는 중 오류가 발생했습니다.');
+      }
     }
   };
 

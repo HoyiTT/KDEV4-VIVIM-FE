@@ -263,6 +263,10 @@ const CompanyEdit = () => {
   // 회사 번호 입력 핸들러
   const handleCompanyPhoneChange = (e) => {
     let value = e.target.value.replace(/[^0-9]/g, '');
+    // 최대 11자리로 제한 (지역번호 2~3자리 + 중간 3~4자리 + 끝 4자리)
+    if (value.length > 11) {
+      value = value.slice(0, 11);
+    }
     let formatted = value;
     if (value.length <= 2) {
       formatted = value;
