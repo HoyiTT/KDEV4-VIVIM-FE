@@ -60,13 +60,11 @@ const ProposalItem = styled.div`
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   border: 1px solid #e2e8f0;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: #cbd5e1;
+    background-color: #f8fafc;
   }
 `;
 
@@ -121,16 +119,16 @@ const ActionButton = styled.button.attrs({
   className: 'approval-proposal-action-button'
 })`
   padding: 6px 12px;
-  background: #f1f5f9;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #475569;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #e2e8f0;
+    background: #f8fafc;
   }
 `;
 
@@ -171,12 +169,6 @@ const SendButton = styled(ActionButton).attrs({
   &:hover {
     background: #1B5E20;
     color: white;
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
-  }
-
-  &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.1);
   }
 `;
 
@@ -184,17 +176,19 @@ const ShowMoreButton = styled.button.attrs({
   className: 'approval-proposal-show-more-button'
 })`
   width: 100%;
-  padding: 8px 16px;
+  padding: 12px 16px;
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #334155;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  margin-top: 16px;
+  
   &:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
   }
 `;
 
@@ -202,7 +196,7 @@ const AddButton = styled.button.attrs({
   className: 'approval-proposal-add-button'
 })`
   padding: 12px 24px;
-  background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #3b82f6, #2563eb)'};
+  background: ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
   border: none;
   border-radius: 6px;
   color: ${props => props.disabled ? '#94a3b8' : 'white'};
@@ -214,11 +208,7 @@ const AddButton = styled.button.attrs({
   width: 100%;
 
   &:hover {
-    background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #2563eb, #1d4ed8)'};
-  }
-
-  &:active {
-    transform: translateY(1px);
+    background: ${props => props.disabled ? '#e2e8f0' : '#1B5E20'};
   }
 `;
 
@@ -237,13 +227,14 @@ const ModalOverlay = styled.div`
 
 const ModalContainer = styled.div`
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   max-width: 600px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
 `;
 
 const ModalHeader = styled.div`
@@ -253,7 +244,7 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   background: white;
-  border-radius: 12px 12px 0 0;
+  border-radius: 8px 8px 0 0;
 `;
 
 const ModalTitle = styled.h2`
@@ -298,7 +289,7 @@ const ModalButtonContainer = styled.div`
   justify-content: flex-end;
   gap: 12px;
   background: white;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 8px 8px;
 `;
 
 const ApproverSection = styled.div`
@@ -306,6 +297,7 @@ const ApproverSection = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
+  background: white;
 `;
 
 const CompanyToggle = styled.div`
@@ -355,18 +347,11 @@ const EmployeeItem = styled.div`
   &:hover {
     background: #f8fafc;
   }
-  
-  input[type="checkbox"] {
-    margin-left: 12px;
-    width: 18px;
-    height: 18px;
-    accent-color: #2E7D32;
-  }
 `;
 
 const CancelButton = styled.button`
   padding: 10px 20px;
-  background: #f1f5f9;
+  background: white;
   color: #475569;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -376,7 +361,7 @@ const CancelButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #e2e8f0;
+    background: #f8fafc;
   }
 `;
 
@@ -393,7 +378,6 @@ const SaveButton = styled.button`
 
   &:hover {
     background: #1B5E20;
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
 `;
 
@@ -415,7 +399,7 @@ const Input = styled.input`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: #1e293b;
   background: white;
@@ -447,8 +431,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
   }
 
   &::placeholder {
@@ -460,7 +444,7 @@ const StatusSelect = styled.select`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: #1e293b;
   background: white;

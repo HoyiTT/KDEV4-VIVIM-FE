@@ -45,20 +45,15 @@ const PageTitle = styled.h1`
 `;
 
 const BackButton = styled.button`
-  padding: 8px 16px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #475569;
-  font-size: 14px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 15px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
+  padding: 8px 0;
   
   &:hover {
-    background: #e2e8f0;
+    color: #2E7D32;
   }
 `;
 
@@ -1248,14 +1243,13 @@ const ApprovalDetail = () => {
     <PageContainer>
       <ContentWrapper>
         <MainContent>
-          <Header>
-            <PageTitle>승인요청 상세</PageTitle>
-            <HeaderButtonsContainer>
-              <BackButton onClick={handleBack}>
-                ← 돌아가기
-              </BackButton>
-            </HeaderButtonsContainer>
-          </Header>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+            <BackButton onClick={handleBack}>
+              <span>←</span>
+              목록으로
+            </BackButton>
+            <PageTitle style={{ margin: '0 0 0 24px' }}>승인요청 상세</PageTitle>
+          </div>
 
           {loading ? (
             <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>
