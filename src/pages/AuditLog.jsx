@@ -5,19 +5,21 @@ import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
 import Pagination from '../components/common/Pagination';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
   const [filters, setFilters] = useState({
     actionType: '',
     targetType: '',
     startDate: '',
     endDate: '',
     userId: '',
-    size: 10,
     page: 1
   });
   const [searchParams, setSearchParams] = useState({
@@ -26,7 +28,6 @@ const AuditLog = () => {
     startDate: '',
     endDate: '',
     userId: '',
-    size: 10,
     page: 1
   });
   const [totalPages, setTotalPages] = useState(0);
@@ -42,10 +43,13 @@ const AuditLog = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const params = {};
-      Object.entries(searchParams).forEach(([key, value]) => {
-        if (value !== '' && value !== undefined && value !== null) {
-          params[key] = value;
+      const params = {
+        ...searchParams,
+        size: 10
+      };
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === '' || value === undefined || value === null) {
+          delete params[key];
         }
       });
       const { data } = await axiosInstance.get(`/auditLog/searchCursor`, { params });
@@ -77,6 +81,11 @@ const AuditLog = () => {
   };
 
   const handleSearch = () => {
+    if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+      setAlertMessage('시작일은 종료일보다 이전이어야 합니다.');
+      setShowAlertModal(true);
+      return;
+    }
     setSearchParams({ ...filters, page: 1 });
     setCurrentPage(1);
   };
@@ -166,10 +175,21 @@ const AuditLog = () => {
                 <option value="COMMENT">COMMENT</option>
                 <option value="LINK">LINK</option>
               </select>
-              <Input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
-              <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
+              <DateInput
+                type="date"
+                name="startDate"
+                value={filters.startDate}
+                onChange={handleFilterChange}
+                placeholder="시작일"
+              />
+              <DateInput
+                type="date"
+                name="endDate"
+                value={filters.endDate}
+                onChange={handleFilterChange}
+                placeholder="종료일"
+              />
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
-              <Input type="number" name="size" value={filters.size} onChange={handleFilterChange} min={1} max={100} style={{ width: 80 }} />
               <SearchButton onClick={handleSearch}>검색</SearchButton>
             </FilterContainer>
           </HeaderLeft>
@@ -220,8 +240,8 @@ const AuditLog = () => {
             {totalPages > 0 && (
               <Pagination
                 currentPage={currentPage - 1}
-                totalElements={totalPages * filters.size}
-                pageSize={filters.size}
+                totalElements={totalPages * 10}
+                pageSize={10}
                 onPageChange={handlePageChange}
               />
             )}
@@ -255,6 +275,17 @@ const AuditLog = () => {
             </ModalContent>
           </ModalOverlay>
         )}
+
+        <ConfirmModal
+          isOpen={showAlertModal}
+          onClose={() => setShowAlertModal(false)}
+          onConfirm={() => setShowAlertModal(false)}
+          title="알림"
+          message={alertMessage}
+          confirmText="확인"
+          cancelText="취소"
+          type="warning"
+        />
       </MainContent>
     </PageContainer>
   );
@@ -591,6 +622,39 @@ const ValueLabel = styled.span`
 const ValueContent = styled.span`
   flex: 1;
   word-break: break-all;
+`;
+
+const DateInput = styled.input`
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 140px;
+  
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 4px;
+    margin-right: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  &::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 `;
 
 export default AuditLog;
