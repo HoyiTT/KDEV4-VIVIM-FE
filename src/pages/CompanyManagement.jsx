@@ -210,12 +210,16 @@ const CompanyManagement = () => {
                       </TableCell>
                       <TableCell>
                         <ActionButtonContainer>
-                          <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
-                            수정
-                          </ActionButton>
-                          <DeleteButton onClick={() => handleDeleteClick(company.id)}>
-                            삭제
-                          </DeleteButton>
+                          {!company.isDeleted && (
+                            <>
+                              <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
+                                수정
+                              </ActionButton>
+                              <DeleteButton onClick={() => handleDeleteClick(company.id)}>
+                                삭제
+                              </DeleteButton>
+                            </>
+                          )}
                         </ActionButtonContainer>
                       </TableCell>
                     </TableRow>
