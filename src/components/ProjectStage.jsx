@@ -464,6 +464,8 @@ const ProjectStageProgress = ({
   const currentStage = progressList[currentStageIndex];
 
   const getCurrentStageStatus = (stage, index) => {
+    if (!stage) return { isCurrent: false, isCompleted: false };
+    
     const stageStatus = progressStatus.progressList.find(
       status => status.progressId === stage.id
     ) || {
@@ -632,9 +634,11 @@ const ProjectStageProgress = ({
           <ProgressInfoItem>
             <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
               <ProgressInfoValue>
-                {progressList[currentStageIndex]?.name}
+                {progressList[currentStageIndex]?.name || '없음'}
                 {(() => {
                   const currentStage = progressList[currentStageIndex];
+                  if (!currentStage) return null;
+                  
                   const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
                   
                   if (isCompleted) {
@@ -710,13 +714,15 @@ const ProjectStageProgress = ({
             )}
           </ProgressInfoItem>
         </StageProgressInfo>
-        <ApprovalProposal 
-          progressId={progressList[currentStageIndex]?.id}
-          projectId={projectId}
-          showMore={showMore}
-          onShowMore={handleShowMore}
-          progressStatus={progressStatus}
-        />
+        {progressList[currentStageIndex] && (
+          <ApprovalProposal 
+            progressId={progressList[currentStageIndex].id}
+            projectId={projectId}
+            showMore={showMore}
+            onShowMore={handleShowMore}
+            progressStatus={progressStatus}
+          />
+        )}
       </ApprovalRequestContainer>
       {showPositionModal && (
         <ModalOverlay>

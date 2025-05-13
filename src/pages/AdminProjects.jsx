@@ -221,11 +221,12 @@ const AdminProjects = () => {
               <TableBody>
                 {projects && projects.length > 0 ? (
                   projects.map((project) => (
-                    <TableRow key={project.projectId}>
-                      <TableCell 
-                        onClick={() => navigate(`/project/${project.projectId}`)}
-                        style={{ cursor: 'pointer', color: '#1e293b' }}
-                      >
+                    <TableRow 
+                      key={project.projectId}
+                      onClick={() => navigate(`/project/${project.projectId}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <TableCell>
                         {project.name}
                       </TableCell>
                       <TableCell>{project.projectFee.toLocaleString()}원</TableCell>
@@ -242,7 +243,7 @@ const AdminProjects = () => {
                         </ProgressBadge>
                       </TableCell>
                       <TableCell>
-                        <ActionButtonContainer>
+                        <ActionButtonContainer onClick={(e) => e.stopPropagation()}>
                           {!project.deleted && (
                             <>
                               <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
