@@ -8,6 +8,7 @@ import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
+import FileLinkUploader from './common/FileLinkUploader';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -1361,6 +1362,14 @@ const ApprovalProposal = ({
     }
   }, [user, authLoading, navigate]);
 
+  const handleFilesChange = (newFiles) => {
+    setFiles(newFiles);
+  };
+
+  const handleLinksChange = (newLinks) => {
+    setLinks(newLinks);
+  };
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1462,101 +1471,14 @@ const ApprovalProposal = ({
                   placeholder="내용을 입력하세요"
                 />
               </InputGroup>
-              <InputGroup>
-                <Label>파일 첨부 (선택사항)</Label>
-                <FileInputContainer>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <HiddenFileInput
-                      type="file"
-                      onChange={handleFileChange}
-                      multiple
-                      accept="*/*"
-                      id="fileInput"
-                    />
-                    <FileButton 
-                      type="button" 
-                      onClick={() => document.getElementById('fileInput').click()}
-                    >
-                      파일 선택
-                    </FileButton>
-                  </div>
-                  {files.length > 0 && (
-                    <FileList>
-                      {Array.from(files).map((file, index) => (
-                        <FileItem 
-                          key={index}
-                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                        >
-                          <FileContent>
-                            <span style={{ fontSize: '16px' }}>📎</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
-                              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                {(file.size / 1024).toFixed(1)} KB
-                              </span>
-                            </div>
-                          </FileContent>
-                          <DeleteButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileDelete(index);
-                            }}
-                          >
-                            ✕
-                          </DeleteButton>
-                        </FileItem>
-                      ))}
-                    </FileList>
-                  )}
-                </FileInputContainer>
-              </InputGroup>
-              <InputGroup>
-                <Label>링크 추가 (선택사항)</Label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <Input
-                    type="text"
-                    placeholder="링크 제목"
-                    value={newLink.title}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                    style={{ flex: 1 }}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="URL"
-                    value={newLink.url}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                    style={{ flex: 2 }}
-                  />
-                  <FileButton 
-                    type="button" 
-                    onClick={handleAddLink}
-                  >
-                    추가
-                  </FileButton>
-                </div>
-                {links.length > 0 && (
-                  <FileList>
-                    {links.map((link, index) => (
-                      <FileItem 
-                        key={index}
-                        onClick={() => window.open(link.url, '_blank')}
-                      >
-                        <LinkContent>
-                          🔗 {link.title}
-                        </LinkContent>
-                        <DeleteButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLinkDelete(index);
-                          }}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
-              </InputGroup>
+
+              <FileLinkUploader
+                onFilesChange={handleFilesChange}
+                onLinksChange={handleLinksChange}
+                initialFiles={files}
+                initialLinks={links}
+              />
+
               <InputGroup>
                 <Label>승인권자 목록</Label>
               </InputGroup>
@@ -1624,101 +1546,14 @@ const ApprovalProposal = ({
                   placeholder="내용을 입력하세요"
                 />
               </InputGroup>
-              <InputGroup>
-                <Label>파일 첨부 (선택사항)</Label>
-                <FileInputContainer>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <HiddenFileInput
-                      type="file"
-                      onChange={handleFileChange}
-                      multiple
-                      accept="*/*"
-                      id="editFileInput"
-                    />
-                    <FileButton 
-                      type="button" 
-                      onClick={() => document.getElementById('editFileInput').click()}
-                    >
-                      파일 선택
-                    </FileButton>
-                  </div>
-                  {files.length > 0 && (
-                    <FileList>
-                      {Array.from(files).map((file, index) => (
-                        <FileItem 
-                          key={index}
-                          onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                        >
-                          <FileContent>
-                            <span style={{ fontSize: '16px' }}>📎</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <span style={{ fontSize: '14px', color: '#1e293b' }}>{file.name}</span>
-                              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                {(file.size / 1024).toFixed(1)} KB
-                              </span>
-                            </div>
-                          </FileContent>
-                          <DeleteButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileDelete(index);
-                            }}
-                          >
-                            ✕
-                          </DeleteButton>
-                        </FileItem>
-                      ))}
-                    </FileList>
-                  )}
-                </FileInputContainer>
-              </InputGroup>
-              <InputGroup>
-                <Label>링크 추가 (선택사항)</Label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <Input
-                    type="text"
-                    placeholder="링크 제목"
-                    value={newLink.title}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                    style={{ flex: 1 }}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="URL"
-                    value={newLink.url}
-                    onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                    style={{ flex: 2 }}
-                  />
-                  <FileButton 
-                    type="button" 
-                    onClick={handleAddLink}
-                  >
-                    추가
-                  </FileButton>
-                </div>
-                {links.length > 0 && (
-                  <FileList>
-                    {links.map((link, index) => (
-                      <FileItem 
-                        key={index}
-                        onClick={() => window.open(link.url, '_blank')}
-                      >
-                        <LinkContent>
-                          🔗 {link.title}
-                        </LinkContent>
-                        <DeleteButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLinkDelete(index);
-                          }}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
-              </InputGroup>
+
+              <FileLinkUploader
+                onFilesChange={handleFilesChange}
+                onLinksChange={handleLinksChange}
+                initialFiles={files}
+                initialLinks={links}
+              />
+
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseModal}>취소</CancelButton>
