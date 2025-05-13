@@ -564,7 +564,7 @@ const ProjectStageProgress = ({
                     {currentStage && (
                       <>
                         <DropdownItem onClick={() => {
-                          openStageModal('edit', currentStage);
+                          openStageModal('editName', currentStage);
                           setShowMenu(false);
                         }}>
                           <FaEdit /> 현재 단계명 수정
@@ -719,32 +719,29 @@ const ProjectStageProgress = ({
         />
       </ApprovalRequestContainer>
       {showPositionModal && (
-        <ModalOverlay onClick={() => setShowPositionModal(false)}>
-          <StageModalContent onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay>
+          <ModalContent>
             <ModalHeader>
-              <ModalTitle>단계 순서 변경</ModalTitle>
-              <CloseButton onClick={() => setShowPositionModal(false)}>×</CloseButton>
+              <h2>단계 순서 변경</h2>
             </ModalHeader>
             <ModalBody>
-              <DragInstructions>
-                단계를 드래그하여 순서를 변경할 수 있습니다.
-              </DragInstructions>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={stages.map(stage => stage.id)}
+                  items={progressList.map(item => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <StageList>
-                    {stages.map((stage) => (
+                    {progressList.map((stage) => (
                       <SortableItem
                         key={stage.id}
                         id={stage.id}
                         name={stage.name}
-                        targetIndex={stage.position}
+                        position={stage.position}
+                        component={SortableStageItem}
                       />
                     ))}
                   </StageList>
@@ -752,15 +749,14 @@ const ProjectStageProgress = ({
               </DndContext>
             </ModalBody>
             <ModalFooter>
-              <ActionButton 
-                onClick={handleSavePositions}
-                disabled={isModifyingPosition}
-              >
-                {isModifyingPosition ? '저장 중...' : '순서 저장'}
+              <ActionButton onClick={handleSavePositions}>
+                순서 저장
               </ActionButton>
-              <CancelButton onClick={() => setShowPositionModal(false)}>취소</CancelButton>
+              <CancelButton onClick={() => setShowPositionModal(false)}>
+                취소
+              </CancelButton>
             </ModalFooter>
-          </StageModalContent>
+          </ModalContent>
         </ModalOverlay>
       )}
     </StageProgressColumn>
@@ -1014,7 +1010,7 @@ const ModalOverlay = styled.div`
   z-index: 1000;
 `;
 
-const StageModalContent = styled.div`
+const ModalContent = styled.div`
   background: white;
   border-radius: 12px;
   width: 90%;
