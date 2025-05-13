@@ -12,6 +12,7 @@ import ApprovalProposal from '../components/ApprovalProposal';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import { useAuth } from '../hooks/useAuth';
+import FileLinkUploader from '../components/common/FileLinkUploader';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -946,6 +947,14 @@ const ApprovalDetail = () => {
     setNewLink({ title: '', url: '' });
   };
 
+  const handleFilesChange = (newFiles) => {
+    setEditFiles(newFiles);
+  };
+
+  const handleLinksChange = (newLinks) => {
+    setEditLinks(newLinks);
+  };
+
   // 수정 내용 저장
   const handleSaveEdit = async () => {
     if (!editTitle.trim() || !editContent.trim()) {
@@ -1200,89 +1209,12 @@ const ApprovalDetail = () => {
                           />
                         </div>
 
-                        {/* 파일 수정 섹션 */}
-                        <div style={{ marginBottom: '16px' }}>
-                          <EditLabel>파일</EditLabel>
-                          <FileInputContainer>
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                              <HiddenFileInput
-                                type="file"
-                                onChange={handleFileChange}
-                                multiple
-                                accept="*/*"
-                                id="fileInput"
-                              />
-                              <FileButton 
-                                type="button" 
-                                onClick={() => document.getElementById('fileInput').click()}
-                              >
-                                파일 선택
-                              </FileButton>
-                            </div>
-                            {editFiles.length > 0 && (
-                              <FileList>
-                                {editFiles.map((file, index) => (
-                                  <FileItem key={index}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      📎 {file.fileName || file.name}
-                                    </div>
-                                    <DeleteButton
-                                      type="button"
-                                      onClick={() => handleFileDelete(index)}
-                                    >
-                                      ✕
-                                    </DeleteButton>
-                                  </FileItem>
-                                ))}
-                              </FileList>
-                            )}
-                          </FileInputContainer>
-                        </div>
-
-                        {/* 링크 수정 섹션 */}
-                        <div style={{ marginBottom: '16px' }}>
-                          <EditLabel>링크</EditLabel>
-                          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <Input
-                              type="text"
-                              placeholder="링크 제목"
-                              value={newLink.title}
-                              onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                              style={{ flex: 1 }}
-                            />
-                            <Input
-                              type="text"
-                              placeholder="URL"
-                              value={newLink.url}
-                              onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                              style={{ flex: 2 }}
-                            />
-                            <AddLinkButton 
-                              type="button" 
-                              onClick={handleAddLink}
-                              $hasValue={newLink.title.trim() && newLink.url.trim()}
-                            >
-                              추가
-                            </AddLinkButton>
-                          </div>
-                          {editLinks.length > 0 && (
-                            <FileList>
-                              {editLinks.map((link, index) => (
-                                <FileItem key={index}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    🔗 {link.title}
-                                  </div>
-                                  <DeleteButton
-                                    type="button"
-                                    onClick={() => handleLinkDelete(index)}
-                                  >
-                                    ✕
-                                  </DeleteButton>
-                                </FileItem>
-                              ))}
-                            </FileList>
-                          )}
-                        </div>
+                        <FileLinkUploader
+                          onFilesChange={handleFilesChange}
+                          onLinksChange={handleLinksChange}
+                          initialFiles={editFiles}
+                          initialLinks={editLinks}
+                        />
 
                         <ApprovalButtonContainer>
                           <ApprovalActionButton 

@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import FileLinkUploader from '../components/common/FileLinkUploader';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
@@ -95,6 +96,15 @@ const ProjectPostCreate = () => {
   const handleLinkDelete = (indexToDelete) => {
     setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
   };
+
+  const handleFilesChange = (newFiles) => {
+    setFiles(newFiles);
+  };
+
+  const handleLinksChange = (newLinks) => {
+    setLinks(newLinks);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); // 로딩 상태 시작
@@ -276,114 +286,12 @@ const ProjectPostCreate = () => {
               </CharacterCount>
             </InputGroup>
 
-            <InputGroup>
-              <Label>링크 (선택사항)</Label>
-              <LinkInputContainer>
-                <LinkInputGroup>
-                  <Input
-                    type="text"
-                    value={linkTitle}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 60) {
-                        setLinkTitle(e.target.value);
-                      }
-                    }}
-                    placeholder="링크 제목을 입력하세요"
-                    maxLength={60}
-                  />
-                  <CharacterCount>
-                    {linkTitle.length}/60
-                  </CharacterCount>
-                </LinkInputGroup>
-                
-                <LinkInputGroup>
-                  <Input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 1000) {
-                        setLinkUrl(value);
-                        if (value && !isValidUrl(value)) {
-                          setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
-                        } else {
-                          setLinkUrlError('');
-                        }
-                      }
-                    }}
-                    placeholder="URL을 입력하세요 (예: https://www.example.com)"
-                    maxLength={1000}
-                  />
-                  <CharacterCount>
-                    {linkUrl.length}/1000
-                  </CharacterCount>
-                  {linkUrlError && <ErrorMessage>{linkUrlError}</ErrorMessage>}
-                </LinkInputGroup>
-                <AddButton
-                  type="button"
-                  onClick={handleAddLink}
-                  disabled={!linkTitle || !linkUrl}
-                >
-                  추가
-                </AddButton>
-              </LinkInputContainer>
-              {links.length > 0 && (
-                <LinkList>
-                  {links.map((link, index) => (
-                    <LinkItem key={index}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        🔗 {link.title}
-                        <span style={{ color: '#64748b', marginLeft: '8px' }}>
-                          ({link.url})
-                        </span>
-                      </div>
-                      <DeleteButton
-                        type="button"
-                        onClick={() => handleLinkDelete(index)}
-                      >
-                        ✕
-                      </DeleteButton>
-                    </LinkItem>
-                  ))}
-                </LinkList>
-              )}
-            </InputGroup>
-
-            <InputGroup>
-              <Label>파일 첨부 (선택사항)</Label>
-              <FileInputContainer>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <HiddenFileInput
-                    type="file"
-                    onChange={handleFileChange}
-                    multiple
-                    accept={allowedMimeTypes.join(',')}
-                    id="fileInput"
-                  />
-                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
-                    파일 선택
-                  </FileButton>
-                </div>
-                {files.length > 0 && (
-                  <FileList>
-                    {Array.from(files).map((file, index) => (
-                      <FileItem key={index}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          📎 {file.name}
-                        </div>
-                        <DeleteButton
-                          type="button"
-                          onClick={() => handleFileDelete(index)}
-                        >
-                          ✕
-                        </DeleteButton>
-                      </FileItem>
-                    ))}
-                  </FileList>
-                )}
-                {fileError && <ErrorMessage>{fileError}</ErrorMessage>}
-              </FileInputContainer>
-            </InputGroup>
+            <FileLinkUploader
+              onFilesChange={handleFilesChange}
+              onLinksChange={handleLinksChange}
+              initialFiles={files}
+              initialLinks={links}
+            />
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
