@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
-import FileLinkUploader from '../components/common/FileLinkUploader';
+import FileLinkDeleter from '../components/common/FileLinkDeleter';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
@@ -286,12 +286,83 @@ const ProjectPostCreate = () => {
               </CharacterCount>
             </InputGroup>
 
-            <FileLinkUploader
-              onFilesChange={handleFilesChange}
-              onLinksChange={handleLinksChange}
-              initialFiles={files}
-              initialLinks={links}
-            />
+            <InputGroup>
+              <Label>파일 첨부 (선택사항)</Label>
+              <FileInputContainer>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <HiddenFileInput
+                    type="file"
+                    onChange={handleFileChange}
+                    multiple
+                    accept={allowedMimeTypes.join(',')}
+                    id="fileInput"
+                  />
+                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
+                    파일 선택
+                  </FileButton>
+                  <FileSizeGuide>* 파일 크기는 500MB 이하여야 합니다.</FileSizeGuide>
+                </div>
+                {files.length > 0 && (
+                  <FileLinkDeleter
+                    files={files}
+                    onFileDelete={handleFileDelete}
+                  />
+                )}
+              </FileInputContainer>
+            </InputGroup>
+
+            <InputGroup>
+              <Label>링크 (선택사항)</Label>
+              <LinkInputContainer>
+                <LinkInputGroup>
+                  <Input
+                    type="text"
+                    value={linkTitle}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 60) {
+                        setLinkTitle(e.target.value);
+                      }
+                    }}
+                    placeholder="링크 제목을 입력하세요"
+                    maxLength={60}
+                  />
+                  <CharacterCount>
+                    {linkTitle.length}/60
+                  </CharacterCount>
+                </LinkInputGroup>
+                
+                <LinkInputGroup>
+                  <Input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 1000) {
+                        setLinkUrl(e.target.value);
+                      }
+                    }}
+                    placeholder="URL을 입력하세요"
+                    maxLength={1000}
+                  />
+                  <CharacterCount>
+                    {linkUrl.length}/1000
+                  </CharacterCount>
+                </LinkInputGroup>
+                <AddButton
+                  type="button"
+                  onClick={handleAddLink}
+                  disabled={!linkTitle || !linkUrl}
+                >
+                  추가
+                </AddButton>
+              </LinkInputContainer>
+              
+              {links.length > 0 && (
+                <FileLinkDeleter
+                  links={links}
+                  onLinkDelete={handleLinkDelete}
+                />
+              )}
+            </InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
@@ -467,15 +538,18 @@ const InputGroup = styled.div`
 
 // Add these new styled components
 const FileInputContainer = styled.div`
-  margin-bottom: 16px;
-
-  &::after {
-    content: '* 파일 크기는 500MB 이하여야 합니다.';
-    display: block;
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  & > div {
+    margin-bottom: 8px;
   }
+`;
+
+const FileSizeGuide = styled.span`
+  font-size: 12px;
+  color: #64748b;
 `;
 
 const HiddenFileInput = styled.input`

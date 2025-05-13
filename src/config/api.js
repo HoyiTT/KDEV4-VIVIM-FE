@@ -7,8 +7,8 @@ export const API_ENDPOINTS = {
   USER_INFO: `${API_BASE_URL}/auth/user`,
   
   //File,Link
-  FILE_DELETE: (fileId) => `${API_BASE_URL}/files/${fileId}/delete`,
-  LINK_DELETE: (linkId) => `${API_BASE_URL}/links/${linkId}/delete`,
+  FILE_DELETE: (fileId) => `${API_BASE_URL}/files/${fileId}`,
+  LINK_DELETE: (linkId) => `${API_BASE_URL}/links/${linkId}`,
 
   // Users
   USERS: `${API_BASE_URL}/users`,
