@@ -272,7 +272,14 @@ const UserEdit = () => {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!user || user.companyRole !== 'ADMIN') {
+    // 자신의 정보를 수정하는 경우는 허용
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // 관리자가 아니고, 다른 사용자의 정보를 수정하려고 하는 경우
+    if (user.companyRole !== 'ADMIN' && user.id !== parseInt(userId)) {
       navigate('/dashboard');
       return;
     }
@@ -414,12 +421,16 @@ const UserEdit = () => {
       });
 
       // API가 200 OK를 반환하면 성공으로 처리
-      navigate('/user-management');
+      if (user.companyRole === 'ADMIN') {
+        navigate('/user-management');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       alert('사용자 수정 중 오류가 발생했습니다.');
     }
-  }, [userData, userId, navigate]);
+  }, [userData, userId, navigate, user]);
 
   const handlePasswordChange = useCallback(async () => {
     if (!newPassword) {

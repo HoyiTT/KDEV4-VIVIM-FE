@@ -173,7 +173,7 @@ const Sidebar = () => {
         </NotificationButton>
       </LogoSection>
 
-      <ProfileSection>
+      <ProfileSection onClick={() => navigate(`/user-edit/${user?.id}`)} style={{ cursor: 'pointer' }}>
         <ProfileImage>
           {user?.name ? user.name[0].toUpperCase() : 'U'}
         </ProfileImage>
