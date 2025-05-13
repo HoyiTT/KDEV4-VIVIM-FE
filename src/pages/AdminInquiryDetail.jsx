@@ -25,10 +25,7 @@ const AdminInquiryDetail = () => {
   useEffect(() => {
     if (authLoading) return;
     
-    if (!user || user.companyRole !== 'ADMIN') {
-      navigate('/dashboard');
-      return;
-    }
+
     fetchInquiryDetail();
     fetchComments();
   }, [id, user, authLoading]);

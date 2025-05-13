@@ -213,7 +213,7 @@ const AdminInquiryList = () => {
                   <TableHeaderCell>작성자</TableHeaderCell>
                   <TableHeaderCell>작성일</TableHeaderCell>
                   <TableHeaderCell>상태</TableHeaderCell>
-                  <TableHeaderCell>액션</TableHeaderCell>
+                  <TableHeaderCell>상세보기</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
