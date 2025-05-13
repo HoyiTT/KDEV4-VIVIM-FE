@@ -809,7 +809,7 @@ const StageActionButton = styled.button`
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background-color: #2563eb;
+  background-color: #2E7D32;
   color: white;
   border: none;
   border-radius: 4px;
@@ -821,7 +821,7 @@ const StageActionButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background-color: #1d4ed8;
+    background-color: rgba(46, 125, 50, 0.93);
   }
 
   svg {
