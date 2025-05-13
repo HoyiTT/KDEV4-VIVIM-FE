@@ -1,16 +1,28 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from './useAuth';
+import ToastNotification from '../components/common/ToastNotification';
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [showReadNotifications, setShowReadNotifications] = useState(false);
+  const [toastNotifications, setToastNotifications] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef(null);
   const { user } = useAuth();
+
+  const removeToast = useCallback((id) => {
+    setToastNotifications(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
+  const addToast = useCallback((notification) => {
+    const toastId = Date.now();
+    setToastNotifications(prev => [...prev, { ...notification, id: toastId }]);
+    setTimeout(() => removeToast(toastId), 5000);
+  }, [removeToast]);
 
   useEffect(() => {
     if (user?.id) {
@@ -56,6 +68,7 @@ export const NotificationProvider = ({ children }) => {
         const notification = JSON.parse(event.data);
         console.log('새로운 알림 수신:', notification);
         setNotifications(prev => [notification, ...prev]);
+        addToast(notification);
       } catch (error) {
         console.error('알림 데이터 파싱 실패:', error);
       }
@@ -123,10 +136,19 @@ export const NotificationProvider = ({ children }) => {
         markAllAsRead,
         disconnectSSE,
         getFilteredNotifications,
-        isConnected
+        isConnected,
+        toastNotifications,
+        removeToast
       }}
     >
       {children}
+      {toastNotifications.map(toast => (
+        <ToastNotification
+          key={toast.id}
+          notification={toast}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
     </NotificationContext.Provider>
   );
 };
