@@ -313,6 +313,12 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: 이메일, 2: 인증번호+새비번
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [timer, setTimer] = useState(900); // 15분(900초)
+  const [timerActive, setTimerActive] = useState(false);
+  const [isRequestingCode, setIsRequestingCode] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -320,6 +326,19 @@ const Login = () => {
       logout();
     }
   }, []);
+
+  useEffect(() => {
+    let interval = null;
+    if (timerActive && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else if (timer === 0 && timerActive) {
+      setTimerActive(false);
+      alert('인증번호가 만료되었습니다. 다시 요청해주세요.');
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timer]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -345,20 +364,44 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = async (e) => {
+  const handleRequestResetCode = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
       alert('이메일을 입력해주세요.');
       return;
     }
+    setIsRequestingCode(true);
     try {
-      await axiosInstance.put(`${API_ENDPOINTS.RESET_PASSWORD}?email=${resetEmail}`);
-      alert('비밀번호가 1q2w3e4r로 초기화되었습니다.');
+      await axiosInstance.post(`${API_ENDPOINTS.REQUEST_RESET}?email=${encodeURIComponent(resetEmail)}`, null);
+      alert('이메일로 인증번호가 전송되었습니다. 인증번호는 15분간 유효합니다.');
+      setResetStep(2);
+      setTimer(900);
+      setTimerActive(true);
+    } catch (err) {
+      console.error('인증번호 요청 오류:', err);
+      alert('인증번호 요청에 실패했습니다.');
+    } finally {
+      setIsRequestingCode(false);
+    }
+  };
+
+  const handleConfirmReset = async (e) => {
+    e.preventDefault();
+    if (!resetEmail || !resetCode || !newPassword) {
+      alert('이메일, 인증번호, 새 비밀번호를 모두 입력해주세요.');
+      return;
+    }
+    try {
+      await axiosInstance.put(`${API_ENDPOINTS.CONFIRM_RESET}?email=${encodeURIComponent(resetEmail)}&code=${encodeURIComponent(resetCode)}&newPassword=${encodeURIComponent(newPassword)}`);
+      alert('비밀번호가 성공적으로 변경되었습니다.');
       setShowForgotPasswordModal(false);
       setResetEmail('');
+      setResetCode('');
+      setNewPassword('');
+      setResetStep(1);
     } catch (err) {
-      console.error('Password reset error:', err);
-      alert('비밀번호 초기화에 실패했습니다.');
+      console.error('비밀번호 재설정 오류:', err);
+      alert('비밀번호 재설정에 실패했습니다.');
     }
   };
 
@@ -442,24 +485,73 @@ const Login = () => {
         <ModalOverlay>
           <ModalContent>
             <ModalTitle>비밀번호 재설정</ModalTitle>
-            <ModalForm onSubmit={handleForgotPassword}>
-              <InputGroup>
-                <Label>이메일</Label>
-                <Input
-                  type="email"
-                  placeholder="가입한 이메일 주소를 입력하세요"
-                  value={resetEmail}
-                  onChange={e => setResetEmail(e.target.value)}
-                  required
-                />
-              </InputGroup>
-              <ModalButtonGroup>
-                <CancelButton type="button" onClick={() => setShowForgotPasswordModal(false)}>
-                  취소
-                </CancelButton>
-                <SubmitButton type="submit">비밀번호 재설정</SubmitButton>
-              </ModalButtonGroup>
-            </ModalForm>
+            {resetStep === 1 ? (
+              <ModalForm onSubmit={handleRequestResetCode}>
+                <InputGroup>
+                  <Label>이메일</Label>
+                  <Input
+                    type="email"
+                    placeholder="가입한 이메일 주소를 입력하세요"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    required
+                  />
+                </InputGroup>
+                <ModalButtonGroup>
+                  <CancelButton type="button" onClick={() => { setShowForgotPasswordModal(false); setResetStep(1); setResetEmail(''); }}>
+                    취소
+                  </CancelButton>
+                  <SubmitButton type="submit" disabled={isRequestingCode}>
+                    {isRequestingCode ? '요청 중...' : '인증번호 요청'}
+                  </SubmitButton>
+                </ModalButtonGroup>
+              </ModalForm>
+            ) : (
+              <ModalForm onSubmit={handleConfirmReset}>
+                <InputGroup>
+                  <Label>이메일</Label>
+                  <Input
+                    type="email"
+                    value={resetEmail}
+                    disabled
+                  />
+                </InputGroup>
+                <InputGroup>
+                  <Label>인증번호</Label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Input
+                      type="text"
+                      placeholder="이메일로 받은 6자리 인증번호"
+                      value={resetCode}
+                      onChange={e => setResetCode(e.target.value)}
+                      required
+                      disabled={!timerActive}
+                    />
+                    {timerActive && (
+                      <span style={{ minWidth: 60, color: timer < 60 ? 'red' : '#2E7D32', fontWeight: 600 }}>
+                        {`${String(Math.floor(timer / 60)).padStart(2, '0')}:${String(timer % 60).padStart(2, '0')}`}
+                      </span>
+                    )}
+                  </div>
+                </InputGroup>
+                <InputGroup>
+                  <Label>새 비밀번호</Label>
+                  <Input
+                    type="password"
+                    placeholder="새 비밀번호를 입력하세요"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                  />
+                </InputGroup>
+                <ModalButtonGroup>
+                  <CancelButton type="button" onClick={() => { setShowForgotPasswordModal(false); setResetStep(1); setResetEmail(''); setResetCode(''); setNewPassword(''); }}>
+                    취소
+                  </CancelButton>
+                  <SubmitButton type="submit">비밀번호 재설정</SubmitButton>
+                </ModalButtonGroup>
+              </ModalForm>
+            )}
           </ModalContent>
         </ModalOverlay>
       )}
