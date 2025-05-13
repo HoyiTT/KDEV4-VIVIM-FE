@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
+import Pagination from '../components/common/Pagination';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
@@ -11,6 +12,15 @@ const AuditLog = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
+    actionType: '',
+    targetType: '',
+    startDate: '',
+    endDate: '',
+    userId: '',
+    size: 10,
+    page: 1
+  });
+  const [searchParams, setSearchParams] = useState({
     actionType: '',
     targetType: '',
     startDate: '',
@@ -27,13 +37,13 @@ const AuditLog = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [filters]);
+  }, [searchParams]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const params = {};
-      Object.entries(filters).forEach(([key, value]) => {
+      Object.entries(searchParams).forEach(([key, value]) => {
         if (value !== '' && value !== undefined && value !== null) {
           params[key] = value;
         }
@@ -61,13 +71,13 @@ const AuditLog = () => {
   };
 
   const handlePageChange = (page) => {
-    if (page < 1) return;
-    setFilters(prev => ({ ...prev, page }));
-    setCurrentPage(page);
+    setFilters(prev => ({ ...prev, page: page + 1 }));
+    setCurrentPage(page + 1);
+    setSearchParams(prev => ({ ...prev, page: page + 1 }));
   };
 
   const handleSearch = () => {
-    setFilters(prev => ({ ...prev, page: 1 }));
+    setSearchParams({ ...filters, page: 1 });
     setCurrentPage(1);
   };
 
@@ -160,11 +170,9 @@ const AuditLog = () => {
               <Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
               <Input type="number" name="size" value={filters.size} onChange={handleFilterChange} min={1} max={100} style={{ width: 80 }} />
+              <SearchButton onClick={handleSearch}>검색</SearchButton>
             </FilterContainer>
           </HeaderLeft>
-          <HeaderRight>
-            <SearchButton onClick={handleSearch}>검색</SearchButton>
-          </HeaderRight>
         </Header>
 
         {loading ? (
@@ -209,42 +217,14 @@ const AuditLog = () => {
                 ))}
               </tbody>
             </LogTable>
-            <PaginationContainer>
-              <PaginationButton 
-                onClick={() => handlePageChange(currentPage - 1)} 
-                disabled={currentPage === 1}
-              >
-                이전
-              </PaginationButton>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage > totalPages - 3) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                if (pageNum < 1 || pageNum > totalPages) return null;
-                return (
-                  <PaginationButton
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    active={currentPage === pageNum}
-                  >
-                    {pageNum}
-                  </PaginationButton>
-                );
-              })}
-              <PaginationButton 
-                onClick={() => handlePageChange(currentPage + 1)} 
-                disabled={currentPage === totalPages}
-              >
-                다음
-              </PaginationButton>
-            </PaginationContainer>
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={currentPage - 1}
+                totalElements={totalPages * filters.size}
+                pageSize={filters.size}
+                onPageChange={handlePageChange}
+              />
+            )}
           </>
         )}
 
@@ -502,42 +482,6 @@ const LoadingMessage = styled.div`
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-`;
-
-const PaginationButton = styled.button`
-  padding: 8px 16px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  &:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
-  }
 `;
 
 const ModalOverlay = styled.div`

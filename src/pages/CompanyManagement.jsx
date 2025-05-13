@@ -6,6 +6,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, L
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
+import Pagination from '../components/common/Pagination';
+import ConfirmModal from '../components/common/ConfirmModal';
 import { FaSearch } from 'react-icons/fa';
 
 const CompanyManagement = () => {
@@ -23,24 +25,37 @@ const CompanyManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState(null);
 
   useEffect(() => {
     fetchCompanies();
   }, [currentPage]);
 
-  // 회사 삭제 함수 수정: axiosInstance 사용, withCredentials: true 추가
-  const handleDeleteCompany = async (companyId) => {
-    if (window.confirm('정말로 이 회사를 삭제하시겠습니까?')) {
+  const handleDeleteClick = (companyId) => {
+    setCompanyToDelete(companyId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (companyToDelete) {
       try {
-        await axiosInstance.delete(API_ENDPOINTS.COMPANY_DETAIL(companyId), {
+        await axiosInstance.delete(API_ENDPOINTS.COMPANY_SOFT_DELETE(companyToDelete), {
           withCredentials: true
         });
+        alert('회사가 삭제되었습니다.');
         fetchCompanies();
       } catch (error) {
-        console.error('Error deleting company:', error);
-        alert('회사 삭제 중 오류가 발생했습니다.');
+        console.error('Error soft deleting company:', error);
+        if (error.response?.status === 403) {
+          alert('회사를 삭제할 권한이 없습니다.');
+        } else {
+          alert('회사 삭제 중 오류가 발생했습니다.');
+        }
       }
     }
+    setDeleteModalOpen(false);
+    setCompanyToDelete(null);
   };
 
   const fetchCompanies = async (customFilters = filters, page = currentPage) => {
@@ -125,7 +140,7 @@ const CompanyManagement = () => {
           </Header>
 
           <SearchSection>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginRight: '0' }}>
               <SearchInput
                 type="text"
                 placeholder="회사명 검색"
@@ -156,8 +171,6 @@ const CompanyManagement = () => {
                 />
                 삭제된 회사만 검색
               </SearchCheckbox>
-            </div>
-            <div>
               <SearchButton onClick={handleSearch}>
                 검색
               </SearchButton>
@@ -203,7 +216,7 @@ const CompanyManagement = () => {
                           <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
                             수정
                           </ActionButton>
-                          <DeleteButton onClick={() => handleDeleteCompany(company.id)}>
+                          <DeleteButton onClick={() => handleDeleteClick(company.id)}>
                             삭제
                           </DeleteButton>
                         </ActionButtonContainer>
@@ -220,31 +233,28 @@ const CompanyManagement = () => {
               </TableBody>
             </CompanyTable>
 
-            <PaginationContainer>
-              <PaginationButton 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
-                disabled={currentPage === 0}
-              >
-                이전
-              </PaginationButton>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <PaginationButton
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  active={currentPage === i}
-                >
-                  {i + 1}
-                </PaginationButton>
-              ))}
-              <PaginationButton 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
-                disabled={currentPage === totalPages - 1}
-              >
-                다음
-              </PaginationButton>
-            </PaginationContainer>
+            {companies.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalElements={totalPages * 10}
+                pageSize={10}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </>
         )}
+
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="회사 삭제"
+          message={`정말로 이 회사를 삭제하시겠습니까?
+삭제된 회사는 복구할 수 없습니다.`}
+          confirmText="삭제"
+          cancelText="취소"
+          type="delete"
+        />
       </MainContent>
     </PageContainer>
   );
@@ -333,7 +343,7 @@ const AddButton = styled.button`
 
 const SearchSection = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: nowrap;
   margin-bottom: 24px;
@@ -549,35 +559,6 @@ const LoadingMessage = styled.div`
   height: 200px;
   font-size: 16px;
   color: #64748b;
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PaginationButton = styled.button`
-  padding: 8px 16px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
-  border-radius: 6px;
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
-  }
-
-  &:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
-  }
 `;
 
 export default CompanyManagement;
