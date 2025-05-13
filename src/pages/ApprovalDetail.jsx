@@ -693,6 +693,18 @@ const ApproverStatus = styled.span`
   }};
 `;
 
+const StatusMessage = styled.div`
+  padding: 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 16px;
+  text-align: center;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
 const ApprovalDetail = () => {
   const { projectId, approvalId } = useParams();
   const navigate = useNavigate();
@@ -846,12 +858,6 @@ const ApprovalDetail = () => {
   // 승인요청 전송 함수
   const handleSendApproval = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('로그인이 필요합니다.');
-        return;
-      }
-
       if (!proposal.id) {
         console.error('승인 요청 ID를 찾을 수 없습니다.');
         return;
@@ -860,95 +866,61 @@ const ApprovalDetail = () => {
       // 승인권자 수 확인
       console.log('승인권자 수 확인 중...');
       try {
-        const approverCheckResponse = await fetch(API_ENDPOINTS.APPROVAL.APPROVERS(proposal.id), {
-          headers: {
-            'Authorization': token,
-          }
+        const { data: approverData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(proposal.id), {
+          withCredentials: true
         });
         
-        if (approverCheckResponse.ok) {
-          let approverData;
-          const responseText = await approverCheckResponse.text();
-          
-          if (responseText) {
-            try {
-              approverData = JSON.parse(responseText);
-              console.log('승인권자 데이터:', approverData);
-              
-              // 다양한 응답 구조 처리
-              let approvers = [];
-              if (approverData.approverResponses) {
-                approvers = approverData.approverResponses;
-              } else if (Array.isArray(approverData)) {
-                approvers = approverData;
-              } else if (approverData.data && Array.isArray(approverData.data)) {
-                approvers = approverData.data;
-              }
-              
-              if (approvers.length === 0) {
-                alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
-                return;
-              }
-            } catch (e) {
-              console.error('승인권자 데이터 파싱 오류:', e);
-            }
-          }
-        } else {
-          console.error('승인권자 확인 실패:', approverCheckResponse.status);
+        console.log('승인권자 데이터:', approverData);
+        
+        // 다양한 응답 구조 처리
+        let approvers = [];
+        if (approverData.approverResponses) {
+          approvers = approverData.approverResponses;
+        } else if (Array.isArray(approverData)) {
+          approvers = approverData;
+        } else if (approverData.data && Array.isArray(approverData.data)) {
+          approvers = approverData.data;
+        }
+        
+        if (approvers.length === 0) {
+          alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
+          return;
         }
       } catch (error) {
         console.error('승인권자 확인 중 오류:', error);
+        return;
       }
 
-      const isConfirmed = window.confirm('승인 요청을 전송하시겠습니까?');
+      const isConfirmed = window.confirm('승인 요청을 전송하시겠습니까?\n전송 후에는 승인권자를 수정할 수 없습니다.');
       if (!isConfirmed) {
         return;
       }
 
       setSendingApproval(true);
 
-      const response = await fetch(API_ENDPOINTS.APPROVAL.SEND(proposal.id), {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(proposal.id), {}, {
+          withCredentials: true
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('승인 요청 전송 실패:', response.status, errorText);
-        
-        // 특정 에러 코드 및 메시지 처리
-        if (errorText.includes('AP006') || errorText.includes('지정된 승인권자가 있어야 승인요청을 보낼 수 있습니다')) {
-          alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
-          setSendingApproval(false);
-          return;
+        if (response.data) {
+          alert('승인 요청이 성공적으로 전송되었습니다.\n이제 승인권자를 수정할 수 없습니다.');
+          setLastSentAt(new Date());
+          setHasChanges(false);
+          await fetchProposalDetail();
         }
-        
-        // 400 에러 특별 처리
-        if (response.status === 400) {
-          if (errorText.includes('이미 전송된 승인요청')) {
-            alert('이미 전송된 승인요청입니다. 내용 변경 후 다시 시도해주세요.');
+      } catch (error) {
+        console.error('승인 요청 중 오류 발생:', error);
+        if (error.response?.status === 400) {
+          if (error.response.data?.message?.includes('이미 전송된 승인요청')) {
+            alert('이미 전송된 승인요청입니다.');
           } else {
-            alert('승인요청 전송에 실패했습니다. 필수 정보가 모두 입력되었는지 확인해주세요.');
+            alert(error.response.data?.message || '승인요청 전송에 실패했습니다.');
           }
-          setSendingApproval(false);
-          return;
+        } else {
+          alert('승인요청 전송에 실패했습니다.');
         }
-        
-        alert(`승인 요청 전송에 실패했습니다. (${response.status})`);
-        setSendingApproval(false);
-        return;
       }
-
-      alert('승인 요청이 성공적으로 전송되었습니다.');
-      setLastSentAt(new Date());
-      setHasChanges(false);
-      await fetchProposalDetail();
-    } catch (error) {
-      console.error('승인 요청 중 오류 발생:', error);
-      alert('승인 요청 중 오류가 발생했습니다.');
     } finally {
       setSendingApproval(false);
     }
@@ -1310,28 +1282,43 @@ const ApprovalDetail = () => {
                       <div style={{ flex: 1 }}></div>
                       
                       {!isEditing && (
-                        <ActionsMenuContainer ref={actionsMenuRef}>
-                          <ActionsButton 
-                            onClick={() => setShowActionsMenu(!showActionsMenu)}
-                          >
-                            ⋮
-                          </ActionsButton>
-                          {showActionsMenu && (
-                            <ActionsDropdown>
-                              <DropdownItem 
-                                onClick={handleEditProposal}
-                              >
-                                <FaEdit /> 수정
-                              </DropdownItem>
-                              <DropdownItem 
-                                $danger
-                                onClick={handleDeleteProposal}
-                              >
-                                <FaTrashAlt /> 삭제
-                              </DropdownItem>
-                            </ActionsDropdown>
+                        <>
+                          {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
+                            <ApprovalActionButton 
+                              onClick={handleSendApproval} 
+                              disabled={sendingApproval}
+                              style={{ marginRight: '8px' }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 2L11 13"></path>
+                                <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
+                              </svg>
+                              {sendingApproval ? '전송 중...' : '승인요청 전송'}
+                            </ApprovalActionButton>
                           )}
-                        </ActionsMenuContainer>
+                          <ActionsMenuContainer ref={actionsMenuRef}>
+                            <ActionsButton 
+                              onClick={() => setShowActionsMenu(!showActionsMenu)}
+                            >
+                              ⋮
+                            </ActionsButton>
+                            {showActionsMenu && (
+                              <ActionsDropdown>
+                                <DropdownItem 
+                                  onClick={handleEditProposal}
+                                >
+                                  <FaEdit /> 수정
+                                </DropdownItem>
+                                <DropdownItem 
+                                  $danger
+                                  onClick={handleDeleteProposal}
+                                >
+                                  <FaTrashAlt /> 삭제
+                                </DropdownItem>
+                              </ActionsDropdown>
+                            )}
+                          </ActionsMenuContainer>
+                        </>
                       )}
                     </StatusContainer>
                     
@@ -1448,6 +1435,21 @@ const ApprovalDetail = () => {
                         <ApproversSection>
                           <ApproversHeader>
                             <ApproversTitle>승인권자 목록</ApproversTitle>
+                            {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
+                              <ApprovalActionButton 
+                                $secondary
+                                onClick={handleOpenEditApprovers}
+                                style={{ padding: '4px 8px', fontSize: '13px' }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="9" cy="7" r="4"></circle>
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                승인권자 수정
+                              </ApprovalActionButton>
+                            )}
                           </ApproversHeader>
                           <ApproversList>
                             {approvers.length > 0 ? (
@@ -1472,38 +1474,20 @@ const ApprovalDetail = () => {
                           </ApproversList>
                         </ApproversSection>
 
-                        {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
-                        <ApprovalButtonContainer>
-                          {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
-                            <ApprovalActionButton 
-                              $secondary
-                              onClick={handleOpenEditApprovers}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                              </svg>
-                              승인권자 수정
-                            </ApprovalActionButton>
-                          )}
-                          <ApprovalActionButton 
-                            onClick={handleSendApproval} 
-                            disabled={
-                              sendingApproval || 
-                              (proposal.displayStatus !== ApprovalProposalStatus.DRAFT && !hasChanges)
+                        {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}
+                        <div id="approvalDecisionComponent" style={{ marginTop: '24px' }}>
+                          <ApprovalDecision 
+                            approvalId={proposal?.id} 
+                            status={proposal?.displayStatus}
+                            waitingMessage={
+                              proposal?.displayStatus === ApprovalProposalStatus.UNDER_REVIEW
+                                ? "승인요청이 전송되었습니다. 고객사의 승인응답을 기다리고 있습니다."
+                                : proposal?.displayStatus === ApprovalProposalStatus.DRAFT
+                                ? "승인요청을 전송하면 승인권자들이 응답을 등록할 수 있습니다."
+                                : null
                             }
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M22 2L11 13"></path>
-                              <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
-                            </svg>
-                            {sendingApproval ? '전송 중...' : (
-                              !proposal.lastSentAt ? '승인요청 전송' : '승인요청 재전송'
-                            )}
-                          </ApprovalActionButton>
-                        </ApprovalButtonContainer>
+                          />
+                        </div>
                       </>
                     )}
                   </ProposalInfoSection>
@@ -1524,11 +1508,6 @@ const ApprovalDetail = () => {
                       />
                     </div>
                   ) : null}
-
-                  {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}
-                  <div id="approvalDecisionComponent" style={{ marginTop: '24px' }}>
-                    <ApprovalDecision approvalId={proposal?.id} />
-                  </div>
                 </div>
               </ContentGrid>
             </ContentContainer>

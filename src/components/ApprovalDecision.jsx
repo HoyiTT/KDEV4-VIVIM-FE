@@ -1039,27 +1039,18 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // 승인요청 전송 여부 확인
   const isRequestSent = statusSummary && 
     (statusSummary.proposalStatus !== ApprovalProposalStatus.DRAFT || statusSummary.lastSentAt);
 
   // 개발사 확인 함수
-  const checkDeveloperStatus = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setIsDeveloper(false);
-      return;
-    }
-
+  const checkDeveloperStatus = async () => {
     try {
-      const decodedToken = JSON.parse(atob(token.split('.')[1]));
-      console.log('Decoded Token for Developer Check:', decodedToken);
-
-      // 개발사 확인 로직
-      const isDeveloperUser = decodedToken.role === 'DEVELOPER';
+      const response = await axiosInstance.get(API_ENDPOINTS.AUTH.CHECK_ROLE);
+      const isDeveloperUser = response.data.role === 'DEVELOPER';
       console.log('Is Developer:', isDeveloperUser);
-
       setIsDeveloper(isDeveloperUser);
     } catch (error) {
       console.error('Error checking developer status:', error);
@@ -1068,22 +1059,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   };
 
   // 고객사 확인 함수
-  const checkCustomerStatus = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setIsCustomer(false);
-      return;
-    }
-
+  const checkCustomerStatus = async () => {
     try {
-      const decodedToken = JSON.parse(atob(token.split('.')[1]));
-      console.log('Decoded Token for Customer Check:', decodedToken);
-      console.log('Role:', decodedToken.role);
-
-      // 고객사 확인 로직 - role 확인
-      const isCustomerUser = decodedToken.role === 'CUSTOMER';
+      const response = await axiosInstance.get(API_ENDPOINTS.AUTH.CHECK_ROLE);
+      const isCustomerUser = response.data.role === 'CUSTOMER';
       console.log('Is Customer:', isCustomerUser);
-
       setIsCustomer(isCustomerUser);
     } catch (error) {
       console.error('Error checking customer status:', error);
@@ -1091,9 +1071,29 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     }
   };
 
+  // 현재 사용자 정보 가져오기
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axiosInstance.get(API_ENDPOINTS.AUTH.CURRENT_USER);
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      setCurrentUser(null);
+    }
+  };
+
   useEffect(() => {
-    checkDeveloperStatus();
-    checkCustomerStatus();
+    const checkRoles = async () => {
+      await Promise.all([
+        checkDeveloperStatus(),
+        checkCustomerStatus()
+      ]);
+    };
+    checkRoles();
+  }, []);
+
+  useEffect(() => {
+    fetchCurrentUser();
   }, []);
 
   useEffect(() => {
@@ -1125,8 +1125,7 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
   };
 
   const isCurrentUserApprover = (approverId) => {
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    return String(currentUser.id) === String(approverId);
+    return currentUser && String(currentUser.id) === String(approverId);
   };
 
   const hasExistingDecision = (approver) => {
@@ -1191,20 +1190,56 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       return;
     }
 
+    if (!selectedApprover?.approverId) {
+      alert('승인권자 정보가 없습니다.');
+      return;
+    }
+
     try {
-      const response = await axiosInstance.post(API_ENDPOINTS.DECISION.CREATE(approvalId), {
+      console.log('승인응답 생성 요청:', {
         content: newDecision.content,
-        decisionStatus: newDecision.status
+        decisionStatus: newDecision.status,
+        approverId: selectedApprover.approverId
       });
 
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(selectedApprover.approverId),
+        {
+          content: newDecision.content,
+          decisionStatus: newDecision.status
+        }
+      );
+
+      console.log('승인응답 생성 응답:', response.data);
+
       if (response.status === 200) {
-        fetchDecisions();
+        // 모든 상태 초기화
+        setIsModalOpen(false);
+        setSelectedApprover(null);
         setNewDecision({ content: '', status: '' });
+        setFiles([]);
+        setLinks([]);
+        setNewLink({ title: '', url: '' });
+        
+        // 성공 메시지 표시 및 목록 새로고침
+        alert('승인응답이 등록되었습니다.');
+        await fetchDecisions();
       }
     } catch (error) {
-      console.error('Error creating decision:', error);
-      alert('승인응답 생성에 실패했습니다.');
+      console.error('승인응답 생성 오류:', error);
+      const errorMessage = error.response?.data?.message || '승인응답 생성에 실패했습니다.';
+      alert(errorMessage);
     }
+  };
+
+  // 모달 닫기 함수 추가
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedApprover(null);
+    setNewDecision({ content: '', status: '' });
+    setFiles([]);
+    setLinks([]);
+    setNewLink({ title: '', url: '' });
   };
 
   const handleDeleteDecision = async (decisionId, status, approverId, approverName) => {
@@ -1317,256 +1352,183 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
           <ApproversSectionTitle>승인권자별 응답목록</ApproversSectionTitle>
         </ApproversSectionHeader>
         
-        {/* 승인요청 전송 전 상태 */}
-        {!isRequestSent && (
-          <div style={{ 
-            padding: '24px', 
-            textAlign: 'center', 
-            color: '#6b7280', 
-            background: '#f9fafb', 
-            borderRadius: '8px', 
-            border: '1px dashed #e5e7eb',
-            margin: '16px 0'
-          }}>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="32" 
-              height="32" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              style={{ margin: '0 auto 12px', color: '#9ca3af' }}
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <div style={{ fontSize: '15px', fontWeight: '500', marginBottom: '8px' }}>
-              승인요청이 아직 전송되지 않았습니다
-            </div>
-            <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-              승인요청을 전송하면 승인권자들이 응답을 등록할 수 있습니다
-            </div>
-          </div>
-        )}
-
-        {/* 승인요청 전송 후 상태 */}
-        {isRequestSent && (
-          <>
-            {/* 승인 현황 요약 정보 */}
-            {statusSummary && (
-              <StatusSummary>
-                <StatusSummaryGrid>
-                  {statusSummary.totalApproverCount > 0 && (
-                    <StatusItem bgColor="#f8fafc">
-                      <StatusLabel>전체</StatusLabel>
-                      <StatusCount>
-                        <span className="count">{statusSummary.totalApproverCount}</span>
-                        <span className="unit">명</span>
-                      </StatusCount>
-                    </StatusItem>
-                  )}
-                  <StatusItem bgColor="#eff6ff">
-                    <StatusLabel color="#1e40af">대기</StatusLabel>
-                    <StatusCount color="#1e40af">
-                      <span className="count">{statusSummary.waitingApproverCount}</span>
-                      <span className="unit">명</span>
-                    </StatusCount>
-                  </StatusItem>
-                  <StatusItem bgColor="#f0fdf4">
-                    <StatusLabel color="#166534">승인</StatusLabel>
-                    <StatusCount color="#166534">
-                      <span className="count">{statusSummary.approvedApproverCount}</span>
-                      <span className="unit">명</span>
-                    </StatusCount>
-                  </StatusItem>
-                  <StatusItem bgColor="#fef2f2">
-                    <StatusLabel color="#991b1b">반려</StatusLabel>
-                    <StatusCount color="#991b1b">
-                      <span className="count">{statusSummary.modificationRequestedApproverCount}</span>
-                      <span className="unit">명</span>
-                    </StatusCount>
-                  </StatusItem>
-                </StatusSummaryGrid>
-              </StatusSummary>
-            )}
-            
-            <ResponseList>
-              {approversData.length === 0 ? (
-                <EmptyResponseMessage>등록된 승인권자가 없습니다. 승인권자를 추가해주세요.</EmptyResponseMessage>
-              ) : (
-                sortApprovers(approversData).map((approver) => (
-                  <ResponseItem 
-                    key={approver.approverId}
-                    $hasApproved={hasApprovedDecision(approver)}
-                    $hasRejected={hasRejectedDecision(approver)}
-                    $isCompleted={hasApprovedDecision(approver)}
-                  >
-                    <div>
-                      <ResponseHeader>
-                        <ResponseName>
-                          {approver.approverName}
-                          {hasApprovedDecision(approver) && (
-                            <CompletedBadge>승인 완료</CompletedBadge>
-                          )}
-                        </ResponseName>
-                      </ResponseHeader>
-                      {hasApprovedDecision(approver) ? (
-                        <>
-                          <CompletedMessage 
-                            onClick={() => toggleApproverExpansion(approver.approverId)}
-                          >
-                            {expandedApprovers.has(approver.approverId) ? '응답내역 접기' : '지난 응답내역 확인'}
-                          </CompletedMessage>
-                          {expandedApprovers.has(approver.approverId) && (
-                            <ApproverContent>
-                              {approver.decisionResponses.map((decision) => (
-                                <ResponseDecision 
-                                  key={decision.id}
-                                  onClick={() => handleDecisionClick(decision)}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  <DecisionHeader>
-                                    <DecisionStatus $status={decision.status}>
-                                      {getStatusText(decision.status)}
-                                    </DecisionStatus>
-                                    <DecisionDate>
-                                      {formatDate(decision.decidedAt)}
-                                      {decision.status !== ApprovalDecisionStatus.APPROVED && (
-                                        <DeleteAction 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
-                                          }}
-                                        >
-                                          삭제
-                                        </DeleteAction>
-                                      )}
-                                    </DecisionDate>
-                                  </DecisionHeader>
-                                  <DecisionContent>
-                                    {decision.content || '내용 없음'}
-                                  </DecisionContent>
-                                </ResponseDecision>
-                              ))}
-                            </ApproverContent>
-                          )}
-                        </>
-                      ) : (
-                        <ApproverContent>
-                          {approver.decisionResponses && approver.decisionResponses.length > 0 ? (
-                            <>
-                              {approver.decisionResponses.map((decision) => (
-                                <ResponseDecision 
-                                  key={decision.id}
-                                  onClick={() => handleDecisionClick(decision)}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  <DecisionHeader>
-                                    <DecisionStatus $status={decision.status}>
-                                      {getStatusText(decision.status)}
-                                    </DecisionStatus>
-                                    <DecisionDate>
-                                      {formatDate(decision.decidedAt)}
-                                      {decision.status !== ApprovalDecisionStatus.APPROVED && (
-                                        <DeleteAction 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
-                                          }}
-                                        >
-                                          삭제
-                                        </DeleteAction>
-                                      )}
-                                    </DecisionDate>
-                                  </DecisionHeader>
-                                  <DecisionContent>
-                                    {decision.content || '내용 없음'}
-                                  </DecisionContent>
-                                </ResponseDecision>
-                              ))}
-                              
-                              {!isDeveloper && !isCustomer && (
-                                <AddResponseButton 
-                                  onClick={() => {
-                                    setIsModalOpen(true);
-                                    setSelectedApprover(approver);
-                                    setNewDecision({ content: '', status: '' });
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                  </svg>
-                                  <span>승인응답 추가</span>
-                                </AddResponseButton>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <div style={{ 
-                                padding: '20px', 
-                                textAlign: 'center', 
-                                color: '#6b7280', 
-                                fontSize: '14px', 
-                                background: '#f9fafb', 
-                                borderRadius: '8px', 
-                                border: '1px dashed #e5e7eb',
-                                marginBottom: '16px'
-                              }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block', color: '#9ca3af' }}>
-                                  <circle cx="12" cy="12" r="10"></circle>
-                                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                                아직 등록된 응답이 없습니다. 승인 응답을 추가해주세요.
-                              </div>
-                              
-                              {!isDeveloper && !isCustomer && (
-                                <AddResponseButton 
-                                  onClick={() => {
-                                    setIsModalOpen(true);
-                                    setSelectedApprover(approver);
-                                    setNewDecision({ content: '', status: '' });
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                  </svg>
-                                  <span>승인응답 추가</span>
-                                </AddResponseButton>
-                              )}
-                            </>
-                          )}
-                        </ApproverContent>
-                      )}
-                    </div>
-                  </ResponseItem>
-                ))
+        {/* 승인 현황 요약 정보 - 승인요청 전송 후에만 표시 */}
+        {statusSummary?.proposalStatus !== ApprovalProposalStatus.DRAFT && statusSummary && (
+          <StatusSummary>
+            <StatusSummaryGrid>
+              {statusSummary.totalApproverCount > 0 && (
+                <StatusItem bgColor="#f8fafc">
+                  <StatusLabel>전체</StatusLabel>
+                  <StatusCount>
+                    <span className="count">{statusSummary.totalApproverCount}</span>
+                    <span className="unit">명</span>
+                  </StatusCount>
+                </StatusItem>
               )}
-            </ResponseList>
-          </>
+              <StatusItem bgColor="#eff6ff">
+                <StatusLabel color="#1e40af">대기</StatusLabel>
+                <StatusCount color="#1e40af">
+                  <span className="count">{statusSummary.waitingApproverCount}</span>
+                  <span className="unit">명</span>
+                </StatusCount>
+              </StatusItem>
+              <StatusItem bgColor="#f0fdf4">
+                <StatusLabel color="#166534">승인</StatusLabel>
+                <StatusCount color="#166534">
+                  <span className="count">{statusSummary.approvedApproverCount}</span>
+                  <span className="unit">명</span>
+                </StatusCount>
+              </StatusItem>
+              <StatusItem bgColor="#fef2f2">
+                <StatusLabel color="#991b1b">반려</StatusLabel>
+                <StatusCount color="#991b1b">
+                  <span className="count">{statusSummary.modificationRequestedApproverCount}</span>
+                  <span className="unit">명</span>
+                </StatusCount>
+              </StatusItem>
+            </StatusSummaryGrid>
+          </StatusSummary>
         )}
+        
+        <ResponseList>
+          {approversData.length === 0 ? (
+            <EmptyResponseMessage>등록된 승인권자가 없습니다. 승인권자를 추가해주세요.</EmptyResponseMessage>
+          ) : (
+            sortApprovers(approversData).map((approver) => (
+              <ResponseItem 
+                key={approver.approverId}
+                $hasApproved={hasApprovedDecision(approver)}
+                $hasRejected={hasRejectedDecision(approver)}
+                $isCompleted={hasApprovedDecision(approver)}
+              >
+                <div>
+                  <ResponseHeader>
+                    <ResponseName>
+                      {approver.approverName}
+                      {hasApprovedDecision(approver) && (
+                        <CompletedBadge>승인 완료</CompletedBadge>
+                      )}
+                    </ResponseName>
+                  </ResponseHeader>
+                  <ApproverContent>
+                    {statusSummary?.proposalStatus === ApprovalProposalStatus.DRAFT ? (
+                      <div style={{ 
+                        padding: '20px', 
+                        textAlign: 'center', 
+                        color: '#6b7280', 
+                        fontSize: '14px', 
+                        background: '#f9fafb', 
+                        borderRadius: '8px', 
+                        border: '1px dashed #e5e7eb',
+                        marginBottom: '16px'
+                      }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block', color: '#9ca3af' }}>
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        승인요청 전송 후 응답을 등록할 수 있습니다
+                      </div>
+                    ) : approver.decisionResponses && approver.decisionResponses.length > 0 ? (
+                      <>
+                        {approver.decisionResponses.map((decision) => (
+                          <ResponseDecision 
+                            key={decision.id}
+                            onClick={() => handleDecisionClick(decision)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <DecisionHeader>
+                              <DecisionStatus $status={decision.status}>
+                                {getStatusText(decision.status)}
+                              </DecisionStatus>
+                              <DecisionDate>
+                                {formatDate(decision.decidedAt)}
+                                {decision.status !== ApprovalDecisionStatus.APPROVED && (
+                                  <DeleteAction 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteDecision(decision.id, decision.status, decision.approverId, approver.approverName);
+                                    }}
+                                  >
+                                    삭제
+                                  </DeleteAction>
+                                )}
+                              </DecisionDate>
+                            </DecisionHeader>
+                            <DecisionContent>
+                              {decision.content || '내용 없음'}
+                            </DecisionContent>
+                          </ResponseDecision>
+                        ))}
+                        
+                        {!isDeveloper && !isCustomer && !hasApprovedDecision(approver) && (
+                          <AddResponseButton 
+                            onClick={() => {
+                              setIsModalOpen(true);
+                              setSelectedApprover(approver);
+                              setNewDecision({ content: '', status: '' });
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="12" y1="5" x2="12" y2="19"></line>
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>승인응답 추가</span>
+                          </AddResponseButton>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ 
+                          padding: '20px', 
+                          textAlign: 'center', 
+                          color: '#6b7280', 
+                          fontSize: '14px', 
+                          background: '#f9fafb', 
+                          borderRadius: '8px', 
+                          border: '1px dashed #e5e7eb',
+                          marginBottom: '16px'
+                        }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block', color: '#9ca3af' }}>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                          </svg>
+                          아직 등록된 응답이 없습니다
+                        </div>
+                        
+                        {!isDeveloper && !isCustomer && !hasApprovedDecision(approver) && (
+                          <AddResponseButton 
+                            onClick={() => {
+                              setIsModalOpen(true);
+                              setSelectedApprover(approver);
+                              setNewDecision({ content: '', status: '' });
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="12" y1="5" x2="12" y2="19"></line>
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>승인응답 추가</span>
+                          </AddResponseButton>
+                        )}
+                      </>
+                    )}
+                  </ApproverContent>
+                </div>
+              </ResponseItem>
+            ))
+          )}
+        </ResponseList>
       </ResponseSection>
 
       {/* 승인응답 추가 모달 */}
       {isModalOpen && (
-        <ModalOverlay>
-          <ModalContainer>
+        <ModalOverlay onClick={handleCloseModal}>
+          <ModalContainer onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>승인응답 추가</ModalTitle>
-              <CloseButton onClick={() => {
-                setIsModalOpen(false);
-                setSelectedApprover(null);
-                setNewDecision({ content: '', status: '' });
-                setFiles([]);
-                setLinks([]);
-                setNewLink({ title: '', url: '' });
-              }}>×</CloseButton>
+              <CloseButton onClick={handleCloseModal}>×</CloseButton>
             </ModalHeader>
             <ModalContent>
               <InputGroup>
@@ -1613,14 +1575,7 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                 />
               </InputGroup>
               <ModalButtonContainer>
-                <CancelButton onClick={() => {
-                  setIsModalOpen(false);
-                  setSelectedApprover(null);
-                  setNewDecision({ content: '', status: '' });
-                  setFiles([]);
-                  setLinks([]);
-                  setNewLink({ title: '', url: '' });
-                }}>취소</CancelButton>
+                <CancelButton onClick={handleCloseModal}>취소</CancelButton>
                 <SaveButton onClick={handleCreateDecision}>저장</SaveButton>
               </ModalButtonContainer>
             </ModalContent>
@@ -1630,8 +1585,11 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
 
       {/* 승인응답 상세보기 모달 */}
       {isDetailModalOpen && selectedDecision && (
-        <ModalOverlay>
-          <ModalContainer>
+        <ModalOverlay onClick={() => {
+          setIsDetailModalOpen(false);
+          setSelectedDecision(null);
+        }}>
+          <ModalContainer onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>승인응답 상세</ModalTitle>
               <CloseButton onClick={() => {

@@ -1217,11 +1217,6 @@ const ApprovalProposal = ({
     console.log('▶ 승인요청 생성 시도 - 프로젝트 정보:', projectInfo);
     console.log('▶ 승인요청 생성 시도 - 고객사 여부:', isCustomer);
 
-    if (!user) {
-      console.log('▶ 승인요청 생성 실패 - 사용자 정보 없음');
-      return;
-    }
-
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
       return;
@@ -1299,11 +1294,7 @@ const ApprovalProposal = ({
       fetchProposals();
     } catch (error) {
       console.error('Error creating proposal:', error);
-      if (error.response?.status === 403) {
-        alert('승인요청을 생성할 권한이 없습니다.');
-      } else {
-        alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
-      }
+      alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
     }
   };
 
@@ -1420,24 +1411,29 @@ const ApprovalProposal = ({
         withCredentials: true
       });
       
-      if (!approversData || approversData.length === 0) {
+      if (!approversData || approversData.approverResponses?.length === 0) {
         window.alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
         return;
       }
 
-      await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(approvalId));
-      window.alert('승인요청이 성공적으로 전송되었습니다.');
-      fetchProposals();
+      const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(approvalId), {}, {
+        withCredentials: true
+      });
+
+      if (response.data) {
+        window.alert('승인요청이 성공적으로 전송되었습니다.');
+        fetchProposals();
+      }
     } catch (error) {
-      console.error('Error sending proposal:', error);
+      console.error('승인요청 전송 중 오류:', error);
       if (error.response?.status === 400) {
         if (error.response.data?.message?.includes('이미 전송된 승인요청')) {
-          window.alert('이미 전송된 승인요청입니다. 내용 변경 후 다시 시도해주세요.');
+          window.alert('이미 전송된 승인요청입니다.');
         } else {
-          window.alert('승인요청 전송에 실패했습니다. 필수 정보가 모두 입력되었는지 확인해주세요.');
+          window.alert(error.response.data?.message || '승인요청 전송에 실패했습니다.');
         }
       } else {
-        window.alert(error.response?.data?.message || '승인요청 전송에 실패했습니다.');
+        window.alert('승인요청 전송에 실패했습니다.');
       }
     }
   };
@@ -1500,11 +1496,7 @@ const ApprovalProposal = ({
 
   useEffect(() => {
     if (authLoading) return;
-    
-    if (!user) {
-      return;
-    }
-  }, [user, authLoading, navigate]);
+  }, [authLoading]);
 
   const handleFilesChange = (newFiles) => {
     setFiles(newFiles);
