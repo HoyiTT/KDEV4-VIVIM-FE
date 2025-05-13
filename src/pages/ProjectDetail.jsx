@@ -1019,6 +1019,8 @@ const ProjectDetail = () => {
 
   const [comments, setComments] = useState({});
 
+  const [isSavingPositions, setIsSavingPositions] = useState(false);
+
   const openStageModal = (action, stage = null) => {
     if (action === 'delete') {
       if (window.confirm('정말로 이 단계를 삭제하시겠습니까?')) {
@@ -1129,6 +1131,11 @@ const ProjectDetail = () => {
   }, [progressList]);
 
   const handleDragEnd = (event) => {
+    if (isSavingPositions) {
+      alert('단계 순서 저장 중입니다. 잠시만 기다려주세요.');
+      return;
+    }
+
     const { active, over } = event;
     
     if (active.id !== over.id) {
@@ -1507,7 +1514,10 @@ const ProjectDetail = () => {
   };
 
   const handleSavePositions = async () => {
+    if (isSavingPositions) return;
+    
     try {
+      setIsSavingPositions(true);
       // 위치 값 검증
       const invalidStage = stages.find(stage => !stage.position || stage.position < 0);
       if (invalidStage) {
@@ -1540,6 +1550,8 @@ const ProjectDetail = () => {
       } else {
         alert('단계 순서 변경에 실패했습니다.');
       }
+    } finally {
+      setIsSavingPositions(false);
     }
   };
 
