@@ -17,16 +17,19 @@ const AuditLog = () => {
     endDate: '',
     userId: '',
     size: 10,
+    page: 1
   });
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [cursor, setCursor] = useState({ loggedAt: '', id: '' });
   const [nextCursor, setNextCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([]);
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [filters]);
 
-  const fetchLogs = async (customCursor = null) => {
+  const fetchLogs = async () => {
     try {
       setLoading(true);
       const params = {};
@@ -35,17 +38,18 @@ const AuditLog = () => {
           params[key] = value;
         }
       });
-      if (customCursor && customCursor.loggedAt && customCursor.id) {
-        params.cursorLoggedAt = customCursor.loggedAt;
-        params.cursorId = customCursor.id;
-      }
       const { data } = await axiosInstance.get(`/auditLog/searchCursor`, { params });
       setLogs(data.logs || []);
+      setTotalPages(data.totalPages || 0);
+      setCurrentPage(data.currentPage || 1);
       setNextCursor(data.nextCursor || null);
-      setCursor(customCursor || { loggedAt: '', id: '' });
+      setCursor(data.cursor || { loggedAt: '', id: '' });
     } catch (error) {
       setLogs([]);
+      setTotalPages(0);
+      setCurrentPage(1);
       setNextCursor(null);
+      setCursor({ loggedAt: '', id: '' });
     } finally {
       setLoading(false);
     }
@@ -56,10 +60,15 @@ const AuditLog = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePageChange = (page) => {
+    if (page < 1) return;
+    setFilters(prev => ({ ...prev, page }));
+    setCurrentPage(page);
+  };
+
   const handleSearch = () => {
-    setCursor({ loggedAt: '', id: '' });
-    setCursorStack([]);
-    fetchLogs(null);
+    setFilters(prev => ({ ...prev, page: 1 }));
+    setCurrentPage(1);
   };
 
   const handleNext = () => {
@@ -202,14 +211,36 @@ const AuditLog = () => {
             </LogTable>
             <PaginationContainer>
               <PaginationButton 
-                onClick={handlePrev} 
-                disabled={cursorStack.length === 0}
+                onClick={() => handlePageChange(currentPage - 1)} 
+                disabled={currentPage === 1}
               >
                 이전
               </PaginationButton>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage > totalPages - 3) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                if (pageNum < 1 || pageNum > totalPages) return null;
+                return (
+                  <PaginationButton
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    active={currentPage === pageNum}
+                  >
+                    {pageNum}
+                  </PaginationButton>
+                );
+              })}
               <PaginationButton 
-                onClick={handleNext} 
-                disabled={!nextCursor}
+                onClick={() => handlePageChange(currentPage + 1)} 
+                disabled={currentPage === totalPages}
               >
                 다음
               </PaginationButton>
@@ -479,6 +510,7 @@ const PaginationContainer = styled.div`
   align-items: center;
   gap: 8px;
   margin-top: 24px;
+  flex-wrap: wrap;
 `;
 
 const PaginationButton = styled.button`
@@ -490,6 +522,10 @@ const PaginationButton = styled.button`
   font-size: 14px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover:not(:disabled) {
     background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
