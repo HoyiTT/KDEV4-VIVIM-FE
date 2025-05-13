@@ -605,6 +605,94 @@ const DeleteButton = styled.button`
   }
 `;
 
+const ApproversSection = styled.div`
+  margin-top: 24px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+`;
+
+const ApproversHeader = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+`;
+
+const ApproversTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+`;
+
+const ApproversList = styled.div`
+  padding: 0;
+`;
+
+const ApproverItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ApproverInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ApproverName = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+`;
+
+const ApproverCompany = styled.span`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const ApproverStatus = styled.span`
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  background-color: ${props => {
+    switch (props.$status) {
+      case 'APPROVED':
+        return '#f0fdf4';
+      case 'REJECTED':
+        return '#fef2f2';
+      case 'MODIFICATION_REQUESTED':
+        return '#fff7ed';
+      default:
+        return '#f1f5f9';
+    }
+  }};
+  color: ${props => {
+    switch (props.$status) {
+      case 'APPROVED':
+        return '#166534';
+      case 'REJECTED':
+        return '#991b1b';
+      case 'MODIFICATION_REQUESTED':
+        return '#9a3412';
+      default:
+        return '#475569';
+    }
+  }};
+`;
+
 const ApprovalDetail = () => {
   const { projectId, approvalId } = useParams();
   const navigate = useNavigate();
@@ -634,6 +722,7 @@ const ApprovalDetail = () => {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [deletedFileIds, setDeletedFileIds] = useState([]);
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
+  const [approvers, setApprovers] = useState([]);
 
   useEffect(() => {
     if (projectId && approvalId) {
@@ -1117,13 +1206,69 @@ const ApprovalDetail = () => {
     }
   };
 
-  // 승인권자 저장 처리 함수 추가
-  const handleSaveApprovers = async () => {
+  // 승인권자 저장 처리 함수 수정
+  const handleSaveApprovers = async (approverIds) => {
     try {
+      if (!approvalId) {
+        console.error('승인요청 ID를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 승인권자 저장 API 호출
+      await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
+        approverIds: approverIds
+      }, {
+        withCredentials: true
+      });
+
+      // 승인권자 목록 새로고침
+      await fetchApprovers();
+      
       setIsApproversModalOpen(false);
+      alert('승인권자가 성공적으로 저장되었습니다.');
     } catch (error) {
-      console.error('승인권자 저장 후 새로고침 중 오류:', error);
-      alert('승인권자 정보를 새로고침하는데 실패했습니다.');
+      console.error('승인권자 저장 중 오류:', error);
+      alert('승인권자 저장에 실패했습니다: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  // 승인권자 목록 조회 함수 수정
+  const fetchApprovers = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        withCredentials: true
+      });
+      console.log('승인권자 목록 응답:', data);
+      
+      // approverResponses 배열이 있는 경우 해당 데이터 사용
+      const approversList = data.approverResponses || [];
+      setApprovers(approversList);
+    } catch (error) {
+      console.error('승인권자 목록 조회 실패:', error);
+      setApprovers([]);
+    }
+  };
+
+  // 승인권자 목록 자동 새로고침
+  useEffect(() => {
+    if (approvalId) {
+      fetchApprovers();
+    }
+  }, [approvalId, isApproversModalOpen]); // 모달이 닫힐 때도 목록 새로고침
+
+  // 승인권자 상태 텍스트 변환 함수 수정
+  const getApproverStatusText = (status) => {
+    switch (status) {
+      case 'APPROVED':
+        return '승인';
+      case 'REJECTED':
+        return '반려';
+      case 'MODIFICATION_REQUESTED':
+        return '수정요청';
+      case 'NOT_RESPONDED':
+        return '응답대기중';
+      default:
+        return '미정';
     }
   };
 
@@ -1299,6 +1444,34 @@ const ApprovalDetail = () => {
                           </AttachmentContainer>
                         </AttachmentsSection>
 
+                        {/* 승인권자 목록 섹션 수정 */}
+                        <ApproversSection>
+                          <ApproversHeader>
+                            <ApproversTitle>승인권자 목록</ApproversTitle>
+                          </ApproversHeader>
+                          <ApproversList>
+                            {approvers.length > 0 ? (
+                              approvers.map((approver) => (
+                                <ApproverItem key={approver.approverId}>
+                                  <ApproverInfo>
+                                    <ApproverName>{approver.name}</ApproverName>
+                                    {approver.companyName && (
+                                      <ApproverCompany>{approver.companyName}</ApproverCompany>
+                                    )}
+                                  </ApproverInfo>
+                                  <ApproverStatus $status={approver.approverStatus}>
+                                    {getApproverStatusText(approver.approverStatus)}
+                                  </ApproverStatus>
+                                </ApproverItem>
+                              ))
+                            ) : (
+                              <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                                등록된 승인권자가 없습니다.
+                              </div>
+                            )}
+                          </ApproversList>
+                        </ApproversSection>
+
                         {/* 승인요청 전송 버튼과 승인권자 수정 버튼을 함께 배치 */}
                         <ApprovalButtonContainer>
                           {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
@@ -1369,6 +1542,7 @@ const ApprovalDetail = () => {
               onClose={handleCloseEditApprovers}
               onSave={handleSaveApprovers}
               projectId={projectId}
+              approvalId={approvalId}
             />
           )}
         </MainContent>

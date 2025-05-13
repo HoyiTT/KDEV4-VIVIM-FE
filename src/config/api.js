@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
     SEND: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/send`,
     APPROVERS: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
     CREATE_APPROVER: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
+    UPDATE_APPROVERS: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
     FILES: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files`,
     FILE_PRESIGNED: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files/presigned`,
     FILE_UPLOAD: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files/upload`,

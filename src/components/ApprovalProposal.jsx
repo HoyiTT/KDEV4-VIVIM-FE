@@ -740,12 +740,39 @@ const ErrorMessage = styled.span`
   margin-top: 4px;
 `;
 
-const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
+const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId }) => {
   const [companies, setCompanies] = useState([]);
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
   const [projectUsers, setProjectUsers] = useState([]);
+  const [currentApprovers, setCurrentApprovers] = useState([]);
+  const [changedApprovers, setChangedApprovers] = useState(new Set());
+
+  // 현재 등록된 승인권자 목록 조회
+  const fetchCurrentApprovers = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        withCredentials: true
+      });
+      console.log('현재 승인권자 목록:', data);
+      
+      if (data.approverResponses) {
+        setCurrentApprovers(data.approverResponses);
+        // 현재 승인권자들을 selectedApprovers에 추가
+        setSelectedApprovers(data.approverResponses.map(approver => ({
+          userId: approver.userId,
+          memberId: approver.userId,
+          name: approver.name
+        })));
+        // 변경된 승인권자 목록 초기화
+        setChangedApprovers(new Set());
+      }
+    } catch (error) {
+      console.error('승인권자 목록 조회 실패:', error);
+      setCurrentApprovers([]);
+    }
+  };
 
   // 회사별 직원 목록 조회
   const fetchCompanyEmployees = async (companyId) => {
@@ -755,13 +782,8 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
       });
       console.log('회사 직원 목록 응답:', response);
       
-      // API 응답의 data 배열 사용
       const employees = response.data || [];
-      console.log('처리된 직원 목록:', employees);
-      
-      // CUSTOMER 회사의 직원만 필터링
       const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 직원 목록:', customerEmployees);
       
       setCompanyEmployees(prev => ({
         ...prev,
@@ -769,7 +791,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
       }));
     } catch (error) {
       console.error('회사 직원 목록 조회 중 오류:', error);
-      console.error('에러 상세:', error.response?.data);
       alert('직원 목록을 불러오는데 실패했습니다.');
     }
   };
@@ -780,12 +801,8 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
       const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
         withCredentials: true
       });
-      console.log('회사 목록 응답:', data);
       
-      // CUSTOMER 회사만 필터링
       const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 목록:', customerCompanies);
-      
       setCompanies(customerCompanies);
       
       // 각 회사의 직원 목록 가져오기
@@ -801,19 +818,91 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
   useEffect(() => {
     if (isOpen) {
       fetchCompanies();
+      if (approvalId) {
+        fetchCurrentApprovers();
+      }
     }
-  }, [isOpen, projectId]);
+  }, [isOpen, projectId, approvalId]);
 
-  const handleSelectApprover = (employee, checked) => {
-    setSelectedApprovers(prev =>
-      checked 
+  // 승인권자 선택/해제 처리
+  const handleSelectApprover = async (employee, checked) => {
+    // 현재 승인권자인지 확인
+    const isCurrentApprover = currentApprovers.some(approver => approver.userId === employee.id);
+    
+    // 체크 해제 시도인 경우 (현재 승인권자를 제거하려는 경우)
+    if (!checked && isCurrentApprover) {
+      const confirmRemove = window.confirm(
+        `${employee.name}님을 승인권자에서 제외하시겠습니까?\n이 작업은 되돌릴 수 있습니다.`
+      );
+      
+      if (!confirmRemove) {
+        return; // 사용자가 취소한 경우
+      }
+    }
+
+    // 승인권자 상태 업데이트
+    setSelectedApprovers(prev => {
+      const newSelected = checked 
         ? [...prev, { 
             userId: employee.id, 
             memberId: employee.id,
             name: employee.name 
           }] 
-        : prev.filter(a => a.userId !== employee.id)
-    );
+        : prev.filter(a => a.userId !== employee.id);
+      
+      // 변경된 승인권자 추적
+      setChangedApprovers(prev => {
+        const newChanged = new Set(prev);
+        if (isCurrentApprover !== checked) {
+          newChanged.add(employee.id);
+        } else {
+          newChanged.delete(employee.id);
+        }
+        return newChanged;
+      });
+
+      return newSelected;
+    });
+  };
+
+  // 승인권자 수정 함수 추가
+  const updateApprovers = async (approverIds) => {
+    try {
+      const response = await axiosInstance.put(
+        API_ENDPOINTS.APPROVAL.UPDATE_APPROVERS(approvalId),
+        { approverIds },
+        { withCredentials: true }
+      );
+
+      // API 응답이 성공적으로 왔으면 성공으로 처리
+      if (response.data) {
+        alert('승인권자가 성공적으로 수정되었습니다.');
+        onClose();
+        // 승인권자 목록 새로고침
+        fetchCurrentApprovers();
+      } else {
+        throw new Error('승인권자 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('승인권자 수정 중 오류:', error);
+      alert(error.response?.data?.message || '승인권자 수정에 실패했습니다.');
+    }
+  };
+
+  // 저장 버튼 클릭 시 변경된 승인권자만 처리
+  const handleSave = () => {
+    // 변경된 승인권자만 필터링
+    const changedApproverIds = Array.from(changedApprovers);
+    if (changedApproverIds.length === 0) {
+      alert('변경된 승인권자가 없습니다.');
+      return;
+    }
+
+    // 전체 승인권자 ID 목록 전달
+    const allApproverIds = selectedApprovers.map(approver => approver.userId);
+
+    // 승인권자 수정 API 호출
+    updateApprovers(allApproverIds);
   };
 
   return (
@@ -826,6 +915,19 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
         <ModalContent>
           <InputGroup>
             <Label>승인권자 목록</Label>
+            {changedApprovers.size > 0 && (
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#64748b', 
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span>•</span>
+                <span>{changedApprovers.size}명의 승인권자가 변경되었습니다.</span>
+              </div>
+            )}
           </InputGroup>
           <ApproverSection>
             {companies.length === 0 ? (
@@ -837,19 +939,36 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
                     <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
                   </CompanyToggle>
                   <EmployeeList>
-                    {(companyEmployees[company.id] || []).map(emp => (
-                      <EmployeeItem key={emp.id}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>{emp.name}</span>
-                          <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                          onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                        />
-                      </EmployeeItem>
-                    ))}
+                    {(companyEmployees[company.id] || []).map(emp => {
+                      const isChanged = changedApprovers.has(emp.id);
+                      return (
+                        <EmployeeItem 
+                          key={emp.id}
+                          style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>{emp.name}</span>
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
+                            {isChanged && (
+                              <span style={{ 
+                                fontSize: '12px', 
+                                color: '#2E7D32',
+                                backgroundColor: '#f0fdf4',
+                                padding: '2px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                변경됨
+                              </span>
+                            )}
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedApprovers.some(a => a.userId === emp.id)} 
+                            onChange={e => handleSelectApprover(emp, e.target.checked)} 
+                          />
+                        </EmployeeItem>
+                      );
+                    })}
                   </EmployeeList>
                 </div>
               ))
@@ -858,7 +977,14 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
         </ModalContent>
         <ModalButtonContainer>
           <CancelButton onClick={onClose}>취소</CancelButton>
-          <SaveButton onClick={() => onSave(selectedApprovers.map(approver => approver.userId))}>
+          <SaveButton 
+            onClick={handleSave}
+            disabled={changedApprovers.size === 0}
+            style={{ 
+              opacity: changedApprovers.size === 0 ? 0.5 : 1,
+              cursor: changedApprovers.size === 0 ? 'not-allowed' : 'pointer'
+            }}
+          >
             저장
           </SaveButton>
         </ModalButtonContainer>
@@ -1093,7 +1219,6 @@ const ApprovalProposal = ({
 
     if (!user) {
       console.log('▶ 승인요청 생성 실패 - 사용자 정보 없음');
-      navigate('/login');
       return;
     }
 
@@ -1176,7 +1301,6 @@ const ApprovalProposal = ({
       console.error('Error creating proposal:', error);
       if (error.response?.status === 403) {
         alert('승인요청을 생성할 권한이 없습니다.');
-        navigate('/login');
       } else {
         alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
       }
@@ -1378,7 +1502,6 @@ const ApprovalProposal = ({
     if (authLoading) return;
     
     if (!user) {
-      navigate('/login');
       return;
     }
   }, [user, authLoading, navigate]);

@@ -250,20 +250,6 @@ const ProjectModify = () => {
       } else {
         setClientUsers(prev => prev.filter(item => item.userId !== userId));
       }
-    } else if (role === 'devManager') {
-      if (isSelected) {
-        setDevManagers(prev => [...prev, userObj]);
-        setDevUsers(prev => prev.filter(item => item.userId !== userId));
-      } else {
-        setDevManagers(prev => prev.filter(item => item.userId !== userId));
-      }
-    } else if (role === 'devUser') {
-      if (isSelected) {
-        setDevUsers(prev => [...prev, userObj]);
-        setDevManagers(prev => prev.filter(item => item.userId !== userId));
-      } else {
-        setDevUsers(prev => prev.filter(item => item.userId !== userId));
-      }
     }
   };
 
