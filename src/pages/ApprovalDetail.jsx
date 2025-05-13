@@ -1467,7 +1467,32 @@ const ApprovalDetail = () => {
                                 </ApproverItem>
                               ))
                             ) : (
-                              <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                              <div style={{ 
+                                padding: '16px', 
+                                textAlign: 'center', 
+                                color: '#64748b', 
+                                fontSize: '14px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}>
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="24" 
+                                  height="24" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="2" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  style={{ color: '#9ca3af' }}
+                                >
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="12" y1="8" x2="12" y2="12" />
+                                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
                                 등록된 승인권자가 없습니다.
                               </div>
                             )}
@@ -1475,19 +1500,19 @@ const ApprovalDetail = () => {
                         </ApproversSection>
 
                         {/* 승인 현황 요약 정보를 ApprovalDecision 컴포넌트로 전달 */}
-                        <div id="approvalDecisionComponent" style={{ marginTop: '24px' }}>
-                          <ApprovalDecision 
-                            approvalId={proposal?.id} 
-                            status={proposal?.displayStatus}
-                            waitingMessage={
-                              proposal?.displayStatus === ApprovalProposalStatus.UNDER_REVIEW
-                                ? "승인요청이 전송되었습니다. 고객사의 승인응답을 기다리고 있습니다."
-                                : proposal?.displayStatus === ApprovalProposalStatus.DRAFT
-                                ? "승인요청을 전송하면 승인권자들이 응답을 등록할 수 있습니다."
-                                : null
-                            }
-                          />
-                        </div>
+                        {proposal?.displayStatus !== ApprovalProposalStatus.DRAFT && (
+                          <div id="approvalDecisionComponent" style={{ marginTop: '24px' }}>
+                            <ApprovalDecision 
+                              approvalId={proposal?.id} 
+                              status={proposal?.displayStatus}
+                              waitingMessage={
+                                proposal?.displayStatus === ApprovalProposalStatus.UNDER_REVIEW
+                                  ? "승인요청이 전송되었습니다. 고객사의 승인응답을 기다리고 있습니다."
+                                  : null
+                              }
+                            />
+                          </div>
+                        )}
                       </>
                     )}
                   </ProposalInfoSection>

@@ -10,76 +10,75 @@ const { getApproverStatusText } = approvalUtils;
 
 // Styled Components
 const ResponseSection = styled.div`
+  margin-top: 24px;
   background: white;
   border-radius: 8px;
-  padding: 24px;
-  margin-top: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
-  overflow-x: hidden;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
 `;
 
 const ApproversSectionHeader = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
-  position: relative;
+  background: #f8fafc;
 `;
 
 const ApproversSectionTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 700;
-  color: #172b4d;
+  color: #1e293b;
+  font-size: 14px;
   margin: 0;
-  position: relative;
 `;
 
 const ResponseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-  max-width: 100%;
-  overflow-x: hidden;
+  gap: 8px;
+  margin-top: 12px;
 `;
 
-const ApproverCard = styled.div`
+const ResponseItem = styled.div`
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
-  margin-bottom: 16px;
+  transition: all 0.2s;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 `;
 
-const ApproverHeader = styled.div`
-  padding: 24px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
-  position: relative;
+const ResponseHeader = styled.div`
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid #e2e8f0;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
 `;
 
-const ApproverName = styled.div`
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
+const ResponseName = styled.div`
+  font-weight: 500;
+  color: #475569;
+  font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 `;
 
 const ApproverContent = styled.div`
-  padding: 20px;
+  padding: 16px;
+  background-color: white;
+  border-top: 1px solid #e2e8f0;
 `;
 
 const StatusBadge = styled.span`
@@ -146,25 +145,30 @@ const ToggleButton = styled.button.attrs({
 `;
 
 const ResponseDecision = styled.div`
-  margin-top: 16px;
-  padding: 20px;
+  margin-top: 12px;
+  padding: 16px;
   background-color: #f8fafc;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
 `;
 
 const DecisionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-size: 13px;
 `;
 
 const DecisionStatus = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 500;
   color: #64748b;
   
@@ -193,7 +197,8 @@ const DecisionDate = styled.div`
   color: #6b7280;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12px;
 `;
 
 const DecisionContent = styled.div`
@@ -206,26 +211,19 @@ const DecisionContent = styled.div`
     color: #1e293b;
     display: block;
     margin-bottom: 8px;
-    font-size: 15px;
+    font-size: 14px;
   }
-`;
-
-const DecisionActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-  gap: 8px;
 `;
 
 const DeleteAction = styled.button.attrs({
   className: 'approval-delete-action'
 })`
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 12px;
   color: #ef4444;
   background-color: transparent;
   border: 1px solid #fecdd3;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
   
@@ -239,168 +237,30 @@ const AddResponseButton = styled.button.attrs({
   className: 'approval-add-response-button'
 })`
   width: 100%;
-  padding: 12px 16px;
-  margin-top: 16px;
+  padding: 10px 16px;
+  margin-top: 12px;
   background: #2E7D32;
   border: none;
   border-radius: 6px;
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 
   &:hover {
     background: #1B5E20;
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
   
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
-`;
-
-const ResponseItem = styled.div`
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  margin-bottom: 16px;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background-color: #cbd5e1;
-    border-radius: 4px 0 0 4px;
-    transition: all 0.3s ease;
-  }
-
-  ${props => {
-    if (props.$hasApproved) {
-      return `
-        &::before {
-          background-color: #22c55e;
-        }
-      `;
-    } else if (props.$hasRejected) {
-      return `
-        &::before {
-          background-color: #ef4444;
-        }
-      `;
-    }
-  }}
-`;
-
-const ResponseHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const ResponseName = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const ResponseDate = styled.div`
-  font-size: 13px;
-  color: #64748b;
-`;
-
-const ResponseContent = styled.div`
-  font-size: 14px;
-  color: #475569;
-  line-height: 1.6;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 4px 0;
-`;
-
-const ResponseStatus = styled.div`
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  background-color: #f8fafc;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-  gap: 8px;
-  
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #94a3b8;
-    transition: all 0.3s ease;
-  }
-  
-  ${props => {
-    const status = props.$status;
-    switch (status) {
-      case ApprovalDecisionStatus.APPROVED:
-        return `
-          background-color: #f0fdf4;
-          color: #15803d;
-          border-color: #86efac;
-          
-          &::before {
-            background-color: #22c55e;
-          }
-        `;
-      case ApprovalDecisionStatus.REJECTED:
-        return `
-          background-color: #fef2f2;
-          color: #b91c1c;
-          border-color: #fca5a5;
-          
-          &::before {
-            background-color: #ef4444;
-          }
-        `;
-      default:
-        return `
-          background-color: #f8fafc;
-          color: #64748b;
-          border-color: #cbd5e1;
-          
-          &::before {
-            background-color: #94a3b8;
-          }
-        `;
-    }
-  }}
 `;
 
 const ResponseText = styled.div`
@@ -418,23 +278,9 @@ const ResponseText = styled.div`
 
 const EmptyResponseMessage = styled.div`
   padding: 32px;
-  text-align: center;
+  font-size: 14px;
   color: #64748b;
-  font-size: 15px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  margin: 24px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  
-  svg {
-    width: 32px;
-    height: 32px;
-    color: #94a3b8;
-  }
+  text-align: center;
 `;
 
 const ResponseButton = styled.button`
@@ -618,22 +464,12 @@ const CompletedBadge = styled.span`
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background-color: #f8fafc;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-  
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #22c55e;
-    margin-right: 6px;
-  }
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #dcfce7;
 `;
 
 const CompletedMessage = styled.div`
@@ -1100,6 +936,12 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     fetchDecisions();
   }, [approvalId]);
 
+  useEffect(() => {
+    console.log('statusSummary:', statusSummary);
+    console.log('proposalStatus:', statusSummary?.proposalStatus);
+    console.log('DRAFT:', ApprovalProposalStatus.DRAFT);
+  }, [statusSummary]);
+
   const fetchDecisions = async () => {
     try {
       const response = await axiosInstance.get(API_ENDPOINTS.DECISION.LIST(approvalId));
@@ -1345,11 +1187,13 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     }
   };
 
+  console.log('statusSummary:', statusSummary);
+
   return (
     <>
       <ResponseSection>
         <ApproversSectionHeader>
-          <ApproversSectionTitle>승인권자별 응답목록</ApproversSectionTitle>
+          <ApproversSectionTitle>고객사의 승인응답 목록</ApproversSectionTitle>
         </ApproversSectionHeader>
         
         {/* 승인 현황 요약 정보 - 승인요청 전송 후에만 표시 */}
@@ -1392,7 +1236,16 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
         
         <ResponseList>
           {approversData.length === 0 ? (
-            <EmptyResponseMessage>등록된 승인권자가 없습니다. 승인권자를 추가해주세요.</EmptyResponseMessage>
+            <EmptyResponseMessage>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block', color: '#9ca3af' }}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              등록된 승인권자가 없습니다.
+              <br />
+              승인권자를 추가해주세요.
+            </EmptyResponseMessage>
           ) : (
             sortApprovers(approversData).map((approver) => (
               <ResponseItem 
@@ -1401,15 +1254,32 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                 $hasRejected={hasRejectedDecision(approver)}
                 $isCompleted={hasApprovedDecision(approver)}
               >
-                <div>
-                  <ResponseHeader>
-                    <ResponseName>
-                      {approver.approverName}
-                      {hasApprovedDecision(approver) && (
-                        <CompletedBadge>승인 완료</CompletedBadge>
-                      )}
-                    </ResponseName>
-                  </ResponseHeader>
+                <ResponseHeader onClick={() => toggleApproverExpansion(approver.approverId)}>
+                  <ResponseName>
+                    {approver.approverName}
+                    {hasApprovedDecision(approver) && (
+                      <CompletedBadge>승인 완료</CompletedBadge>
+                    )}
+                  </ResponseName>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    style={{
+                      transform: expandedApprovers.has(approver.approverId) ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </ResponseHeader>
+                {expandedApprovers.has(approver.approverId) && (
                   <ApproverContent>
                     {statusSummary?.proposalStatus === ApprovalProposalStatus.DRAFT ? (
                       <div style={{ 
@@ -1515,7 +1385,7 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
                       </>
                     )}
                   </ApproverContent>
-                </div>
+                )}
               </ResponseItem>
             ))
           )}
