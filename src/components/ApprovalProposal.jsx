@@ -878,7 +878,7 @@ const ApprovalProposal = ({
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [showAllProposals, setShowAllProposals] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1418,6 +1418,8 @@ const ApprovalProposal = ({
     }
   };
 
+  const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1430,7 +1432,7 @@ const ApprovalProposal = ({
             <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
           ) : (
             <>
-              {proposals.map((proposal) => {
+              {displayedProposals.map((proposal) => {
                 const colors = getStatusColor(proposal.approvalProposalStatus);
                 return (
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
@@ -1480,6 +1482,27 @@ const ApprovalProposal = ({
                   </ProposalItem>
                 );
               })}
+              {proposals.length > 5 && (
+                <ShowMoreButton 
+                  onClick={() => setShowAllProposals(!showAllProposals)}
+                  style={{ 
+                    marginTop: '16px',
+                    backgroundColor: showAllProposals ? '#f1f5f9' : 'white',
+                    color: showAllProposals ? '#475569' : '#334155',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    width: '100%',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}
+                >
+                  {showAllProposals ? '접기' : `더보기 (${proposals.length - 5}개 더)`}
+                </ShowMoreButton>
+              )}
             </>
           )}
         </ProposalList>
