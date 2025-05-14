@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import { FaTrashAlt } from 'react-icons/fa';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { ActionBadge } from '../components/common/Badge';
 
 const AdminInquiryDetail = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const AdminInquiryDetail = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteCommentModalOpen, setDeleteCommentModalOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -69,7 +71,11 @@ const AdminInquiryDetail = () => {
     }
   };
 
-  const handleCompleteAnswer = async () => {
+  const handleCompleteClick = () => {
+    setCompleteModalOpen(true);
+  };
+
+  const handleCompleteConfirm = async () => {
     if (!user || user.companyRole !== 'ADMIN') {
       alert('관리자만 답변 완료 처리가 가능합니다.');
       return;
@@ -87,11 +93,12 @@ const AdminInquiryDetail = () => {
       alert('답변 완료 처리 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
+      setCompleteModalOpen(false);
     }
   };
 
   const handleSubmitAnswer = async () => {
-    if (!answer.trim()) {
+    if (answer.length === 0) {
       alert('답변을 입력해주세요.');
       return;
     }
@@ -189,14 +196,22 @@ const AdminInquiryDetail = () => {
                 </StatusBadge>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {inquiry.inquiryStatus !== 'COMPLETED' && (
-                  <CreateButton onClick={handleCompleteAnswer}>
+                {inquiry.inquiryStatus !== 'COMPLETED' && comments.length > 0 && (
+                  <ActionBadge 
+                    type="success" 
+                    size="large" 
+                    onClick={handleCompleteClick}
+                  >
                     답변 완료하기
-                  </CreateButton>
+                  </ActionBadge>
                 )}
-                <CreateButton onClick={handleDeleteClick} style={{ background: '#dc2626' }}>
+                <ActionBadge 
+                  type="danger" 
+                  size="large" 
+                  onClick={handleDeleteClick}
+                >
                   <FaTrashAlt /> 문의사항 삭제
-                </CreateButton>
+                </ActionBadge>
               </div>
             </TitleHeader>
             <Title>{inquiry.title}</Title>
@@ -234,7 +249,12 @@ const AdminInquiryDetail = () => {
                 <CommentItem key={comment.id}>
                   <CommentHeader>
                     <CommentInfo>
-                      <AdminBadge>관리자</AdminBadge>
+                      <ActionBadge 
+                        type="success" 
+                        size="small"
+                      >
+                        관리자
+                      </ActionBadge>
                       <CommentDate>
                         {new Date(comment.createdAt).toLocaleDateString('ko-KR', {
                           year: 'numeric',
@@ -245,9 +265,13 @@ const AdminInquiryDetail = () => {
                         }).replace(/\. /g, '.').slice(0, -1)}
                       </CommentDate>
                     </CommentInfo>
-                    <DeleteButton onClick={() => handleDeleteCommentClick(comment.id)}>
+                    <ActionBadge 
+                      type="danger" 
+                      size="medium" 
+                      onClick={() => handleDeleteCommentClick(comment.id)}
+                    >
                       <FaTrashAlt /> 삭제
-                    </DeleteButton>
+                    </ActionBadge>
                   </CommentHeader>
                   <CommentContent>{comment.content}</CommentContent>
                 </CommentItem>
@@ -261,17 +285,30 @@ const AdminInquiryDetail = () => {
             <AnswerTitle>답변 작성</AnswerTitle>
             <AnswerInputContainer>
               <AnswerTextArea
-                placeholder="답변을 입력해주세요..."
+                placeholder="답변을 입력해주세요... (최대 1000자)"
                 value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 1000) {
+                    setAnswer(e.target.value);
+                  }
+                }}
                 disabled={inquiry.inquiryStatus === 'COMPLETED'}
+                maxLength={1000}
               />
-              <SubmitButton 
-                onClick={handleSubmitAnswer}
-                disabled={inquiry.inquiryStatus === 'COMPLETED' || !answer.trim()}
-              >
-                등록
-              </SubmitButton>
+              {inquiry.inquiryStatus !== 'COMPLETED' && answer.length > 0 && (
+                <ButtonContainer>
+                  <CharCount $isMaxLength={answer.length >= 1000}>
+                    {answer.length}/1000
+                  </CharCount>
+                  <ActionBadge 
+                    type="primary" 
+                    size="large" 
+                    onClick={handleSubmitAnswer}
+                  >
+                    등록
+                  </ActionBadge>
+                </ButtonContainer>
+              )}
             </AnswerInputContainer>
           </AnswerSection>
         </ContentContainer>
@@ -298,6 +335,18 @@ const AdminInquiryDetail = () => {
           confirmText="삭제"
           cancelText="취소"
           type="delete"
+        />
+
+        <ConfirmModal
+          isOpen={completeModalOpen}
+          onClose={() => setCompleteModalOpen(false)}
+          onConfirm={handleCompleteConfirm}
+          title="답변 완료"
+          message="이 문의사항의 답변을 완료 처리하시겠습니까?
+완료 처리된 문의사항은 더 이상 답변을 추가할 수 없습니다."
+          confirmText="완료"
+          cancelText="취소"
+          type="success"
         />
       </MainContent>
     </PageContainer>
@@ -451,7 +500,7 @@ const CommentTitle = styled.h3`
 
 const CommentItem = styled.div`
   padding: 20px;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   border-radius: 8px;
   margin-bottom: 16px;
 
@@ -471,15 +520,6 @@ const CommentInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-`;
-
-const AdminBadge = styled.span`
-  padding: 4px 8px;
-  background: #2E7D32;
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
 `;
 
 const CommentDate = styled.span`
@@ -508,6 +548,7 @@ const AnswerTitle = styled.h3`
 const AnswerInputContainer = styled.div`
   position: relative;
   width: 100%;
+  margin-bottom: 16px;
 `;
 
 const AnswerTextArea = styled.textarea`
@@ -531,57 +572,25 @@ const AnswerTextArea = styled.textarea`
     background-color: #f8fafc;
     cursor: not-allowed;
   }
-`;
 
-const SubmitButton = styled.button`
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-  
-  &:disabled {
-    background: #94A3B8;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+  &::placeholder {
+    color: #94A3B8;
   }
 `;
 
-const ActionButtons = styled.div`
+const CharCount = styled.div`
+  font-size: 13px;
+  color: ${props => props.$isMaxLength ? '#DC2626' : '#64748B'};
+  margin-right: 16px;
   display: flex;
-  gap: 8px;
+  align-items: center;
 `;
 
-const CreateButton = styled.button`
-  padding: 8px 16px;
-  background: ${props => props.background || '#2E7D32'};
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: ${props => props.background ? '#B91C1C' : '#1B5E20'};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
 `;
 
 const LoadingMessage = styled.div`
@@ -607,31 +616,6 @@ const EmptyMessage = styled.div`
   padding: 20px;
   color: #64748b;
   font-size: 14px;
-`;
-
-const DeleteButton = styled.button`
-  padding: 6px 12px;
-  background: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  
-  &:hover {
-    background: #b91c1c;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 export default AdminInquiryDetail; 

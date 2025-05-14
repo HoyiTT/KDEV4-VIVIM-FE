@@ -10,6 +10,7 @@ import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
 import Pagination from '../components/common/Pagination';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { ActionBadge } from '../components/common/Badge';
 
 const PageContainer = styled.div`
   display: flex;
@@ -73,262 +74,154 @@ const TableCell = styled.td`
   white-space: ${props => props.$nowrap ? 'nowrap' : 'normal'};
 `;
 
-  const TableHeaderCell = styled.th`
-    padding: 16px 24px;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e293b;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-  `;
+const TableHeaderCell = styled.th`
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+`;
 
-  const TableRow = styled.tr`
-    cursor: pointer;
-    transition: background-color 0.2s;
-    
-    &:hover {
-      background-color: #f8fafc;
-    }
-  `;
+const TableRow = styled.tr`
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
 
-  const ActionButtonContainer = styled.div`
-    display: flex;
-    gap: 8px;
-  `;
-
-  const ActionButton = styled.button`
-    padding: 8px 16px;
-    background: #2E7D32;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #1B5E20;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  `;
-
-  const DeleteButton = styled.button`
-    padding: 8px 16px;
-    background: #EF4444;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #C51111;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-
-    ${props => props.disabled && `
-      background: #e2e8f0;
-      cursor: not-allowed;
-      &:hover {
-        transform: none;
-        box-shadow: none;
-      }
-    `}
-  `;
-
-  const SearchCard = styled.div`
+const SearchCard = styled.div`
   background: white;
   padding: 24px;
   border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
-  `;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+`;
 
-  const SearchSection = styled.div`
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: nowrap;
-    margin-bottom: 24px;
-    gap: 0;
-  `;
-
-  const SearchRow = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: nowrap;
-  `;
-
-  const SearchInput = styled.input`
-    padding: 8px 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    width: 120px;
-    min-width: 0;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    &::placeholder {
-      color: #94a3b8;
-    }
-    &:hover {
-      border-color: #cbd5e1;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-    &:focus {
-      outline: none;
-      border-color: #2E7D32;
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-    }
-  `;
-
-  const SearchCheckbox = styled.label`
+const SearchSection = styled.div`
   display: flex;
-    align-items: center;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: nowrap;
+  margin-bottom: 24px;
+  gap: 0;
+`;
+
+const SearchRow = styled.div`
+  display: flex;
   gap: 8px;
-  font-size: 14px;
-    color: #475569;
-  cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: all 0.2s;
+  align-items: center;
+  flex-wrap: nowrap;
+`;
 
-  &:hover {
-      background: #f8fafc;
-    }
-    
-    input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-      accent-color: #2E7D32;
-    }
-  `;
-
-  const SearchButton = styled.button`
-    padding: 10px 20px;
-    background: #2E7D32;
-    color: white;
-  border: none;
+const SearchInput = styled.input`
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  width: 120px;
+  min-width: 0;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  &::placeholder {
+    color: #94a3b8;
+  }
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  &:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+  }
+`;
+
+const SearchCheckbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
   cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
 
   &:hover {
-      background: #1B5E20;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-    }
-    
-    &:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-    }
-  `;
+    background: #f8fafc;
+  }
+  
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #2E7D32;
+  }
+`;
 
-  const Header = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  `;
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
 
-  const PageTitle = styled.h1`
-    font-size: 20px;
+const PageTitle = styled.h1`
+  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    white-space: nowrap;
-    letter-spacing: -0.01em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 
-    &::before {
-      content: '';
-      display: block;
-      width: 3px;
-      height: 20px;
-      background: #2E7D32;
-      border-radius: 1.5px;
-    }
-  `;
-
-  const ButtonContainer = styled.div`
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  `;
-
-  const AddButton = styled.button`
-    padding: 8px 16px;
+  &::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 20px;
     background: #2E7D32;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-    
-    &:before {
-      content: '+';
-      font-size: 18px;
-      font-weight: 400;
-    }
+    border-radius: 1.5px;
+  }
+`;
 
-    &:hover {
-      background: #1B5E20;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-    }
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
 
-    &:active {
-      transform: translateY(0);
-    }
-  `;
+const LoadingMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #64748b;
+`;
 
-  const LoadingMessage = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 200px;
-    font-size: 16px;
-    color: #64748b;
-  `;
+const UsersTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 24px;
+`;
 
-  const UsersTable = styled.table`
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    margin-top: 24px;
-  `;
+const ActionButtonContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+`;
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -480,9 +373,13 @@ const UserManagement = () => {
           <Header>
             <PageTitle>사용자 관리</PageTitle>
             <ButtonContainer>
-              <AddButton onClick={() => navigate('/user-create')}>
-                새 사용자 등록
-              </AddButton>
+              <ActionBadge 
+                type="primary" 
+                size="xlarge" 
+                onClick={() => navigate('/user-create')}
+              >
+                + 새 사용자 등록
+              </ActionBadge>
             </ButtonContainer>
           </Header>
           <SearchSection>
@@ -534,9 +431,13 @@ const UserManagement = () => {
                 />
                 <span>삭제된 사용자만 검색</span>
               </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleSearch}
+              >
                 검색
-              </SearchButton>
+              </ActionBadge>
             </SearchRow>
           </SearchSection>
         </Card>
@@ -575,8 +476,10 @@ const UserManagement = () => {
                       </TableCell>
                       <TableCell $nowrap>
                         {!user.isDeleted && (
-                          <ActionButtonContainer>
-                            <ActionButton 
+                          <ActionButtonContainer onClick={(e) => e.stopPropagation()}>
+                            <ActionBadge 
+                              type="primary" 
+                              size="medium" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 console.log('Edit button clicked for user:', user.id);
@@ -584,8 +487,10 @@ const UserManagement = () => {
                               }}
                             >
                               수정
-                            </ActionButton>
-                            <DeleteButton 
+                            </ActionBadge>
+                            <ActionBadge 
+                              type="danger" 
+                              size="medium" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteClick(user.id, user.name);
@@ -593,7 +498,7 @@ const UserManagement = () => {
                               disabled={user.isDeleted}
                             >
                               삭제
-                            </DeleteButton>
+                            </ActionBadge>
                           </ActionButtonContainer>
                         )}
                       </TableCell>

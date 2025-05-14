@@ -6,6 +6,7 @@ import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
 import Pagination from '../components/common/Pagination';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { ActionBadge } from '../components/common/Badge';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
@@ -190,7 +191,13 @@ const AuditLog = () => {
                 placeholder="종료일"
               />
               <Input type="text" name="userId" value={filters.userId} onChange={handleFilterChange} placeholder="사용자 ID" />
-              <SearchButton onClick={handleSearch}>검색</SearchButton>
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleSearch}
+              >
+                검색
+              </ActionBadge>
             </FilterContainer>
           </HeaderLeft>
         </Header>
@@ -218,17 +225,40 @@ const AuditLog = () => {
                     <TableCell>{formatDate(log.loggedAt)}</TableCell>
                     <TableCell>{log.actorId}</TableCell>
                     <TableCell>
-                      <ActionBadge status={log.actionType}>
+                      <ActionBadge 
+                        type={log.actionType === 'CREATE' ? 'success' : 
+                              log.actionType === 'MODIFY' ? 'primary' : 
+                              log.actionType === 'DELETE' ? 'danger' : 'secondary'}
+                        size="small"
+                      >
                         {log.actionType}
                       </ActionBadge>
                     </TableCell>
-                    <TableCell>{log.targetType}</TableCell>
+                    <TableCell>
+                      <ActionBadge 
+                        type={
+                          log.targetType === 'COMPANY' ? 'info' :
+                          log.targetType === 'PROJECT' ? 'success' :
+                          log.targetType === 'LINK' ? 'warning' :
+                          log.targetType === 'POST' ? 'dark' :
+                          log.targetType === 'USER' ? 'primary' :
+                          log.targetType === 'COMMENT' ? 'danger' : 'secondary'
+                        }
+                        size="small"
+                      >
+                        {log.targetType}
+                      </ActionBadge>
+                    </TableCell>
                     <TableCell>{log.targetId}</TableCell>
                     <TableCell>
                       {log.details && log.details.length > 0 ? (
-                        <DetailsButton onClick={() => handleLogClick(log)}>
+                        <ActionBadge 
+                          type="primary" 
+                          size="medium" 
+                          onClick={() => handleLogClick(log)}
+                        >
                           상세보기
-                        </DetailsButton>
+                        </ActionBadge>
                       ) : (
                         '-'
                       )}
@@ -253,7 +283,13 @@ const AuditLog = () => {
             <ModalContent onClick={e => e.stopPropagation()}>
               <ModalHeader>
                 <ModalTitle>변경 상세 정보</ModalTitle>
-                <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
+                <ActionBadge 
+                  type="danger" 
+                  size="large" 
+                  onClick={() => setShowModal(false)}
+                >
+                  ×
+                </ActionBadge>
               </ModalHeader>
               <ModalBody>
                 {selectedLog.details.map((detail, index) => (
@@ -380,30 +416,6 @@ const Input = styled.input`
   }
 `;
 
-const SearchButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  }
-`;
-
 const LogTable = styled.table`
   width: 100%;
   border-collapse: separate;
@@ -442,65 +454,6 @@ const TableCell = styled.td`
   border-bottom: 1px solid #e2e8f0;
   vertical-align: middle;
   background: white;
-`;
-
-const ActionBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  transition: all 0.15s ease;
-  background: ${props => {
-    switch (props.status) {
-      case 'CREATE': return '#DCFCE7';
-      case 'MODIFY': return '#DBEAFE';
-      case 'DELETE': return '#FEE2E2';
-      default: return '#F8FAFC';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'CREATE': return '#16A34A';
-      case 'MODIFY': return '#2563EB';
-      case 'DELETE': return '#DC2626';
-      default: return '#64748B';
-    }
-  }};
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    margin-right: 6px;
-    background: currentColor;
-  }
-`;
-
-const DetailsButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 const LoadingMessage = styled.div`
@@ -553,27 +506,6 @@ const ModalTitle = styled.h2`
   font-weight: 600;
   color: #1e293b;
   margin: 0;
-`;
-
-const CloseButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 const ModalBody = styled.div`

@@ -6,6 +6,7 @@ import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import Pagination from '../components/common/Pagination';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { StatusBadge, ProgressBadge, ActionBadge } from '../components/common/Badge';
 
 const AdminProjects = () => {
   const navigate = useNavigate();
@@ -164,9 +165,13 @@ const AdminProjects = () => {
           <Header>
             <PageTitle>프로젝트 관리</PageTitle>
             <ButtonContainer>
-              <AddButton onClick={() => navigate('/project-create')}>
-                새 프로젝트 등록
-              </AddButton>
+              <ActionBadge 
+                type="primary" 
+                size="xlarge" 
+                onClick={() => navigate('/project-create')}
+              >
+                + 새 프로젝트 등록
+              </ActionBadge>
             </ButtonContainer>
           </Header>
 
@@ -195,9 +200,13 @@ const AdminProjects = () => {
                 />
                 삭제된 프로젝트만 검색
               </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleSearch}
+              >
                 검색
-              </SearchButton>
+              </ActionBadge>
             </div>
           </SearchSection>
         </Card>
@@ -246,12 +255,20 @@ const AdminProjects = () => {
                         <ActionButtonContainer onClick={(e) => e.stopPropagation()}>
                           {!project.deleted && (
                             <>
-                              <ActionButton onClick={() => navigate(`/projectModify/${project.projectId}`)}>
+                              <ActionBadge 
+                                type="primary" 
+                                size="medium" 
+                                onClick={() => navigate(`/projectModify/${project.projectId}`)}
+                              >
                                 수정
-                              </ActionButton>
-                              <DeleteButton onClick={() => handleDeleteClick(project.projectId)}>
+                              </ActionBadge>
+                              <ActionBadge 
+                                type="danger" 
+                                size="medium" 
+                                onClick={() => handleDeleteClick(project.projectId)}
+                              >
                                 삭제
-                              </DeleteButton>
+                              </ActionBadge>
                             </>
                           )}
                         </ActionButtonContainer>
@@ -347,38 +364,6 @@ const ButtonContainer = styled.div`
   align-items: center;
 `;
 
-const AddButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:before {
-    content: '+';
-    font-size: 18px;
-    font-weight: 400;
-  }
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
 const SearchSection = styled.div`
   display: flex;
   justify-content: flex-start;
@@ -435,32 +420,6 @@ const SearchCheckbox = styled.label`
   }
 `;
 
-const SearchButton = styled.button`
-  padding: 10px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
 const ProjectTable = styled.table`
   width: 100%;
   border-collapse: separate;
@@ -505,140 +464,10 @@ const TableCell = styled.td`
   font-family: 'SUIT', sans-serif;
 `;
 
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  background: ${props => {
-    if (props.deleted) return '#FEE2E2';
-    switch (props.status) {
-      case 'COMPLETED': return '#F0FDF4';
-      default: return '#E0F2FE';
-    }
-  }};
-  color: ${props => {
-    if (props.deleted) return '#B91C1C';
-    switch (props.status) {
-      case 'COMPLETED': return '#15803D';
-      default: return '#0369A1';
-    }
-  }};
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    margin-right: 6px;
-    background: currentColor;
-  }
-`;
-
-const ProgressBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  letter-spacing: -0.02em;
-  transition: all 0.15s ease;
-  background: ${props => {
-    switch (props.progress) {
-      case 'REQUIREMENTS': return '#FEF3C7';
-      case 'WIREFRAME': return '#DBEAFE';
-      case 'DESIGN': return '#FCE7F3';
-      case 'PUBLISHING': return '#DCFCE7';
-      case 'DEVELOPMENT': return '#E0E7FF';
-      case 'TESTING': return '#FEF9C3';
-      case 'DEPLOYMENT': return '#F3E8FF';
-      case 'INSPECTION': return '#FEF2F2';
-      case 'COMPLETED': return '#F0FDF4';
-      default: return '#F1F5F9';
-    }
-  }};
-  color: ${props => {
-    switch (props.progress) {
-      case 'REQUIREMENTS': return '#92400E';
-      case 'WIREFRAME': return '#1E40AF';
-      case 'DESIGN': return '#BE185D';
-      case 'PUBLISHING': return '#166534';
-      case 'DEVELOPMENT': return '#3730A3';
-      case 'TESTING': return '#854D0E';
-      case 'DEPLOYMENT': return '#6B21A8';
-      case 'INSPECTION': return '#B91C1C';
-      case 'COMPLETED': return '#15803D';
-      default: return '#64748B';
-    }
-  }};
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    margin-right: 6px;
-    background: currentColor;
-  }
-`;
-
 const ActionButtonContainer = styled.div`
   display: flex;
   gap: 8px;
   white-space: nowrap;
-`;
-
-const ActionButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 8px 16px;
-  background: #EF4444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #C51111;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 const LoadingMessage = styled.div`

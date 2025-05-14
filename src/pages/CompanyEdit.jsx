@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import { useAuth } from '../hooks/useAuth';
+import { ActionBadge } from '../components/common/Badge';
 
 // Move all styled components outside the component function
 const PageContainer = styled.div`
@@ -130,61 +131,6 @@ const CancelButton = styled.button`
   
   &:hover {
     background: #f8fafc;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 12px 20px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #2563eb;
-  }
-`;
-
-const SearchButton = styled.button`
-  padding: 8px 16px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-left: 4px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-  white-space: nowrap;
-  min-width: 60px;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #2563eb;
   }
 `;
 
@@ -428,9 +374,13 @@ const CompanyEdit = () => {
                 required
                 readOnly
               />
-              <SearchButton type="button" onClick={handleAddressSearch}>
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleAddressSearch}
+              >
                 검색
-              </SearchButton>
+              </ActionBadge>
             </div>
             <Input
               type="text"
@@ -503,9 +453,13 @@ const CompanyEdit = () => {
             <CancelButton type="button" onClick={() => navigate('/company-management')}>
               취소
             </CancelButton>
-            <SubmitButton type="submit">
+            <ActionBadge 
+              type="success" 
+              size="large" 
+              onClick={handleSubmit}
+            >
               수정하기
-            </SubmitButton>
+            </ActionBadge>
           </ButtonContainer>
         </FormContainer>
         </div>
