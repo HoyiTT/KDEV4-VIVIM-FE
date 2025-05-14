@@ -230,14 +230,14 @@ const ProjectPostCreate = () => {
       <MainContent>
         <ContentContainer>
           <HeaderContainer>
-            <BackButton onClick={() => navigate(`/project/${projectId}`)}>
+            <BackButton onClick={() => window.location.href = `/project/${projectId}`}>
               <span>←</span>
               뒤로가기
             </BackButton>
             <PageTitle>게시글 작성</PageTitle>
           </HeaderContainer>
 
-          <FormContainer onSubmit={handleSubmit}>
+          <FormContainer>
             <InputGroup>
               <Label>제목</Label>
               <Input
@@ -288,7 +288,6 @@ const ProjectPostCreate = () => {
             </InputGroup>
 
             <InputGroup>
-              <Label>파일 첨부 (선택사항)</Label>
               <FileLinkUploader
                 onFilesChange={handleFilesChange}
                 onLinksChange={handleLinksChange}
@@ -298,13 +297,22 @@ const ProjectPostCreate = () => {
             </InputGroup>
 
             <ButtonContainer>
-              <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
+              <CancelButton 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = `/project/${projectId}`;
+                }}
+              >
                 취소
               </CancelButton>
               <ActionBadge
                 type="success"
                 size="large"
-                onClick={handleSubmit}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
                 disabled={loading}
                 style={{ minWidth: '120px' }}
               >
