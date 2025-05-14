@@ -1007,6 +1007,7 @@ const ToggleValue = styled.span`
 
 const EmptyStage = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -1016,6 +1017,7 @@ const EmptyStage = styled.div`
   background: #f8fafc;
   border-radius: 8px;
   border: 1px dashed #e2e8f0;
+  text-align: center;
 `;
 
 const StageList = styled.div`
@@ -1797,6 +1799,15 @@ const ProjectDetail = () => {
     return '진행중';
   };
 
+  // 사용자 역할 확인 함수 수정
+  const checkUserRole = () => {
+    if (!user) {
+      return false;
+    }
+    console.log('user companyRole:', user.companyRole);
+    return user.companyRole === 'CUSTOMER';
+  };
+
   return (
         <MainContent>
       <ContentWrapper>
@@ -1941,7 +1952,7 @@ const ProjectDetail = () => {
                         >
                           <StageHeader>
                             <StageTitle title={stage.name} />
-                            {!project?.isDeleted && !isAllApprovalsApproved(stage.id) && !stage.isCompleted && (
+                            {!project?.isDeleted && !isAllApprovalsApproved(stage.id) && !stage.isCompleted && !isClient && (
                               <StageHeaderActions>
                                 <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
                                   <FaPlus /> 승인요청 추가
@@ -1949,7 +1960,19 @@ const ProjectDetail = () => {
                               </StageHeaderActions>
                             )}
                           </StageHeader>
-                    </StageItem>
+                          {approvalRequests.filter(req => req.stageId === stage.id).length === 0 && (
+                            <EmptyStage>
+                              <div>
+                                <FaInfoCircle /> 등록된 승인요청이 없습니다.
+                              </div>
+                              {checkUserRole() && (
+                                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                  개발사의 승인요청이 아직 전송되지 않았습니다.
+                                </div>
+                              )}
+                            </EmptyStage>
+                          )}
+                        </StageItem>
                       </StageContainer>
                     ))
                   ) : (
