@@ -1047,12 +1047,7 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     }
 
     try {
-      console.log('승인응답 생성 요청:', {
-        content: newDecision.content,
-        decisionStatus: newDecision.status,
-        approverId: modalState.selectedApprover.approverId
-      });
-
+      // 1. 먼저 승인 응답 생성
       const response = await axiosInstance.post(
         API_ENDPOINTS.DECISION.CREATE_WITH_APPROVER(modalState.selectedApprover.approverId),
         {
@@ -1061,26 +1056,53 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
         }
       );
 
-      console.log('승인응답 생성 응답:', response.data);
+      const decisionId = response.data.id;
 
-      if (response.status === 200) {
-        // 상태 초기화
-        setNewDecision({ content: '', status: '' });
-        setFiles([]);
-        setLinks([]);
-        setNewLink({ title: '', url: '' });
-        
-        // 모달 닫기
-        setModalState({
-          isOpen: false,
-          type: null,
-          selectedApprover: null,
-          selectedDecision: null
+      // 2. 파일 업로드
+      if (files.length > 0) {
+        const formData = new FormData();
+        files.forEach(file => {
+          formData.append('files', file);
         });
         
-        alert('승인응답이 등록되었습니다.');
-        window.location.reload();
+        await axiosInstance.post(
+          API_ENDPOINTS.DECISION.FILES(decisionId),
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
       }
+
+      // 3. 링크 업로드
+      if (links.length > 0) {
+        await axiosInstance.post(
+          API_ENDPOINTS.DECISION.LINKS(decisionId),
+          links
+        );
+      }
+
+      // 상태 초기화
+      setNewDecision({ content: '', status: '' });
+      setFiles([]);
+      setLinks([]);
+      setNewLink({ title: '', url: '' });
+      
+      // 모달 닫기 - 먼저 모달 상태를 초기화
+      setModalState({
+        isOpen: false,
+        type: null,
+        selectedApprover: null,
+        selectedDecision: null
+      });
+      
+      alert('승인응답이 등록되었습니다.');
+      
+      // 승인 응답 목록 새로고침
+      await fetchDecisions();
+      
     } catch (error) {
       console.error('승인응답 생성 오류:', error);
       const errorMessage = error.response?.data?.message || '승인응답 생성에 실패했습니다.';
