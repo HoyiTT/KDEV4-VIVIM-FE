@@ -60,13 +60,11 @@ const ProposalItem = styled.div`
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   border: 1px solid #e2e8f0;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: #cbd5e1;
+    background-color: #f8fafc;
   }
 `;
 
@@ -121,16 +119,16 @@ const ActionButton = styled.button.attrs({
   className: 'approval-proposal-action-button'
 })`
   padding: 6px 12px;
-  background: #f1f5f9;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #475569;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #e2e8f0;
+    background: #f8fafc;
   }
 `;
 
@@ -171,12 +169,6 @@ const SendButton = styled(ActionButton).attrs({
   &:hover {
     background: #1B5E20;
     color: white;
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
-  }
-
-  &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.1);
   }
 `;
 
@@ -184,17 +176,19 @@ const ShowMoreButton = styled.button.attrs({
   className: 'approval-proposal-show-more-button'
 })`
   width: 100%;
-  padding: 8px 16px;
+  padding: 12px 16px;
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #334155;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  margin-top: 16px;
+  
   &:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
   }
 `;
 
@@ -202,7 +196,7 @@ const AddButton = styled.button.attrs({
   className: 'approval-proposal-add-button'
 })`
   padding: 12px 24px;
-  background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #3b82f6, #2563eb)'};
+  background: ${props => props.disabled ? '#e2e8f0' : '#2E7D32'};
   border: none;
   border-radius: 6px;
   color: ${props => props.disabled ? '#94a3b8' : 'white'};
@@ -214,11 +208,7 @@ const AddButton = styled.button.attrs({
   width: 100%;
 
   &:hover {
-    background: ${props => props.disabled ? '#e2e8f0' : 'linear-gradient(to right, #2563eb, #1d4ed8)'};
-  }
-
-  &:active {
-    transform: translateY(1px);
+    background: ${props => props.disabled ? '#e2e8f0' : '#1B5E20'};
   }
 `;
 
@@ -237,13 +227,14 @@ const ModalOverlay = styled.div`
 
 const ModalContainer = styled.div`
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   max-width: 600px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
 `;
 
 const ModalHeader = styled.div`
@@ -253,7 +244,7 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   background: white;
-  border-radius: 12px 12px 0 0;
+  border-radius: 8px 8px 0 0;
 `;
 
 const ModalTitle = styled.h2`
@@ -298,7 +289,7 @@ const ModalButtonContainer = styled.div`
   justify-content: flex-end;
   gap: 12px;
   background: white;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 8px 8px;
 `;
 
 const ApproverSection = styled.div`
@@ -306,6 +297,7 @@ const ApproverSection = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
+  background: white;
 `;
 
 const CompanyToggle = styled.div`
@@ -334,6 +326,7 @@ const CompanyToggle = styled.div`
 `;
 
 const EmployeeList = styled.div`
+  font-size: 14px;
   background: white;
   padding: 8px 0;
   overflow-y: auto;
@@ -354,18 +347,11 @@ const EmployeeItem = styled.div`
   &:hover {
     background: #f8fafc;
   }
-  
-  input[type="checkbox"] {
-    margin-left: 12px;
-    width: 18px;
-    height: 18px;
-    accent-color: #2E7D32;
-  }
 `;
 
 const CancelButton = styled.button`
   padding: 10px 20px;
-  background: #f1f5f9;
+  background: white;
   color: #475569;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -375,7 +361,7 @@ const CancelButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #e2e8f0;
+    background: #f8fafc;
   }
 `;
 
@@ -392,7 +378,6 @@ const SaveButton = styled.button`
 
   &:hover {
     background: #1B5E20;
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
   }
 `;
 
@@ -403,6 +388,7 @@ const InputGroup = styled.div`
 
 const Label = styled.label`
   display: block;
+  margin-top: 14px;
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -413,7 +399,7 @@ const Input = styled.input`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: #1e293b;
   background: white;
@@ -445,8 +431,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #2E7D32;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
   }
 
   &::placeholder {
@@ -458,7 +444,7 @@ const StatusSelect = styled.select`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: #1e293b;
   background: white;
@@ -738,29 +724,57 @@ const ErrorMessage = styled.span`
   margin-top: 4px;
 `;
 
-const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
+const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, proposalStatus }) => {
   const [companies, setCompanies] = useState([]);
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
   const [projectUsers, setProjectUsers] = useState([]);
+  const [currentApprovers, setCurrentApprovers] = useState([]);
+  const [changedApprovers, setChangedApprovers] = useState(new Set());
+
+  // 현재 등록된 승인권자 목록 조회
+  const fetchCurrentApprovers = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        withCredentials: true
+      });
+      console.log('현재 승인권자 목록:', data);
+      
+      if (data.approverResponses) {
+        setCurrentApprovers(data.approverResponses);
+        // 현재 승인권자들을 selectedApprovers에 추가
+        setSelectedApprovers(data.approverResponses.map(approver => ({
+          userId: approver.userId,
+          memberId: approver.userId,
+          name: approver.name
+        })));
+        // 변경된 승인권자 목록 초기화
+        setChangedApprovers(new Set());
+      }
+    } catch (error) {
+      console.error('승인권자 목록 조회 실패:', error);
+      setCurrentApprovers([]);
+    }
+  };
 
   // 회사별 직원 목록 조회
   const fetchCompanyEmployees = async (companyId) => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
+      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
         withCredentials: true
       });
+      console.log('회사 직원 목록 응답:', response);
       
-      // CUSTOMER 회사의 직원만 필터링
-      const customerEmployees = data.filter(emp => emp.companyRole === 'CUSTOMER');
+      const employees = response.data || [];
+      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
       
       setCompanyEmployees(prev => ({
         ...prev,
         [companyId]: customerEmployees
       }));
     } catch (error) {
-      console.error('Error fetching company employees:', error);
+      console.error('회사 직원 목록 조회 중 오류:', error);
       alert('직원 목록을 불러오는데 실패했습니다.');
     }
   };
@@ -768,44 +782,93 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
   // 회사 목록 조회
   const fetchCompanies = async () => {
     try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANIES, {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
         withCredentials: true
       });
-      console.log('회사 목록:', data);
       
-      // CUSTOMER 회사만 필터링
-      const customerCompany = data.find(company => company.companyRole === 'CUSTOMER');
-      if (customerCompany) {
-        setCompanies([customerCompany]);
-        // CUSTOMER 회사 직원 목록 자동으로 가져오기
-        fetchCompanyEmployees(customerCompany.id);
-        // 회사 자동으로 펼치기
-        setExpandedCompanies(new Set([customerCompany.id]));
-      } else {
-        setCompanies([]);
+      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
+      setCompanies(customerCompanies);
+      
+      // 각 회사의 직원 목록 가져오기
+      for (const company of customerCompanies) {
+        await fetchCompanyEmployees(company.id);
       }
-    } catch (error) {
-      console.error('회사 목록 조회 중 오류 발생:', error);
-      setCompanies([]);
+    } catch (err) {
+      console.error('회사 목록 조회 중 오류:', err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
     }
   };
 
   useEffect(() => {
     if (isOpen) {
       fetchCompanies();
+      if (approvalId) {
+        fetchCurrentApprovers();
+      }
     }
-  }, [isOpen, projectId]);
+  }, [isOpen, projectId, approvalId]);
 
-  const handleSelectApprover = (employee, checked) => {
-    setSelectedApprovers(prev =>
-      checked 
+  // 승인권자 선택/해제 처리
+  const handleSelectApprover = async (employee, checked) => {
+    // 현재 승인권자인지 확인
+    const isCurrentApprover = currentApprovers.some(approver => approver.userId === employee.id);
+
+    // 승인권자 상태 업데이트
+    setSelectedApprovers(prev => {
+      const newSelected = checked 
         ? [...prev, { 
             userId: employee.id, 
             memberId: employee.id,
             name: employee.name 
           }] 
-        : prev.filter(a => a.userId !== employee.id)
-    );
+        : prev.filter(a => a.userId !== employee.id);
+      
+      // 변경된 승인권자 추적
+      setChangedApprovers(prev => {
+        const newChanged = new Set(prev);
+        if (isCurrentApprover !== checked) {
+          newChanged.add(employee.id);
+        } else {
+          newChanged.delete(employee.id);
+        }
+        return newChanged;
+      });
+
+      return newSelected;
+    });
+  };
+
+  // 승인권자 수정 함수 추가
+  const updateApprovers = async (approverIds) => {
+    try {
+      const response = await axiosInstance.put(
+        API_ENDPOINTS.APPROVAL.UPDATE_APPROVERS(approvalId),
+        { approverIds },
+        { withCredentials: true }
+      );
+
+      // API 응답이 성공적으로 왔으면 성공으로 처리
+      if (response.data) {
+        alert('승인권자가 성공적으로 수정되었습니다.');
+        onClose();
+        // 승인권자 목록 새로고침
+        fetchCurrentApprovers();
+      } else {
+        throw new Error('승인권자 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('승인권자 수정 중 오류:', error);
+      alert(error.response?.data?.message || '승인권자 수정에 실패했습니다.');
+    }
+  };
+
+  // 저장 버튼 클릭 시 변경된 승인권자만 처리
+  const handleSave = () => {
+    // 전체 승인권자 ID 목록 전달
+    const allApproverIds = selectedApprovers.map(approver => approver.userId);
+
+    // 승인권자 수정 API 호출
+    updateApprovers(allApproverIds);
   };
 
   return (
@@ -817,7 +880,19 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
         </ModalHeader>
         <ModalContent>
           <InputGroup>
-            <Label>승인권자 목록</Label>
+            {changedApprovers.size > 0 && (
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#64748b', 
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span>•</span>
+                <span>{changedApprovers.size}명의 승인권자가 변경되었습니다.</span>
+              </div>
+            )}
           </InputGroup>
           <ApproverSection>
             {companies.length === 0 ? (
@@ -829,19 +904,36 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
                     <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
                   </CompanyToggle>
                   <EmployeeList>
-                    {(companyEmployees[company.id] || []).map(emp => (
-                      <EmployeeItem key={emp.id}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>{emp.name}</span>
-                          <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                          onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                        />
-                      </EmployeeItem>
-                    ))}
+                    {(companyEmployees[company.id] || []).map(emp => {
+                      const isChanged = changedApprovers.has(emp.id);
+                      return (
+                        <EmployeeItem 
+                          key={emp.id}
+                          style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>{emp.name}</span>
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
+                            {isChanged && (
+                              <span style={{ 
+                                fontSize: '12px', 
+                                color: '#2E7D32',
+                                backgroundColor: '#f0fdf4',
+                                padding: '2px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                변경됨
+                              </span>
+                            )}
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedApprovers.some(a => a.userId === emp.id)} 
+                            onChange={e => handleSelectApprover(emp, e.target.checked)} 
+                          />
+                        </EmployeeItem>
+                      );
+                    })}
                   </EmployeeList>
                 </div>
               ))
@@ -850,7 +942,13 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId }) => {
         </ModalContent>
         <ModalButtonContainer>
           <CancelButton onClick={onClose}>취소</CancelButton>
-          <SaveButton onClick={() => onSave(selectedApprovers.map(approver => approver.userId))}>
+          <SaveButton 
+            onClick={handleSave}
+            style={{
+              opacity: 1,
+              cursor: 'pointer'
+            }}
+          >
             저장
           </SaveButton>
         </ModalButtonContainer>
@@ -870,7 +968,7 @@ const ApprovalProposal = ({
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [showAllProposals, setShowAllProposals] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1009,6 +1107,30 @@ const ApprovalProposal = ({
     );
   };
 
+    // 회사 목록 조회
+  const fetchCompanies = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
+        withCredentials: true
+      });
+      console.log('회사 목록 응답:', data);
+      
+      // CUSTOMER 회사만 필터링
+      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 목록:', customerCompanies);
+      
+      setCompanies(customerCompanies);
+      
+      // 각 회사의 직원 목록 가져오기
+      for (const company of customerCompanies) {
+        await fetchCompanyEmployees(company.id);
+      }
+    } catch (err) {
+      console.error('회사 목록 조회 중 오류:', err);
+      alert('회사 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
   useEffect(() => {
     fetchProposals();
   }, [progressId]);
@@ -1058,12 +1180,6 @@ const ApprovalProposal = ({
     console.log('▶ 승인요청 생성 시도 - 사용자 정보:', user);
     console.log('▶ 승인요청 생성 시도 - 프로젝트 정보:', projectInfo);
     console.log('▶ 승인요청 생성 시도 - 고객사 여부:', isCustomer);
-
-    if (!user) {
-      console.log('▶ 승인요청 생성 실패 - 사용자 정보 없음');
-      navigate('/login');
-      return;
-    }
 
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
@@ -1142,12 +1258,7 @@ const ApprovalProposal = ({
       fetchProposals();
     } catch (error) {
       console.error('Error creating proposal:', error);
-      if (error.response?.status === 403) {
-        alert('승인요청을 생성할 권한이 없습니다.');
-        navigate('/login');
-      } else {
-        alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
-      }
+      alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
     }
   };
 
@@ -1264,24 +1375,29 @@ const ApprovalProposal = ({
         withCredentials: true
       });
       
-      if (!approversData || approversData.length === 0) {
+      if (!approversData || approversData.approverResponses?.length === 0) {
         window.alert('승인권자가 한 명 이상 등록되어야 승인요청을 전송할 수 있습니다.');
         return;
       }
 
-      await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(approvalId));
-      window.alert('승인요청이 성공적으로 전송되었습니다.');
-      fetchProposals();
+      const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(approvalId), {}, {
+        withCredentials: true
+      });
+
+      if (response.data) {
+        window.alert('승인요청이 성공적으로 전송되었습니다.');
+        fetchProposals();
+      }
     } catch (error) {
-      console.error('Error sending proposal:', error);
+      console.error('승인요청 전송 중 오류:', error);
       if (error.response?.status === 400) {
         if (error.response.data?.message?.includes('이미 전송된 승인요청')) {
-          window.alert('이미 전송된 승인요청입니다. 내용 변경 후 다시 시도해주세요.');
+          window.alert('이미 전송된 승인요청입니다.');
         } else {
-          window.alert('승인요청 전송에 실패했습니다. 필수 정보가 모두 입력되었는지 확인해주세요.');
+          window.alert(error.response.data?.message || '승인요청 전송에 실패했습니다.');
         }
       } else {
-        window.alert(error.response?.data?.message || '승인요청 전송에 실패했습니다.');
+        window.alert('승인요청 전송에 실패했습니다.');
       }
     }
   };
@@ -1307,17 +1423,6 @@ const ApprovalProposal = ({
         console.error('Error decoding token:', error);
         setIsCustomer(false);
       }
-    }
-  };
-
-  const fetchCompanies = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId));
-      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
-      setCompanies(customerCompanies);
-    } catch (err) {
-      console.error(err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
     }
   };
 
@@ -1355,12 +1460,7 @@ const ApprovalProposal = ({
 
   useEffect(() => {
     if (authLoading) return;
-    
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-  }, [user, authLoading, navigate]);
+  }, [authLoading]);
 
   const handleFilesChange = (newFiles) => {
     setFiles(newFiles);
@@ -1369,6 +1469,35 @@ const ApprovalProposal = ({
   const handleLinksChange = (newLinks) => {
     setLinks(newLinks);
   };
+
+  // 회사별 직원 목록 조회 함수 추가
+  const fetchCompanyEmployees = async (companyId) => {
+    try {
+      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
+        withCredentials: true
+      });
+      console.log('회사 직원 목록 응답:', response);
+      
+      // API 응답의 data 배열 사용
+      const employees = response.data || [];
+      console.log('처리된 직원 목록:', employees);
+      
+      // CUSTOMER 회사의 직원만 필터링
+      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 직원 목록:', customerEmployees);
+      
+      setCompanyEmployees(prev => ({
+        ...prev,
+        [companyId]: customerEmployees
+      }));
+    } catch (error) {
+      console.error('회사 직원 목록 조회 중 오류:', error);
+      console.error('에러 상세:', error.response?.data);
+      alert('직원 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
 
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
@@ -1382,7 +1511,7 @@ const ApprovalProposal = ({
             <EmptyState>등록된 승인요청이 없습니다.</EmptyState>
           ) : (
             <>
-              {proposals.map((proposal) => {
+              {displayedProposals.map((proposal) => {
                 const colors = getStatusColor(proposal.approvalProposalStatus);
                 return (
                   <ProposalItem key={proposal.id} onClick={() => handleProposalClick(proposal)}>
@@ -1432,6 +1561,27 @@ const ApprovalProposal = ({
                   </ProposalItem>
                 );
               })}
+              {proposals.length > 5 && (
+                <ShowMoreButton 
+                  onClick={() => setShowAllProposals(!showAllProposals)}
+                  style={{ 
+                    marginTop: '16px',
+                    backgroundColor: showAllProposals ? '#f1f5f9' : 'white',
+                    color: showAllProposals ? '#475569' : '#334155',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    width: '100%',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}
+                >
+                  {showAllProposals ? '접기' : `더보기 (${proposals.length - 5}개 더)`}
+                </ShowMoreButton>
+              )}
             </>
           )}
         </ProposalList>

@@ -538,6 +538,23 @@ const BoardCell = styled.td`
   }
 `;
 
+const BoardRow = styled.tr`
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    
+    ${BoardCell} {
+      background: #f8fafc;
+    }
+  }
+
+  &:last-child ${BoardCell} {
+    border-bottom: none;
+  }
+`;
+
 const RoleBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -585,25 +602,6 @@ const AuthorCell = styled(BoardCell)`
   ${RoleBadge} {
     height: 20px;
     line-height: 1;
-  }
-`;
-
-
-
-const BoardRow = styled.tr`
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f8fafc;
-    
-    ${BoardCell} {
-      background: #f8fafc;
-    }
-  }
-
-  &:last-child ${BoardCell} {
-    border-bottom: none;
   }
 `;
 

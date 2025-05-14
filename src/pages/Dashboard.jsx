@@ -213,7 +213,7 @@ const Dashboard = () => {
 
             <Card>
               <CardTitle>관리자 문의내역</CardTitle>
-              <CardContent>
+              <CardContent scrollable>
                 {recentInquiries.length > 0 ? (
                   recentInquiries.map(inquiry => (
                     <ProjectItem 
@@ -372,7 +372,9 @@ const CardTitle = styled.h2`
 `;
 
 const CardContent = styled.div`
-  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   ${props => props.scrollable && `
     max-height: 300px;
     overflow-y: auto;
