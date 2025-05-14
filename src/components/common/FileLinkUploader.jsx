@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { ActionBadge } from './Badge';
 
 const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], initialLinks = [] }) => {
   const [files, setFiles] = useState(initialFiles);
@@ -8,6 +9,8 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
   const [linkUrl, setLinkUrl] = useState('');
   const [linkUrlError, setLinkUrlError] = useState('');
   const [fileError, setFileError] = useState('');
+  const [deletedFiles, setDeletedFiles] = useState([]);
+  const [deletedLinks, setDeletedLinks] = useState([]);
 
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -22,9 +25,10 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
   const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
   const handleFileDelete = (indexToDelete) => {
+    const deletedFile = files[indexToDelete];
     const newFiles = files.filter((_, index) => index !== indexToDelete);
     setFiles(newFiles);
-    onFilesChange?.(newFiles);
+    setDeletedFiles(prev => [...prev, deletedFile]);
   };
 
   const handleFileChange = (e) => {
@@ -41,42 +45,63 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
 
     const newFiles = [...files, ...selectedFiles];
     setFiles(newFiles);
-    onFilesChange?.(newFiles);
-    e.target.value = '';
+    setDeletedFiles([]);
   };
 
   const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+    if (!url) return true; // 빈 URL은 유효한 것으로 처리 (에러 메시지 표시 안함)
+    return url.startsWith('http://') || url.startsWith('https://');
   };
 
   const handleAddLink = () => {
     if (!linkTitle || !linkUrl) {
+      if (!linkTitle) {
+        alert('링크 제목을 입력해주세요.');
+        return;
+      }
+      if (!linkUrl) {
+        alert('링크 URL을 입력해주세요.');
+        return;
+      }
       return;
     }
 
     if (!isValidUrl(linkUrl)) {
-      setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
+      setLinkUrlError('URL은 http:// 또는 https://로 시작해야 합니다.');
       return;
     }
 
     const newLinks = [...links, { title: linkTitle, url: linkUrl }];
     setLinks(newLinks);
-    onLinksChange?.(newLinks);
+    onLinksChange?.({
+      currentLinks: newLinks,
+      deletedLinks: []
+    });
     setLinkTitle('');
     setLinkUrl('');
     setLinkUrlError('');
   };
 
   const handleLinkDelete = (indexToDelete) => {
+    const deletedLink = links[indexToDelete];
     const newLinks = links.filter((_, index) => index !== indexToDelete);
     setLinks(newLinks);
-    onLinksChange?.(newLinks);
+    setDeletedLinks(prev => [...prev, deletedLink]);
   };
+
+  useEffect(() => {
+    onLinksChange?.({
+      currentLinks: links,
+      deletedLinks: deletedLinks
+    });
+  }, [links, deletedLinks, onLinksChange]);
+
+  useEffect(() => {
+    onFilesChange?.({
+      currentFiles: files,
+      deletedFiles: deletedFiles
+    });
+  }, [files, deletedFiles, onFilesChange]);
 
   return (
     <>
@@ -109,27 +134,37 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
                 if (value.length <= 1000) {
                   setLinkUrl(value);
                   if (value && !isValidUrl(value)) {
-                    setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
+                    setLinkUrlError('URL은 http:// 또는 https://로 시작해야 합니다.');
                   } else {
                     setLinkUrlError('');
                   }
                 }
               }}
-              placeholder="URL을 입력하세요 (예: https://www.example.com)"
+              placeholder="URL을 입력하세요 (http:// 또는 https://로 시작)"
               maxLength={1000}
             />
-            <CharacterCount>
-              {linkUrl.length}/1000
-            </CharacterCount>
-            {linkUrlError && <ErrorMessage>{linkUrlError}</ErrorMessage>}
+            <InputFooter>
+              {linkUrlError ? (
+                <ErrorMessage>{linkUrlError}</ErrorMessage>
+              ) : (
+                <div style={{ flex: 1 }} />
+              )}
+              <CharacterCount>
+                {linkUrl.length}/1000
+              </CharacterCount>
+            </InputFooter>
           </LinkInputGroup>
-          <AddButton
-            type="button"
-            onClick={handleAddLink}
-            disabled={!linkTitle || !linkUrl}
-          >
-            추가
-          </AddButton>
+          {(linkTitle || linkUrl) && (
+            <ActionBadge
+              type="success"
+              size="large"
+              onClick={handleAddLink}
+              disabled={!linkTitle || !linkUrl}
+              style={{ minWidth: '100px', height: '65px' }}
+            >
+              추가
+            </ActionBadge>
+          )}
         </LinkInputContainer>
         {links.length > 0 && (
           <LinkList>
@@ -253,23 +288,6 @@ const LinkList = styled(FileList)``;
 
 const LinkItem = styled(FileItem)``;
 
-const AddButton = styled(Button)`
-  background-color: #2E7D32;
-  border: none;
-  color: white;
-  padding: 12px 20px;
-  margin-top: 2px;
-  height: 65px;
-  &:hover {
-    background-color: #1B5E20;
-  }
-  
-  &:disabled {
-    background-color: #e2e8f0;
-    cursor: not-allowed;
-  }
-`;
-
 const DeleteButton = styled.button`
   background: none;
   border: none;
@@ -282,10 +300,11 @@ const DeleteButton = styled.button`
   }
 `;
 
-const ErrorMessage = styled.span`
+const ErrorMessage = styled.div`
   font-size: 12px;
   color: #ef4444;
-  margin-top: 4px;
+  font-weight: 500;
+  flex: 1;
 `;
 
 const InputGroup = styled.div`
@@ -332,6 +351,14 @@ const CharacterCount = styled.span`
   color: ${props => props.theme.isNearLimit ? '#ef4444' : '#64748b'};
   text-align: right;
   margin-top: 4px;
+`;
+
+const InputFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  gap: 8px;
 `;
 
 export default FileLinkUploader; 
