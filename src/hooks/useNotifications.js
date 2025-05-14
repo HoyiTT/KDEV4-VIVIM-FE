@@ -142,11 +142,12 @@ export const NotificationProvider = ({ children }) => {
       }}
     >
       {children}
-      {toastNotifications.map(toast => (
+      {toastNotifications.map((toast, index) => (
         <ToastNotification
           key={toast.id}
           notification={toast}
           onClose={() => removeToast(toast.id)}
+          index={index}
         />
       ))}
     </NotificationContext.Provider>
