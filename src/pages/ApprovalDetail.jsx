@@ -709,6 +709,26 @@ const StatusMessage = styled.div`
   }
 `;
 
+const RejectionNotice = styled.div`
+  background-color: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #991B1B;
+  font-size: 14px;
+  line-height: 1.5;
+
+  svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+`;
+
 const ApprovalDetail = () => {
   const { projectId, approvalId } = useParams();
   const navigate = useNavigate();
@@ -925,6 +945,57 @@ const ApprovalDetail = () => {
           }
         } else {
           alert('승인요청 전송에 실패했습니다.');
+        }
+      }
+    } finally {
+      setSendingApproval(false);
+    }
+  };
+
+  // 재승인요청 전송 함수 수정
+  const handleResendApproval = async () => {
+    try {
+      if (!proposal.id) {
+        console.error('승인 요청 ID를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 변경사항이 없는 경우 알림 표시 후 함수 종료
+      if (!hasChanges) {
+        alert('승인요청 상세 내용에 수정사항이 없습니다.\n수정 후 재승인요청을 전송해주세요.');
+        return;
+      }
+
+      // 변경사항이 있는 경우에만 확인 메시지 표시
+      const isConfirmed = window.confirm(
+        '고객사의 승인요청 반려에 따른 수정사항 반영이 필요합니다.\n' +
+        '반영된 수정사항은 승인요청 수정 버튼을 눌러 작성해주세요.\n\n' +
+        '재승인 요청을 전송하시겠습니까?'
+      );
+      
+      if (!isConfirmed) {
+        return;
+      }
+
+      setSendingApproval(true);
+
+      try {
+        const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.SEND(proposal.id), {}, {
+          withCredentials: true
+        });
+
+        if (response.data) {
+          alert('재승인 요청이 성공적으로 전송되었습니다.');
+          setLastSentAt(new Date());
+          setHasChanges(false);
+          await fetchProposalDetail();
+        }
+      } catch (error) {
+        console.error('재승인 요청 중 오류 발생:', error);
+        if (error.response?.status === 400) {
+          alert(error.response.data?.message || '재승인요청 전송에 실패했습니다.');
+        } else {
+          alert('재승인요청 전송에 실패했습니다.');
         }
       }
     } finally {
@@ -1279,6 +1350,22 @@ const ApprovalDetail = () => {
                       </ProposalSubtitle>
                     )}
                     
+                    {/* 반려 상태일 때 강조 멘트 표시 */}
+                    {proposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && (
+                      <RejectionNotice>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>
+                          <strong>고객사의 승인요청 반려에 따라, 승인요청 상세 내용을 수정해주세요.</strong>
+                          <br />
+                          수정사항을 반영한 후 재승인요청을 전송해주시기 바랍니다.
+                        </div>
+                      </RejectionNotice>
+                    )}
+                    
                     {/* 요청 상태를 제목 위에 표시 */}
                     <StatusContainer>
                       <StatusBadge status={proposal.approvalProposalStatus}>
@@ -1288,7 +1375,7 @@ const ApprovalDetail = () => {
                       
                       {!isEditing && (
                         <>
-                          {proposal.displayStatus === ApprovalProposalStatus.DRAFT && (
+                          {proposal.approvalProposalStatus === ApprovalProposalStatus.DRAFT && (
                             <ApprovalActionButton 
                               onClick={handleSendApproval} 
                               disabled={sendingApproval}
@@ -1299,6 +1386,26 @@ const ApprovalDetail = () => {
                                 <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
                               </svg>
                               {sendingApproval ? '전송 중...' : '승인요청 전송'}
+                            </ApprovalActionButton>
+                          )}
+                          {proposal.approvalProposalStatus === ApprovalProposalStatus.FINAL_REJECTED && (
+                            <ApprovalActionButton 
+                              onClick={handleResendApproval} 
+                              disabled={sendingApproval}
+                              style={{ 
+                                marginRight: '8px',
+                                opacity: hasChanges ? 1 : 0.6,
+                                cursor: hasChanges ? 'pointer' : 'not-allowed',
+                                backgroundColor: hasChanges ? '#1E40AF' : '#94A3B8',
+                                transition: 'all 0.2s ease'
+                              }}
+                              title={!hasChanges ? "승인요청 상세 내용에 수정사항이 없습니다. 수정 후 재승인요청을 전송해주세요." : "수정사항이 있습니다. 재승인요청을 전송할 수 있습니다."}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 2L11 13"></path>
+                                <path d="M22 2L15 22L11 13L2 9L22 2z"></path>
+                              </svg>
+                              {sendingApproval ? '전송 중...' : '재 승인요청 전송'}
                             </ApprovalActionButton>
                           )}
                           <ActionsMenuContainer ref={actionsMenuRef}>

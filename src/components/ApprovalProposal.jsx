@@ -734,18 +734,110 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
   const [changedApprovers, setChangedApprovers] = useState(new Set());
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // 현재 등록된 승인권자 목록 조회
+  // 프로젝트 참여자 목록 가져오기
+  const fetchProjectUsers = async () => {
+    try {
+      if (!projectId) {
+        console.log('▶ 프로젝트 ID가 없어 사용자 목록을 조회하지 않습니다.');
+        return;
+      }
+
+      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
+        withCredentials: true
+      });
+      console.log('▶ 프로젝트 참여자 목록:', data);
+      setProjectUsers(data);
+    } catch (error) {
+      console.error('▶ 프로젝트 사용자 목록 조회 중 오류:', error);
+      if (error.response?.status === 401) {
+        console.log('▶ 인증이 필요합니다.');
+      }
+      setProjectUsers([]);
+    }
+  };
+
+  // 프로젝트 참여자 중 고객사 필터링 함수
+  const filterCustomerCompanies = (users) => {
+    if (!users.length) return [];
+    
+    // 프로젝트 참여 회사 중 CLIENT_MANAGER와 CLIENT_USER 역할을 가진 사용자만 필터링
+    return users
+      .filter(user => user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER')
+      .reduce((companies, user) => {
+        // 이미 추가된 사용자는 건너뛰기
+        if (companies.some(company => company.id === user.userId)) {
+          return companies;
+        }
+        return [...companies, {
+          id: user.userId,
+          name: user.userName,
+          role: user.role
+        }];
+      }, []);
+  };
+
+  // 회사별 직원 목록 조회 함수 수정
+  const fetchCompanyEmployees = async (userId) => {
+    try {
+      // 프로젝트 참여자 목록에서 CLIENT_MANAGER와 CLIENT_USER 역할 사용자만 필터링
+      const customerEmployees = projectUsers
+        .filter(user => 
+          user.userId === userId && 
+          (user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER')
+        )
+        .map(user => ({
+          id: user.userId,
+          name: user.userName,
+          role: user.role
+        }));
+
+      console.log('▶ 프로젝트 참여 고객사 직원 목록:', customerEmployees);
+      
+      setCompanyEmployees(prev => ({
+        ...prev,
+        [userId]: customerEmployees
+      }));
+    } catch (error) {
+      console.error('▶ 회사 직원 목록 조회 중 오류:', error);
+      console.error('▶ 에러 상세:', error.response?.data);
+      alert('직원 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  // 프로젝트 참여자 목록이 변경될 때 회사 목록 업데이트
+  useEffect(() => {
+    if (projectUsers.length > 0) {
+      const customerUsers = filterCustomerCompanies(projectUsers);
+      console.log('▶ 프로젝트 참여 고객사 목록:', customerUsers);
+      
+      setCompanies(customerUsers);
+      
+      // 각 사용자의 정보 가져오기
+      customerUsers.forEach(user => {
+        fetchCompanyEmployees(user.id);
+      });
+    }
+  }, [projectUsers]);
+
   const fetchCurrentApprovers = async () => {
     try {
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
         withCredentials: true
       });
-      console.log('현재 승인권자 목록:', data);
+      console.log('▶ 현재 승인권자 목록:', data);
       
       if (data.approverResponses) {
-        setCurrentApprovers(data.approverResponses);
+        // 현재 승인권자 중 고객사 역할을 가진 사용자만 필터링
+        const customerApprovers = data.approverResponses.filter(approver => 
+          projectUsers.some(user => 
+            user.userId === approver.userId && 
+            user.role === 'CLIENT_MANAGER'
+          )
+        );
+        
+        setCurrentApprovers(customerApprovers);
         // 현재 승인권자들을 selectedApprovers에 추가
-        setSelectedApprovers(data.approverResponses.map(approver => ({
+        setSelectedApprovers(customerApprovers.map(approver => ({
           userId: approver.userId,
           memberId: approver.userId,
           name: approver.name
@@ -754,67 +846,23 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
         setChangedApprovers(new Set());
       }
     } catch (error) {
-      console.error('승인권자 목록 조회 실패:', error);
+      console.error('▶ 승인권자 목록 조회 실패:', error);
       setCurrentApprovers([]);
-    }
-  };
-
-  // 회사별 직원 목록 조회
-  const fetchCompanyEmployees = async (companyId) => {
-    try {
-      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
-        withCredentials: true
-      });
-      console.log('회사 직원 목록 응답:', response);
-      
-      // API 응답의 data 배열 사용
-      const employees = response.data || [];
-      console.log('처리된 직원 목록:', employees);
-      
-      // CUSTOMER 회사의 직원만 필터링
-      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 직원 목록:', customerEmployees);
-      
-      setCompanyEmployees(prev => ({
-        ...prev,
-        [companyId]: customerEmployees
-      }));
-    } catch (error) {
-      console.error('회사 직원 목록 조회 중 오류:', error);
-      console.error('에러 상세:', error.response?.data);
-      alert('직원 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  // 회사 목록 조회
-  const fetchCompanies = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
-        withCredentials: true
-      });
-      
-      // CUSTOMER 회사만 필터링
-      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 목록:', customerCompanies);
-      
-      setCompanies(customerCompanies);
-      
-      // 각 회사의 직원 목록 가져오기
-      for (const company of customerCompanies) {
-        await fetchCompanyEmployees(company.id);
-      }
-    } catch (err) {
-      console.error('회사 목록 조회 중 오류:', err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchCompanies();
+      fetchProjectUsers();
       if (approvalId) {
         fetchCurrentApprovers();
       }
+    } else {
+      setCompanies([]);
+      setCompanyEmployees({});
+      setExpandedCompanies(new Set());
+      setSelectedApprovers([]);
+      setProjectUsers([]);
     }
   }, [isOpen, projectId, approvalId]);
 
@@ -848,7 +896,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
     });
   };
 
-  // 승인권자 수정 함수 추가
   const updateApprovers = async (approverIds) => {
     try {
       const response = await axiosInstance.put(
@@ -876,8 +923,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
   const handleSave = () => {
     // 전체 승인권자 ID 목록 전달
     const allApproverIds = selectedApprovers.map(approver => approver.userId);
-
-    // 승인권자 수정 API 호출
     updateApprovers(allApproverIds);
   };
 
@@ -889,32 +934,14 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         <ModalContent>
-          <InputGroup>
-            {changedApprovers.size > 0 && (
-              <div style={{ 
-                fontSize: '13px', 
-                color: '#64748b', 
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span>•</span>
-                <span>{changedApprovers.size}명의 승인권자가 변경되었습니다.</span>
-              </div>
-            )}
-          </InputGroup>
           <ApproverSection>
             {companies.length === 0 ? (
               <EmptyState>연결된 고객사가 없습니다.</EmptyState>
             ) : (
-              companies.map(company => (
-                <div key={company.id}>
-                  <CompanyToggle>
-                    <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
-                  </CompanyToggle>
+              companies.map(user => (
+                <div key={user.id}>
                   <EmployeeList>
-                    {(companyEmployees[company.id] || []).map(emp => {
+                    {(companyEmployees[user.id] || []).map(emp => {
                       const isChanged = changedApprovers.has(emp.id);
                       return (
                         <EmployeeItem 
@@ -923,7 +950,6 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span>{emp.name}</span>
-                            <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
                             {isChanged && (
                               <span style={{ 
                                 fontSize: '12px', 
@@ -1045,24 +1071,24 @@ const ApprovalProposal = ({
     e.target.value = ''; // 파일 선택 초기화
   };
 
-  // 프로젝트 참여 유저 목록 가져오기
+  // 프로젝트 참여자 목록 가져오기
   const fetchProjectUsers = async () => {
     try {
       if (!projectId) {
-        console.log('프로젝트 ID가 없어 사용자 목록을 조회하지 않습니다.');
+        console.log('▶ 프로젝트 ID가 없어 사용자 목록을 조회하지 않습니다.');
         return;
       }
 
       const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
         withCredentials: true
       });
+      console.log('▶ 프로젝트 참여자 목록:', data);
       setProjectUsers(data);
     } catch (error) {
-      console.error('프로젝트 사용자 목록 조회 중 오류 발생:', error);
+      console.error('▶ 프로젝트 사용자 목록 조회 중 오류:', error);
       if (error.response?.status === 401) {
-        console.log('인증이 필요합니다.');
+        console.log('▶ 인증이 필요합니다.');
       }
-      // 에러 발생 시 빈 배열로 설정
       setProjectUsers([]);
     }
   };
@@ -1109,41 +1135,17 @@ const ApprovalProposal = ({
     setExpandedCompanies(newExpandedCompanies);
   };
 
-  const handleSelectApprover = (employee, checked) => {
-    setSelectedApprovers(prev =>
-      checked 
-        ? [...prev, { 
-            userId: employee.id, 
-            memberId: employee.id,
-            name: employee.name 
-          }] 
-        : prev.filter(a => a.userId !== employee.id)
-    );
-  };
-
-    // 회사 목록 조회
-  const fetchCompanies = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.PROJECT_COMPANIES(projectId), {
-        withCredentials: true
-      });
-      console.log('회사 목록 응답:', data);
-      
-      // CUSTOMER 회사만 필터링
-      const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 목록:', customerCompanies);
-      
-      setCompanies(customerCompanies);
-      
-      // 각 회사의 직원 목록 가져오기
-      for (const company of customerCompanies) {
-        await fetchCompanyEmployees(company.id);
-      }
-    } catch (err) {
-      console.error('회사 목록 조회 중 오류:', err);
-      alert('회사 목록을 불러오는데 실패했습니다.');
+  useEffect(() => {
+    if (isModalOpen) {
+      // 모달이 열릴 때 fetchProjectUsers가 호출되도록 함
+      fetchProjectUsers();
+    } else {
+      setCompanies([]);
+      setCompanyEmployees({});
+      setExpandedCompanies(new Set());
+      setSelectedApprovers([]);
     }
-  };
+  }, [isModalOpen]);
 
   useEffect(() => {
     fetchProposals();
@@ -1160,17 +1162,6 @@ const ApprovalProposal = ({
       document.body.style.overflow = 'auto';
     };
   }, [isProposalModalOpen]);
-
-  useEffect(() => {
-    if (isModalOpen) {
-      fetchCompanies();
-    } else {
-      setCompanies([]);
-      setCompanyEmployees({});
-      setExpandedCompanies(new Set());
-      setSelectedApprovers([]);
-    }
-  }, [isModalOpen]);
 
   const fetchProposals = async () => {
     try {
@@ -1428,6 +1419,17 @@ const ApprovalProposal = ({
     return user.companyRole === 'CUSTOMER';
   };
 
+  const canSendProposal = () => {
+    if (!user) {
+      console.log('▶ 사용자 정보가 없습니다.');
+      return false;
+    }
+    console.log('▶ 현재 사용자 역할:', user.companyRole);
+    const canSend = user.companyRole === 'ADMIN' || user.companyRole === 'DEVELOPER';
+    console.log('▶ 승인요청 전송 가능 여부:', canSend);
+    return canSend;
+  };
+
   const handleAddLink = () => {
     if (!newLink.title.trim() || !newLink.url.trim()) {
       alert('링크 제목과 URL을 모두 입력해주세요.');
@@ -1470,37 +1472,6 @@ const ApprovalProposal = ({
 
   const handleLinksChange = (newLinks) => {
     setLinks(newLinks);
-  };
-
-  // 회사별 직원 목록 조회 함수 추가
-  const fetchCompanyEmployees = async (companyId) => {
-    try {
-      const { data: response } = await axiosInstance.get(API_ENDPOINTS.COMPANY_EMPLOYEES(companyId), {
-        withCredentials: true
-      });
-      console.log('회사 직원 목록 응답:', response);
-      
-      // API 응답의 data 배열 사용
-      const employees = response.data || [];
-      console.log('처리된 직원 목록:', employees);
-      
-      // CUSTOMER 회사의 직원만 필터링
-      const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
-      console.log('필터링된 고객사 직원 목록:', customerEmployees);
-      
-      setCompanyEmployees(prev => ({
-        ...prev,
-        [companyId]: customerEmployees
-      }));
-    } catch (error) {
-      console.error('회사 직원 목록 조회 중 오류:', error);
-      console.error('에러 상세:', error.response?.data);
-      alert('직원 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  const isStageCompleted = () => {
-    return approvalRate === 100;
   };
 
   // 승인률 조회 함수 수정
@@ -1554,12 +1525,16 @@ const ApprovalProposal = ({
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          {(proposal.approvalProposalStatus === 'BEFORE_REQUEST_PROPOSAL' || 
-                            proposal.approvalProposalStatus === 'REJECTED_BY_ANY_DECISION' || 
-                            proposal.approvalProposalStatus === 'REJECTED') && 
-                            !window.location.pathname.includes('/project/') && (
+                          {proposal.approvalProposalStatus !== 'FINAL_REJECTED' &&
+                            !isClient() && (
                             <SendButton onClick={() => handleSendProposal(proposal.id)}>
-                              승인요청
+                              승인요청 전송
+                            </SendButton>
+                          )}
+                          {proposal.approvalProposalStatus === 'FINAL_REJECTED' && 
+                            canSendProposal() && (
+                            <SendButton onClick={() => handleSendProposal(proposal.id)}>
+                              재 승인요청 전송
                             </SendButton>
                           )}
                           {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
@@ -1617,7 +1592,7 @@ const ApprovalProposal = ({
         </ProposalList>
         {!Boolean(projectInfo?.isDeleted) && !isCompleted && !isClient() && (
           <AddButtonContainer>
-            <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
+            <AddButton onClick={() => setIsModalOpen(true)}>
               + 승인요청 추가  
             </AddButton>
           </AddButtonContainer>
@@ -1625,78 +1600,14 @@ const ApprovalProposal = ({
       </ProposalContainer>
 
       {isModalOpen && (
-        <ModalOverlay onClick={() => setIsModalOpen(false)}>
-          <ModalContainer onClick={e => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>새 승인요청 추가</ModalTitle>
-              <CloseButton onClick={() => setIsModalOpen(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalContent>
-              <InputGroup>
-                <Label>제목</Label>
-                <Input
-                  type="text"
-                  name="title"
-                  value={newProposal.title}
-                  onChange={handleInputChange}
-                  placeholder="제목을 입력하세요"
-                />
-              </InputGroup>
-              <InputGroup>
-                <Label>내용</Label>
-                <TextArea
-                  name="content"
-                  value={newProposal.content}
-                  onChange={handleInputChange}
-                  placeholder="내용을 입력하세요"
-                />
-              </InputGroup>
-
-              <FileLinkUploader
-                onFilesChange={handleFilesChange}
-                onLinksChange={handleLinksChange}
-                initialFiles={files}
-                initialLinks={links}
-              />
-
-              <InputGroup>
-                <Label>승인권자 목록</Label>
-              </InputGroup>
-              <ApproverSection>
-                {companies.length === 0 ? (
-                  <EmptyState>연결된 고객사가 없습니다.</EmptyState>
-                ) : (
-                  companies.map(company => (
-                    <div key={company.id}>
-                      <CompanyToggle>
-                        <span>{company.companyName || company.name || `회사 ${company.id}`}</span>
-                      </CompanyToggle>
-                      <EmployeeList>
-                        {(companyEmployees[company.id] || []).map(emp => (
-                          <EmployeeItem key={emp.id}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>{emp.name}</span>
-                              <span style={{ color: '#64748b', fontSize: '12px' }}>({emp.email})</span>
-                            </div>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                              onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                            />
-                          </EmployeeItem>
-                        ))}
-                      </EmployeeList>
-                    </div>
-                  ))
-                )}
-              </ApproverSection>
-            </ModalContent>
-            <ModalButtonContainer>
-              <CancelButton onClick={() => setIsModalOpen(false)}>취소</CancelButton>
-              <SaveButton onClick={handleAddProposal}>추가</SaveButton>
-            </ModalButtonContainer>
-          </ModalContainer>
-        </ModalOverlay>
+        <EditApproversModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleAddProposal}
+          projectId={projectId}
+          approvalId={null}
+          proposalStatus={null}
+        />
       )}
 
       {isEditModalOpen && editingProposal && (
