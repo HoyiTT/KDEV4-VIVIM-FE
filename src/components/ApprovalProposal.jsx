@@ -1525,18 +1525,6 @@ const ApprovalProposal = ({
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          {proposal.approvalProposalStatus !== 'FINAL_REJECTED' &&
-                            !isClient() && (
-                            <SendButton onClick={() => handleSendProposal(proposal.id)}>
-                              승인요청 전송
-                            </SendButton>
-                          )}
-                          {proposal.approvalProposalStatus === 'FINAL_REJECTED' && 
-                            canSendProposal() && (
-                            <SendButton onClick={() => handleSendProposal(proposal.id)}>
-                              재 승인요청 전송
-                            </SendButton>
-                          )}
                           {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
                             <ActionIcons>
                               <ActionIcon onClick={(e) => {
