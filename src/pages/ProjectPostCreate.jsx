@@ -135,7 +135,7 @@ const ProjectPostCreate = () => {
 
           // 1. 멀티파트 업로드를 위한 presigned URL 요청
           const { data: presignedData } = await axiosInstance.post(
-            API_ENDPOINTS.PROJECT_POST_FILE_MULTIPART(createdPostId),
+            API_ENDPOINTS.POST_FILE_UPLOAD(createdPostId),
             {
               fileName: file.name,
               fileSize: file.size,
@@ -185,7 +185,7 @@ const ProjectPostCreate = () => {
 
           // 3. 멀티파트 업로드 완료 요청
           await axiosInstance.post(
-            API_ENDPOINTS.PROJECT_POST_FILE_COMPLETE(),
+            API_ENDPOINTS.FILE_COMPLETE(),
             {
               key: objectKey,
               uploadId: uploadId,

@@ -29,9 +29,9 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    
+
     const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
-    
+
     if (oversizedFiles.length > 0) {
       alert('500MB 이상의 파일은 업로드할 수 없습니다:\n' + 
         oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
@@ -99,7 +99,7 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
               {linkTitle.length}/60
             </CharacterCount>
           </LinkInputGroup>
-          
+
           <LinkInputGroup>
             <Input
               type="url"
@@ -229,7 +229,6 @@ const FileItem = styled.li`
   justify-content: space-between;
   padding: 4px 0;
   font-size: 14px;
-
   &:not(:last-child) {
     border-bottom: 1px solid #f1f5f9;
     padding-bottom: 8px;
@@ -278,7 +277,6 @@ const DeleteButton = styled.button`
   cursor: pointer;
   padding: 4px;
   font-size: 16px;
-
   &:hover {
     color: #ef4444;
   }
@@ -298,7 +296,6 @@ const InputGroup = styled.div`
 
 const FileInputContainer = styled.div`
   margin-bottom: 16px;
-
   &::after {
     content: '* 파일 크기는 500MB 이하여야 합니다.';
     display: block;
@@ -313,7 +310,7 @@ const HiddenFileInput = styled.input`
 `;
 
 const Label = styled.label`
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #1e293b;
 `;

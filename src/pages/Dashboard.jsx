@@ -17,6 +17,7 @@ import {
   PointElement,
   Title
 } from 'chart.js';
+import { ActionBadge } from '../components/common/Badge';
 
 ChartJS.register(
   ArcElement,
@@ -181,6 +182,22 @@ const Dashboard = () => {
     navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
   };
 
+  // 승인 상태에 따른 뱃지 타입 결정 함수 추가
+  const getApprovalStatusType = (status) => {
+    switch (status) {
+      case 'FINAL_APPROVED':
+        return 'success';
+      case 'FINAL_REJECTED':
+        return 'danger';
+      case 'UNDER_REVIEW':
+        return 'warning';
+      case 'DRAFT':
+        return 'secondary';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <PageContainer>
       <ContentWrapper>
@@ -202,7 +219,12 @@ const Dashboard = () => {
                           }).replace(/\. /g, '.').slice(0, -1)}
                         </ProjectDate>
                       </ProjectInfo>
-                      <DDay overdue={getDDay(project.endDate).startsWith('D+')}>{getDDay(project.endDate)}</DDay>
+                      <ActionBadge 
+                        type={getDDay(project.endDate).startsWith('D+') ? "danger" : "success"}
+                        size="large"
+                      >
+                        {getDDay(project.endDate)}
+                      </ActionBadge>
                     </ProjectItem>
                   ))
                 ) : (
@@ -232,9 +254,12 @@ const Dashboard = () => {
                           }).replace(/\. /g, '.').slice(0, -1)}
                         </ProjectDate>
                       </ProjectInfo>
-                      <ProjectStatus status={inquiry.status}>
+                      <ActionBadge 
+                        type={inquiry.status === 'COMPLETED' ? "success" : "warning"}
+                        size="medium"
+                      >
                         {inquiry.status === 'COMPLETED' ? '답변완료' : '답변대기'}
-                      </ProjectStatus>
+                      </ActionBadge>
                     </ProjectItem>
                   ))
                 ) : (
@@ -263,9 +288,12 @@ const Dashboard = () => {
                           }).replace(/\. /g, '.').slice(0, -1)}
                         </ProjectDate>
                       </ProjectInfo>
-                      <ProjectStatus status={post.status}>
+                      <ActionBadge 
+                        type="primary"
+                        size="medium"
+                      >
                         {post.creatorName}
-                      </ProjectStatus>
+                      </ActionBadge>
                     </ProjectItem>
                   ))
                 ) : (
@@ -292,9 +320,12 @@ const Dashboard = () => {
                           }).replace(/\. /g, '.').slice(0, -1)}
                         </ProjectDate>
                       </ProjectInfo>
-                      <ProjectStatus status={proposal.approvalProposalStatus}>
+                      <ActionBadge 
+                        type={getApprovalStatusType(proposal.approvalProposalStatus)}
+                        size="medium"
+                      >
                         {getApprovalStatusText(proposal.approvalProposalStatus)}
-                      </ProjectStatus>
+                      </ActionBadge>
                     </ProjectItem>
                   ))
                 ) : (
@@ -481,12 +512,6 @@ const ProjectDate = styled.div`
   color: #64748b;
 `;
 
-const ProjectStatus = styled.div`
-  font-size: 12px;
-  font-weight: 500;
-  color: ${props => props.status === 'IN_PROGRESS' ? '#2E7D32' : props.status === 'SUSPENDED' ? '#E53E3E' : '#4B5563'};
-`;
-
 const EmptyMessage = styled.div`
   font-size: 14px;
   font-weight: 500;
@@ -503,33 +528,6 @@ const CardGrid = styled.div`
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-  }
-`;
-
-// DDay 스타일 현대적으로 개선
-const DDay = styled.span`
-  min-width: 56px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  background: ${props =>
-    props.overdue
-      ? 'linear-gradient(90deg, #ff5858 0%, #f857a6 100%)'
-      : 'linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)'};
-  border-radius: 999px;
-  padding: 5px 18px;
-  margin-left: 28px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  letter-spacing: 1px;
-  transition: transform 0.15s, box-shadow 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    transform: scale(1.08);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.13);
   }
 `;
 

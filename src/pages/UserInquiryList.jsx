@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 import MainContent from '../components/common/MainContent';
+import { ActionBadge } from '../components/common/Badge';
+import Pagination from '../components/common/Pagination';
 
 const Header = styled.div`
   display: flex;
@@ -33,23 +35,6 @@ const PageTitle = styled.h1`
     height: 20px;
     background: #2E7D32;
     border-radius: 1.5px;
-  }
-`;
-
-const CreateButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
   }
 `;
 
@@ -149,6 +134,8 @@ const UserInquiryList = () => {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchInquiries();
@@ -195,6 +182,14 @@ const UserInquiryList = () => {
     return new Date(dateString).toLocaleDateString('ko-KR').replace(/\. /g, '.').slice(0, -1);
   };
 
+  const getCurrentPageInquiries = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return inquiries.slice(startIndex, endIndex);
+  };
+
+  const totalPages = Math.ceil(inquiries.length / itemsPerPage);
+
   if (loading) {
     return (
       <MainContent>
@@ -215,9 +210,13 @@ const UserInquiryList = () => {
     <MainContent>
       <Header>
         <PageTitle>내 문의</PageTitle>
-        <CreateButton onClick={handleCreateClick}>
+        <ActionBadge 
+          type="success" 
+          size="large" 
+          onClick={handleCreateClick}
+        >
           문의 작성
-        </CreateButton>
+        </ActionBadge>
       </Header>
 
       <InquiryTable>
@@ -230,7 +229,7 @@ const UserInquiryList = () => {
           </tr>
         </thead>
         <tbody>
-          {inquiries.map((inquiry) => (
+          {getCurrentPageInquiries().map((inquiry) => (
             <TableRow 
               key={inquiry.id}
               onClick={() => handleInquiryClick(inquiry.id)}
@@ -247,6 +246,16 @@ const UserInquiryList = () => {
           ))}
         </tbody>
       </InquiryTable>
+      {inquiries.length > 0 && (
+        <Pagination
+          currentPage={currentPage - 1}
+          totalElements={inquiries.length}
+          pageSize={itemsPerPage}
+          onPageChange={(page) => setCurrentPage(page + 1)}
+          showFirstLast={true}
+          maxPageNumbers={5}
+        />
+      )}
     </MainContent>
   );
 };

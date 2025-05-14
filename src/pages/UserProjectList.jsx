@@ -5,6 +5,8 @@ import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
+import { ActionBadge } from '../components/common/Badge';
+import Pagination from '../components/common/Pagination';
 
 const StatusBadge = styled.span`
   display: inline-flex;
@@ -19,14 +21,12 @@ const StatusBadge = styled.span`
       return 'rgba(185, 28, 28, 0.1)';
     }
     switch (props.status) {
-      case 'PENDING':
-        return 'rgba(220, 38, 38, 0.1)';
-      case 'IN_PROGRESS':
-        return 'rgba(46, 125, 50, 0.1)';
-      case 'COMPLETED':
-        return 'rgba(100, 116, 139, 0.1)';
-      case 'ON_HOLD':
+      case 'PROGRESS':
+        return 'rgba(37, 99, 235, 0.1)';  // 파란색
+      case 'INSPECTION':
         return 'rgba(245, 158, 11, 0.1)';
+      case 'COMPLETED':
+        return 'rgba(46, 125, 50, 0.1)';  // 초록색
       default:
         return 'rgba(100, 116, 139, 0.1)';
     }
@@ -36,19 +36,29 @@ const StatusBadge = styled.span`
       return '#B91C1C';
     }
     switch (props.status) {
-      case 'PENDING':
-        return '#DC2626';
-      case 'IN_PROGRESS':
-        return '#2E7D32';
-      case 'COMPLETED':
-        return '#64748B';
-      case 'ON_HOLD':
+      case 'PROGRESS':
+        return '#2563EB';  // 파란색
+      case 'INSPECTION':
         return '#F59E0B';
+      case 'COMPLETED':
+        return '#2E7D32';  // 초록색
       default:
         return '#64748B';
     }
   }};
 
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: currentColor;
+  }
+`;
+
+const RoleBadge = styled(ActionBadge)`
   &::before {
     content: '';
     display: inline-block;
@@ -175,78 +185,6 @@ const SearchInput = styled.input`
   }
 `;
 
-const SearchButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  }
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-`;
-
-const PaginationButton = styled.button`
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color: #1e293b;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #f8fafc;
-  }
-
-  &:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    cursor: not-allowed;
-  }
-`;
-
-const PaginationNumber = styled.button`
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  border: 1px solid ${props => props.active ? '#2E7D32' : '#e2e8f0'};
-  border-radius: 6px;
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? '#2E7D32' : '#f8fafc'};
-  }
-`;
-
 const ActionButtonContainer = styled.div`
   display: flex;
   gap: 8px;
@@ -359,6 +297,29 @@ const UserProjectList = () => {
     }
   };
 
+  const getRoleType = (role) => {
+    if (role.includes('담당자')) {
+      return 'primary';  // 담당자는 파란색
+    } else {
+      return 'success';  // 사용자는 초록색
+    }
+  };
+
+  const getRoleText = (role) => {
+    switch (role) {
+      case 'DEVELOPER_MANAGER':
+        return '개발사_담당자';
+      case 'DEVELOPER_USER':
+        return '개발사_사용자';
+      case 'CUSTOMER_MANAGER':
+        return '고객사_담당자';
+      case 'CUSTOMER_USER':
+        return '고객사_사용자';
+      default:
+        return role;
+    }
+  };
+
   const handleProjectClick = (projectId) => {
     navigate(`/project/${projectId}`);
   };
@@ -424,9 +385,13 @@ const UserProjectList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={handleKeyPress}
             />
-            <SearchButton onClick={handleSearch}>
+            <ActionBadge 
+              type="success" 
+              size="large" 
+              onClick={handleSearch}
+            >
               검색
-            </SearchButton>
+            </ActionBadge>
           </SearchSection>
         </div>
       </Header>
@@ -455,35 +420,27 @@ const UserProjectList = () => {
                   {getProjectStatus(project)}
                 </StatusBadge>
               </TableCell>
-              <TableCell>{project.myRole}</TableCell>
+              <TableCell>
+                <RoleBadge 
+                  type={getRoleType(getRoleText(project.myRole))}
+                  size="medium"
+                >
+                  {getRoleText(project.myRole)}
+                </RoleBadge>
+              </TableCell>
             </TableRow>
           ))}
         </tbody>
       </ProjectsTable>
       {filteredProjects.length > 0 && (
-        <PaginationContainer>
-          <PaginationButton 
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            이전
-          </PaginationButton>
-          {[...Array(totalPages)].map((_, index) => (
-            <PaginationNumber
-              key={index + 1}
-              active={currentPage === index + 1}
-              onClick={() => setCurrentPage(index + 1)}
-            >
-              {index + 1}
-            </PaginationNumber>
-          ))}
-          <PaginationButton
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            다음
-          </PaginationButton>
-        </PaginationContainer>
+        <Pagination
+          currentPage={currentPage - 1}
+          totalElements={filteredProjects.length}
+          pageSize={itemsPerPage}
+          onPageChange={(page) => setCurrentPage(page + 1)}
+          showFirstLast={true}
+          maxPageNumbers={5}
+        />
       )}
     </MainContent>
   );
