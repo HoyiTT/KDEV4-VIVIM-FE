@@ -329,7 +329,7 @@ const HiddenFileInput = styled.input`
 `;
 
 const Label = styled.label`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: #1e293b;
 `;
