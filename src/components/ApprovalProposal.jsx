@@ -4,11 +4,12 @@ import { API_ENDPOINTS } from '../config/api';
 import { ApprovalDecisionStatus, ApprovalProposalStatus } from '../constants/enums';
 import ApprovalDecision from './ApprovalDecision';
 import { useNavigate } from 'react-router-dom';
-import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye } from 'react-icons/fa';
+import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaEye, FaArrowUp, FaArrowDown, FaGripVertical, FaTimes } from 'react-icons/fa';
 import approvalUtils from '../utils/approvalStatus';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import FileLinkUploader from './common/FileLinkUploader';
+import ConfirmModal from './common/ConfirmModal';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -1038,6 +1039,8 @@ const ApprovalProposal = ({
   const [projectInfo, setProjectInfo] = useState(null);
   const [approvalRate, setApprovalRate] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -1353,19 +1356,26 @@ const ApprovalProposal = ({
     }
   };
 
-  const handleDeleteProposal = async (approvalId) => {
-    if (!window.confirm('정말로 이 승인요청을 삭제하시겠습니까?')) {
-      return;
-    }
+  const handleDeleteClick = (e, approvalId) => {
+    e.stopPropagation();
+    setDeleteTargetId(approvalId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return;
 
     try {
-      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(approvalId), {
+      await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(deleteTargetId), {
         withCredentials: true
       });
       fetchProposals();
     } catch (error) {
       console.error('Error deleting proposal:', error);
       alert(error.response?.data?.message || '승인요청 삭제에 실패했습니다.');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -1548,17 +1558,8 @@ const ApprovalProposal = ({
                         <HeaderRight>
                           {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
                             <ActionIcons>
-                              <ActionIcon onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditClick(proposal);
-                              }} title="수정">
-                                <FaEdit />
-                              </ActionIcon>
-                              <ActionIcon className="delete" onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteProposal(proposal.id);
-                              }} title="삭제">
-                                <FaTrashAlt />
+                              <ActionIcon className="delete" onClick={(e) => handleDeleteClick(e, proposal.id)} title="삭제">
+                                <FaTimes />
                               </ActionIcon>
                             </ActionIcons>
                           )}
@@ -1728,6 +1729,22 @@ const ApprovalProposal = ({
             </ModalButtonContainer>
           </ModalContainer>
         </ModalOverlay>
+      )}
+
+      {isDeleteModalOpen && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeleteTargetId(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+          title="승인요청 삭제"
+          message="정말로 이 승인요청을 삭제하시겠습니까?"
+          confirmText="삭제"
+          cancelText="취소"
+          type="danger"
+        />
       )}
     </Container>
   );
