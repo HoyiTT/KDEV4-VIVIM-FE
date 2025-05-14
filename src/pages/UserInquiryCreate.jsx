@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
 import { API_ENDPOINTS } from '../config/api';
 import MainContent from '../components/common/MainContent';
+import { ActionBadge } from '../components/common/Badge';
 
 const Header = styled.div`
   display: flex;
@@ -92,35 +93,6 @@ const ButtonGroup = styled.div`
   margin-top: 32px;
 `;
 
-const Button = styled.button`
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-`;
-
-const SubmitButton = styled(Button)`
-  background: #2E7D32;
-  color: white;
-  border: none;
-  
-  &:hover {
-    background: #1B5E20;
-  }
-`;
-
-const CancelButton = styled(Button)`
-  background: white;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
 const UserInquiryCreate = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
@@ -184,12 +156,20 @@ const UserInquiryCreate = () => {
         </FormGroup>
 
         <ButtonGroup>
-          <CancelButton type="button" onClick={() => navigate('/user/inquiries')}>
+          <ActionBadge 
+            type="secondary" 
+            size="xlarge" 
+            onClick={() => navigate('/user/inquiries')}
+          >
             취소
-          </CancelButton>
-          <SubmitButton type="submit">
+          </ActionBadge>
+          <ActionBadge 
+            type="success" 
+            size="xlarge" 
+            onClick={handleSubmit}
+          >
             등록
-          </SubmitButton>
+          </ActionBadge>
         </ButtonGroup>
       </Form>
     </MainContent>
