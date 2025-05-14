@@ -1091,8 +1091,6 @@ const ProjectDetail = () => {
 
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
 
-  const [isIncreasing, setIsIncreasing] = useState(false);
-
   const [stages, setStages] = useState([]);
 
   const sensors = useSensors(
@@ -1288,6 +1286,48 @@ const ProjectDetail = () => {
         alert('프로젝트 삭제 중 오류가 발생했습니다.');
         }
       }
+    }
+  };
+
+  const handleSavePositions = async () => {
+    if (isSavingPositions) return;
+    
+    try {
+      setIsSavingPositions(true);
+      // 위치 값 검증
+      const invalidStage = stages.find(stage => !stage.position || stage.position < 0);
+      if (invalidStage) {
+        alert('단계 위치 값이 유효하지 않습니다. 모든 단계는 0 이상의 위치 값을 가져야 합니다.');
+        return;
+      }
+
+      console.log('현재 stages 상태:', stages);
+
+      // 모든 단계의 위치를 순차적으로 업데이트
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        console.log(`단계 ID: ${stage.id}, 이름: ${stage.name}, 위치: ${i}`);
+        await axiosInstance.put(
+          `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}/positioning`,
+          { targetIndex: i },
+          {
+            withCredentials: true
+          }
+        );
+      }
+      
+      alert('단계 순서가 성공적으로 변경되었습니다.');
+      setIsStageModalOpen(false);
+      fetchProjectProgress(); // 단계 목록 새로고침
+    } catch (error) {
+      console.error('단계 순서 변경 중 오류 발생:', error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('단계 순서 변경에 실패했습니다.');
+      }
+    } finally {
+      setIsSavingPositions(false);
     }
   };
 
@@ -1579,83 +1619,6 @@ const ProjectDetail = () => {
     }
   };
   
-  // 단계 승급 처리 함수 추가
-  const handleIncreaseProgress = async () => {
-    if (isIncreasing) return; // 이미 진행 중이면 중복 호출 방지
-    
-    // 확인 메시지 추가
-    if (!window.confirm('현재 단계를 승급하시겠습니까?')) {
-      return;
-    }
-    
-    try {
-      setIsIncreasing(true); // 진행 중 상태로 설정
-      await axiosInstance.patch(`${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/increase_current_progress`, {}, {
-        withCredentials: true
-      });
-
-      // 승급 후 데이터 새로고침 순서 변경
-      await Promise.all([
-        fetchProjectDetail(), // 프로젝트 정보 다시 가져오기
-        fetchProjectProgress(),
-        fetchProjectOverallProgress(),
-        fetchProgressStatus()
-      ]);
-      
-      // 현재 단계 인덱스 업데이트
-      setCurrentStageIndex(prev => prev + 1);
-      
-      alert('단계가 승급되었습니다.');
-    } catch (error) {
-      console.error('Error increasing progress:', error);
-      alert('단계 승급 중 오류가 발생했습니다.');
-    } finally {
-      setIsIncreasing(false); // 진행 중 상태 해제
-    }
-  };
-
-  const handleSavePositions = async () => {
-    if (isSavingPositions) return;
-    
-    try {
-      setIsSavingPositions(true);
-      // 위치 값 검증
-      const invalidStage = stages.find(stage => !stage.position || stage.position < 0);
-      if (invalidStage) {
-        alert('단계 위치 값이 유효하지 않습니다. 모든 단계는 0 이상의 위치 값을 가져야 합니다.');
-        return;
-      }
-
-      console.log('현재 stages 상태:', stages);
-
-      // 모든 단계의 위치를 순차적으로 업데이트
-      for (let i = 0; i < stages.length; i++) {
-        const stage = stages[i];
-        console.log(`단계 ID: ${stage.id}, 이름: ${stage.name}, 위치: ${i}`);
-        await axiosInstance.put(
-          `${API_ENDPOINTS.PROJECT_DETAIL(id)}/progress/${stage.id}/positioning`,
-          { targetIndex: i },
-          {
-            withCredentials: true
-          }
-        );
-      }
-      
-      alert('단계 순서가 성공적으로 변경되었습니다.');
-      setIsStageModalOpen(false);
-      fetchProjectProgress(); // 단계 목록 새로고침
-    } catch (error) {
-      console.error('단계 순서 변경 중 오류 발생:', error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert('단계 순서 변경에 실패했습니다.');
-      }
-    } finally {
-      setIsSavingPositions(false);
-    }
-  };
-
   // 회사 정보 조회
   const fetchProjectCompanies = async () => {
     try {
@@ -1938,9 +1901,9 @@ const ProjectDetail = () => {
                   openStageModal={openStageModal}
                   projectProgress={projectProgress}
                   progressStatus={progressStatus}
-                  onIncreaseProgress={handleIncreaseProgress}
                   currentProgress={project?.currentProgress}
                   projectId={project?.id}
+                  fetchProjectProgress={fetchProjectProgress}
                 >
                   {progressList.length > 0 ? (
                     progressList

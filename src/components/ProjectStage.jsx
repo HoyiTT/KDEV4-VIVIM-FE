@@ -12,24 +12,24 @@ import ConfirmModal from './common/ConfirmModal';
 
 // currentProgress 열거형 값과 단계 이름 매핑
 const PROGRESS_STAGE_MAP = {
-  '요구사항 정의': 'REQUIREMENTS',
-  '화면설계': 'WIREFRAME',
-  '디자인': 'DESIGN',
-  '퍼블리싱': 'PUBLISHING',
-  '개발': 'DEVELOPMENT',
-  '검수': 'INSPECTION',
-  '완료': 'COMPLETED'
+  '요구사항정의': '요구사항 정의',
+  '화면설계': '화면 설계',
+  '디자인': '디자인',
+  '퍼블리싱': '퍼블리싱',
+  '개발': '개발',
+  '검수': '검수',
+  '완료': '완료'
 };
 
 // currentProgress 열거형 값과 단계 이름 매핑 (역방향)
 const REVERSE_PROGRESS_STAGE_MAP = {
-  'REQUIREMENTS': '요구사항 정의',
-  'WIREFRAME': '화면설계',
-  'DESIGN': '디자인',
-  'PUBLISHING': '퍼블리싱',
-  'DEVELOPMENT': '개발',
-  'INSPECTION': '검수',
-  'COMPLETED': '완료'
+  '요구사항 정의': '요구사항정의',
+  '화면 설계': '화면설계',
+  '디자인': '디자인',
+  '퍼블리싱': '퍼블리싱',
+  '개발': '개발',
+  '검수': '검수',
+  '완료': '완료'
 };
 
 const StageProgressColumn = styled.div`
@@ -328,6 +328,7 @@ const ProjectStageProgress = ({
   onIncreaseProgress,
   currentProgress,
   projectId,
+  fetchProjectProgress,
   children
 }) => {
   const { isAdmin, isClient } = useAuth();
@@ -339,6 +340,8 @@ const ProjectStageProgress = ({
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [stages, setStages] = useState([]);
   const [currentStageApprovalCount, setCurrentStageApprovalCount] = useState(0);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const stageRef = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -363,6 +366,19 @@ const ProjectStageProgress = ({
     if (active.id !== over.id) {
       const oldIndex = stages.findIndex(item => item.id === active.id);
       const newIndex = stages.findIndex(item => item.id === over.id);
+      
+      // 현재 진행 중인 단계의 position 찾기
+      const currentProgressStage = stages.find(stage => 
+        stage.name === PROGRESS_STAGE_MAP[currentProgress] || 
+        stage.name === currentProgress
+      );
+      const currentProgressPosition = currentProgressStage?.position || 0;
+
+      // 이동하려는 위치가 현재 진행 중인 단계보다 앞이면 이동 불가
+      if (newIndex + 1 < currentProgressPosition) {
+        alert('현재 진행 중인 단계보다 이전 단계로는 이동할 수 없습니다.');
+        return;
+      }
       
       // 드래그된 아이템의 새로운 위치로 API 호출
       try {
@@ -428,28 +444,24 @@ const ProjectStageProgress = ({
     // checkUserRole 함수 호출 제거
   }, []);
 
-  // 초기 로딩 시 isCurrent 단계 찾아서 선택
+  // currentProgress가 변경될 때마다 해당 단계를 찾아 선택
   useEffect(() => {
-    if (progressList && progressList.length > 0) {
-      const currentStageIndex = progressList.findIndex((stage) => {
-        const stageStatus = progressStatus.progressList.find(
-          status => status.progressId === stage.id
-        ) || {
-          totalApprovalCount: 0,
-          approvedApprovalCount: 0,
-          progressRate: 0,
-          isCompleted: false
-        };
-        
-        const currentStageName = REVERSE_PROGRESS_STAGE_MAP[currentProgress] || '';
-        return !stageStatus.isCompleted && stage.name === currentStageName;
-      });
-
+    if (progressList && progressList.length > 0 && currentProgress) {
+      // currentProgress 값(예: "화면설계")을 단계 이름과 비교
+      const currentStageIndex = progressList.findIndex(stage => 
+        stage.name === PROGRESS_STAGE_MAP[currentProgress] || 
+        stage.name === currentProgress
+      );
+      
       if (currentStageIndex !== -1) {
         setCurrentStageIndex(currentStageIndex);
+        // 컴포넌트가 렌더링된 후 스크롤
+        setTimeout(() => {
+          scrollToCurrentStage();
+        }, 100);
       }
     }
-  }, []); // 빈 의존성 배열로 초기 마운트 시에만 실행
+  }, [currentProgress, progressList]); // currentProgress나 progressList가 변경될 때마다 실행
 
   const handlePrevStage = () => {
     if (currentStageIndex > 0) {
@@ -466,42 +478,72 @@ const ProjectStageProgress = ({
   const currentStage = progressList[currentStageIndex];
 
   const getCurrentStageStatus = (stage, index) => {
-    if (!stage) return { isCurrent: false, isCompleted: false };
+    if (!stage || !currentProgress) return { isCurrent: false, isCompleted: false };
     
-    const stageStatus = progressStatus.progressList.find(
-      status => status.progressId === stage.id
-    ) || {
-      totalApprovalCount: 0,
-      approvedApprovalCount: 0,
-      progressRate: 0,
-      isCompleted: false
-    };
+    // 현재 단계의 name과 currentProgress가 일치하는지 확인
+    const isCurrent = stage.name === currentProgress;
     
-    const currentStageName = REVERSE_PROGRESS_STAGE_MAP[currentProgress] || '';
-    const isCurrent = !stageStatus.isCompleted && stage.name === currentStageName;
+    // currentProgress에 해당하는 단계의 position 값 찾기
+    const currentProgressStage = progressList.find(s => s.name === currentProgress);
+    const currentProgressPosition = currentProgressStage?.position || 0;
     
-    // 승인요청이 1개 이상이고, 모든 승인요청이 완료된 경우 완료 상태로 설정
-    const isCompleted = stageStatus.totalApprovalCount > 0 && 
-                       stageStatus.approvedApprovalCount === stageStatus.totalApprovalCount;
+    // position이 현재 진행 중인 단계보다 작은 단계는 완료된 것으로 처리
+    const isCompleted = stage.position < currentProgressPosition;
     
     return { isCurrent, isCompleted };
   };
 
-  const handleIncreaseProgress = async () => {
-      if (isIncreasing) return;
-      try {
-        setIsIncreasing(true);
-        const { data } = await axiosInstance.put(
-           API_ENDPOINTS.PROJECT_PROGRESS(projectId)
-        );
-        onIncreaseProgress(data.currentProgress);
-      } catch (error) {
-          console.error('단계 승급 에러:', error);
-          alert('진행 단계 업데이트에 실패했습니다.');
-      } finally {  
-          setIsIncreasing(false);
+  // 스크롤 함수 수정
+  const scrollToCurrentStage = () => {
+    if (stageRef.current) {
+      const container = stageRef.current.closest('.stage-progress-list');
+      if (container) {
+        const itemWidth = stageRef.current.offsetWidth;
+        const scrollPosition = itemWidth * currentStageIndex;
+        container.scrollTo({
+          left: scrollPosition,
+          behavior: 'smooth'
+        });
       }
-      };
+    }
+  };
+
+  // 컴포넌트 마운트 시와 currentStageIndex가 변경될 때 스크롤
+  useEffect(() => {
+    scrollToCurrentStage();
+  }, [currentStageIndex]);
+
+  const handleConfirmIncrease = async () => {
+    setShowConfirmModal(false);
+    try {
+      const response = await axiosInstance.patch(
+        API_ENDPOINTS.PROJECT_PROGRESS_INCREASE(projectId),
+        {},
+        { withCredentials: true }
+      );
+      
+      // 승급 성공 후 현재 단계 정보를 localStorage에 저장
+      localStorage.setItem('scrollToStage', currentStageIndex);
+      window.location.reload();
+    } catch (error) {
+      console.error('단계 승급 실패:', error);
+      alert('단계 승급 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 페이지 로드 시 저장된 단계로 스크롤
+  useEffect(() => {
+    const savedStageIndex = localStorage.getItem('scrollToStage');
+    if (savedStageIndex !== null) {
+      const index = parseInt(savedStageIndex);
+      setCurrentStageIndex(index);
+      // 스크롤은 약간의 지연 후 실행 (컴포넌트가 완전히 렌더링된 후)
+      setTimeout(() => {
+        scrollToCurrentStage();
+      }, 100);
+      localStorage.removeItem('scrollToStage'); // 사용 후 삭제
+    }
+  }, []);
 
   // 데이터 로딩 상태 체크
   const isLoading = !progressList || progressList.length === 0 || !progressStatus || !progressStatus.progressList;
@@ -617,16 +659,20 @@ const ProjectStageProgress = ({
         <TimelineBar>
           <TimelineProgress width={projectProgress.overallProgressRate} />
         </TimelineBar>
-        <StageProgressList>
+        <StageProgressList className="stage-progress-list">
           {progressList.map((stage, index) => {
             const { isCurrent, isCompleted } = getCurrentStageStatus(stage, index);
             const isViewing = index === currentStageIndex;
+            const isCurrentProgress = stage.name === PROGRESS_STAGE_MAP[currentProgress] || 
+                                    stage.name === currentProgress;
             
             return (
               <StageProgressItem 
                 key={stage.id}
                 onClick={() => setCurrentStageIndex(index)}
                 data-active={isViewing.toString()}
+                ref={isCurrentProgress ? stageRef : null}
+    
               >
                 <StageProgressMarker 
                   data-completed={isCompleted.toString()}
@@ -659,85 +705,105 @@ const ProjectStageProgress = ({
         <StageProgressInfo>
           <ProgressInfoItem>
             <ProgressInfoLabel>현재 단계</ProgressInfoLabel>
-              <ProgressInfoValue>
-                {progressList[currentStageIndex]?.name || '없음'}
-                {(() => {
-                  const currentStage = progressList[currentStageIndex];
-                  if (!currentStage) return null;
-                  
-                  const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
-                  
-                  if (isCompleted) {
-                    return <small style={{ color: '#2E7D32' }}>완료</small>;
-                  } else if (isCurrent) {
-                    return <small style={{ color: '#3b82f6' }}>진행중</small>;
-                  } else {
-                    return <small style={{ color: '#64748b' }}>대기</small>;
-                  }
-                })()}
-              </ProgressInfoValue>
-            </ProgressInfoItem>
-            <ProgressInfoItem>
-              <ProgressInfoLabel>현재 단계 승인 비율</ProgressInfoLabel>
+            <ProgressInfoValue>
+              {progressList[currentStageIndex]?.name || '없음'}
               {(() => {
                 const currentStage = progressList[currentStageIndex];
-                const stageStatus = currentStage 
-                  ? progressStatus.progressList.find(status => status.progressId === currentStage.id)
-                  : null;
-                  
-                if (!stageStatus || stageStatus.totalApprovalCount === 0) {
-                  return <ProgressInfoValue>승인요청 없음</ProgressInfoValue>;
-                }
-
-                const progressPercent = Math.round((stageStatus.approvedApprovalCount / stageStatus.totalApprovalCount) * 100);
+                if (!currentStage) return null;
                 
-                return (
-                  <>
-                    <ProgressBar>
-                      <ProgressFill 
-                        width={`${progressPercent}%`}
-                        color={stageStatus.isCompleted ? '#2E7D32' : '#2E7D32'}
-                      />
-                    </ProgressBar>
-                    <ProgressInfoValue>
-                      {progressPercent}%
-                      <small>
-                        {stageStatus.approvedApprovalCount}/{stageStatus.totalApprovalCount}
-                      </small>
-                    </ProgressInfoValue>
-                  </>
-                );
+                const { isCurrent, isCompleted } = getCurrentStageStatus(currentStage, currentStageIndex);
+                
+                if (isCompleted) {
+                  return <small style={{ color: '#2E7D32' }}>완료</small>;
+                } else if (isCurrent) {
+                  return <small style={{ color: '#3b82f6' }}>진행중</small>;
+                } else {
+                  return <small style={{ color: '#64748b' }}>대기</small>;
+                }
               })()}
+            </ProgressInfoValue>
+          </ProgressInfoItem>
+          <ProgressInfoItem>
+            <ProgressInfoLabel>현재 단계 승인 비율</ProgressInfoLabel>
+            {(() => {
+              const currentStage = progressList[currentStageIndex];
+              const stageStatus = currentStage 
+                ? progressStatus.progressList.find(status => status.progressId === currentStage.id)
+                : null;
+                
+              if (!stageStatus || stageStatus.totalApprovalCount === 0) {
+                return <ProgressInfoValue>승인요청 없음</ProgressInfoValue>;
+              }
+
+              const progressPercent = Math.round((stageStatus.approvedApprovalCount / stageStatus.totalApprovalCount) * 100);
+              
+              return (
+                <>
+                  <ProgressBar>
+                    <ProgressFill 
+                      width={`${progressPercent}%`}
+                      color={stageStatus.isCompleted ? '#2E7D32' : '#2E7D32'}
+                    />
+                  </ProgressBar>
+                  <ProgressInfoValue>
+                    {progressPercent}%
+                    <small>
+                      {stageStatus.approvedApprovalCount}/{stageStatus.totalApprovalCount}
+                    </small>
+                  </ProgressInfoValue>
+                  {(() => {
+                    const currentStage = progressList[currentStageIndex];
+                    const { isCurrent } = getCurrentStageStatus(currentStage, currentStageIndex);
+                    
+                    if (isCurrent) {
+                      return (
+                        <IncreaseProgressButton 
+                          onClick={() => setShowConfirmModal(true)}
+                          disabled={isIncreasing || !currentProgress}
+                          style={{ 
+                            opacity: isIncreasing ? 0.7 : 1,
+                            cursor: isIncreasing ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {isIncreasing ? '승급 중...' : '단계 승급'}
+                        </IncreaseProgressButton>
+                      );
+                    }
+                    return null;
+                  })()}
+                </>
+              );
+            })()}
           </ProgressInfoItem>
           <ProgressInfoItem>
             <ProgressInfoLabel>전체 진행률</ProgressInfoLabel>
             <ProgressBar>
               <ProgressFill 
                 width={`${(() => {
-                  const totalStages = Object.keys(REVERSE_PROGRESS_STAGE_MAP).length;
-                  const currentStageIndex = Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress);
-                  return (currentStageIndex / (totalStages - 1)) * 100;
+                  const currentProgressStage = progressList.find(s => PROGRESS_STAGE_MAP[currentProgress] === s.name);
+                  const currentProgressPosition = currentProgressStage?.position || 0;
+                  const completedStages = progressList.filter(stage => stage.position < currentProgressPosition).length;
+                  return (completedStages / progressList.length) * 100;
                 })()}%`}
                 color="#2E7D32"
               />
             </ProgressBar>
             <ProgressInfoValue>
               {(() => {
-                const totalStages = Object.keys(REVERSE_PROGRESS_STAGE_MAP).length;
-                const currentStageIndex = Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress);
-                return Math.round((currentStageIndex / (totalStages - 1)) * 100);
-              })()}%
-              <small>
-                {Object.keys(REVERSE_PROGRESS_STAGE_MAP).indexOf(currentProgress) + 1}/{Object.keys(REVERSE_PROGRESS_STAGE_MAP).length} 단계
-              </small>
+                const currentProgressStage = progressList.find(s => PROGRESS_STAGE_MAP[currentProgress] === s.name);
+                const currentProgressPosition = currentProgressStage?.position || 0;
+                const completedStages = progressList.filter(stage => stage.position < currentProgressPosition).length;
+                const progressRate = Math.round((completedStages / progressList.length) * 100);
+                return (
+                  <>
+                    {progressRate}%
+                    <small>
+                      {completedStages}/{progressList.length} 단계 완료
+                    </small>
+                  </>
+                );
+              })()}
             </ProgressInfoValue>
-            {(isAdmin==true || isClient==true) && 
-              currentProgress === PROGRESS_STAGE_MAP[progressList[currentStageIndex]?.name] &&
-              progressStatus.progressList.find(status => status.progressId === progressList[currentStageIndex]?.id)?.progressRate === 100 && (
-              <IncreaseProgressButton onClick={handleIncreaseProgress}>
-                단계 승급
-              </IncreaseProgressButton>
-            )}
           </ProgressInfoItem>
         </StageProgressInfo>
         {progressList[currentStageIndex] && (
@@ -790,6 +856,17 @@ const ProjectStageProgress = ({
             </ModalFooter>
           </ModalContent>
         </ModalOverlay>
+      )}
+      {showConfirmModal && (
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmIncrease}
+          title="단계 승급 확인"
+          message="현재 단계를 다음 단계로 승급하시겠습니까?"
+          confirmText="승급"
+          cancelText="취소"
+        />
       )}
     </StageProgressColumn>
   );
@@ -977,10 +1054,15 @@ const IncreaseProgressButton = styled.button`
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 
-  &:hover {
-    background-color: #2E7D32;
+  &:hover:not(:disabled) {
+    background-color: #1B5E20;
+  }
+
+  &:disabled {
+    background-color: #A5D6A7;
+    cursor: not-allowed;
   }
 `;
 

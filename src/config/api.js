@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://localhost/api';
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/posts/${postId}/link`,
   PROJECT_POST_FILE_MULTIPART: (postId) => `${API_BASE_URL}/posts/${postId}/file/multipart`,
   PROJECT_PROGRESS_POSITION: (projectId, progressId) => `${API_BASE_URL}/projects/${projectId}/progress/${progressId}/positioning`,
+  PROJECT_PROGRESS_INCREASE: (projectId) => `${API_BASE_URL}/projects/${projectId}/progress/increase_current_progress`,
   PROJECTS_SEARCH: `${API_BASE_URL}/projects/search`,
 
   RESET_PASSWORD: `${API_BASE_URL}/users/resetpassword`,
