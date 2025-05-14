@@ -184,7 +184,8 @@ const CompanyEdit = () => {
     phone: '',
     email: '',
     companyRole: '',
-    coOwner: ''
+    coOwner: '',
+    version: 0
   });
   const [addressDetail, setAddressDetail] = useState('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -270,7 +271,11 @@ const CompanyEdit = () => {
       return;
     }
     const fullAddress = formData.address + (addressDetail ? ' ' + addressDetail : '');
-    const submitData = { ...formData, address: fullAddress };
+    const submitData = { 
+      ...formData, 
+      address: fullAddress,
+      version: formData.version 
+    };
     try {
       const response = await axiosInstance.put(API_ENDPOINTS.COMPANY_DETAIL(id), submitData, {
         withCredentials: true,
@@ -288,7 +293,25 @@ const CompanyEdit = () => {
       }
     } catch (error) {
       console.error('Error updating company:', error);
-      alert('회사 수정 중 오류가 발생했습니다.');
+      if (error.response?.data?.code === 'CO001') {
+        alert('다른 사용자가 먼저 저장했습니다. 새로고침 후 다시 시도해주세요.');
+        // 최신 데이터를 다시 불러옵니다
+        const { data } = await axiosInstance.get(API_ENDPOINTS.COMPANY_DETAIL(id), {
+          withCredentials: true,
+          headers: {
+            'accept': '*/*'
+          }
+        });
+        setFormData(data);
+        if (data.address) {
+          const arr = data.address.split(' ');
+          setFormData(prev => ({ ...prev, address: arr.slice(0, 3).join(' ') }));
+          setAddressDetail(arr.slice(3).join(' '));
+        }
+        setCompanyPhone(data.phone || '');
+      } else {
+        alert('회사 수정 중 오류가 발생했습니다.');
+      }
     }
   }, [formData, addressDetail, id, navigate]);
 
