@@ -665,15 +665,75 @@ const SaveButton = styled(Button)`
   }
 `;
 
+// 승인권자 관련 스타일 컴포넌트 복구
+const ApproverSection = styled.div`
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+`;
+
+const EmployeeList = styled.div`
+  font-size: 14px;
+  background: white;
+  padding: 8px 0;
+  overflow-y: auto;
+`;
+
+const EmployeeItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  transition: all 0.2s;
+  border-bottom: 1px solid #e2e8f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+// EditApproversModal 컴포넌트 수정
 const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, proposalStatus }) => {
   const [companies, setCompanies] = useState([]);
-  const [companyEmployees, setCompanyEmployees] = useState({});
-  const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
   const [projectUsers, setProjectUsers] = useState([]);
   const [currentApprovers, setCurrentApprovers] = useState([]);
   const [changedApprovers, setChangedApprovers] = useState(new Set());
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 현재 승인권자 목록 조회
+  const fetchCurrentApprovers = async () => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
+        withCredentials: true
+      });
+      
+      if (data.approverResponses) {
+        // 현재 승인권자 목록 설정
+        setCurrentApprovers(data.approverResponses);
+        
+        // 현재 승인권자들을 selectedApprovers에 추가
+        const currentApproverList = data.approverResponses.map(approver => ({
+          userId: approver.userId,
+          memberId: approver.userId,
+          name: approver.name
+        }));
+        
+        setSelectedApprovers(currentApproverList);
+        setChangedApprovers(new Set());
+      }
+    } catch (error) {
+      console.error('▶ 승인권자 목록 조회 실패:', error);
+      setCurrentApprovers([]);
+      setSelectedApprovers([]);
+    }
+  };
 
   // 프로젝트 참여자 목록 가져오기
   const fetchProjectUsers = async () => {
@@ -686,127 +746,90 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
       const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
         withCredentials: true
       });
-      console.log('▶ 프로젝트 참여자 목록:', data);
+      
+      // 고객사 사용자만 필터링
+      const customerUsers = data.filter(user => 
+        user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER'
+      );
+      
       setProjectUsers(data);
+      setCompanies(customerUsers);
     } catch (error) {
       console.error('▶ 프로젝트 사용자 목록 조회 중 오류:', error);
-      if (error.response?.status === 401) {
-        console.log('▶ 인증이 필요합니다.');
-      }
       setProjectUsers([]);
-    }
-  };
-
-  // 프로젝트 참여자 중 고객사 필터링 함수 수정
-  const filterCustomerUsers = (users) => {
-    if (!users.length) return [];
-    
-    // 프로젝트 참여자 중 CLIENT_MANAGER와 CLIENT_USER 역할을 가진 사용자만 필터링
-    return users.filter(user => 
-      user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER'
-    );
-  };
-
-  // useEffect 수정 - 프로젝트 참여자 목록이 변경될 때 고객사 사용자 필터링
-  useEffect(() => {
-    if (projectUsers.length > 0) {
-      const customerUsers = filterCustomerUsers(projectUsers);
-      console.log('▶ 프로젝트 참여 고객사 사용자 목록:', customerUsers);
-      setCompanies(customerUsers);
-    }
-  }, [projectUsers]);
-
-  const fetchCurrentApprovers = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
-        withCredentials: true
-      });
-      console.log('▶ 현재 승인권자 목록:', data);
-      
-      if (data.approverResponses) {
-        // 현재 승인권자 중 고객사 역할을 가진 사용자만 필터링
-        const customerApprovers = data.approverResponses.filter(approver => 
-          projectUsers.some(user => 
-            user.userId === approver.userId && 
-            user.role === 'CLIENT_MANAGER'
-          )
-        );
-        
-        setCurrentApprovers(customerApprovers);
-        // 현재 승인권자들을 selectedApprovers에 추가
-        setSelectedApprovers(customerApprovers.map(approver => ({
-          userId: approver.userId,
-          memberId: approver.userId,
-          name: approver.name
-        })));
-        // 변경된 승인권자 목록 초기화
-        setChangedApprovers(new Set());
-      }
-    } catch (error) {
-      console.error('▶ 승인권자 목록 조회 실패:', error);
-      setCurrentApprovers([]);
+      setCompanies([]);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchProjectUsers();
-      if (approvalId) {
-        fetchCurrentApprovers();
-      }
+      // 프로젝트 사용자 목록과 승인권자 목록을 순차적으로 조회
+      const fetchData = async () => {
+        await fetchProjectUsers();
+        if (approvalId) {
+          await fetchCurrentApprovers();
+        }
+      };
+      fetchData();
     } else {
       setCompanies([]);
-      setCompanyEmployees({});
-      setExpandedCompanies(new Set());
       setSelectedApprovers([]);
       setProjectUsers([]);
+      setCurrentApprovers([]);
+      setChangedApprovers(new Set());
     }
   }, [isOpen, projectId, approvalId]);
 
   // 승인권자 선택/해제 처리
   const handleSelectApprover = (user, checked) => {
-    console.log('▶ 승인권자 선택:', user, checked);
+    const isCurrentApprover = currentApprovers.some(approver => approver.userId === user.userId);
+
     setSelectedApprovers(prev => {
-      if (checked) {
-        return [...prev, { 
-          userId: user.userId,
-          memberId: user.userId,
-          name: user.userName
-        }];
-      } else {
-        return prev.filter(a => a.userId !== user.userId);
-      }
+      const newSelected = checked 
+        ? [...prev, { 
+            userId: user.userId, 
+            memberId: user.userId,
+            name: user.userName 
+          }] 
+        : prev.filter(a => a.userId !== user.userId);
+      
+      // 변경된 승인권자 추적
+      setChangedApprovers(prev => {
+        const newChanged = new Set(prev);
+        if (isCurrentApprover !== checked) {
+          newChanged.add(user.userId);
+        } else {
+          newChanged.delete(user.userId);
+        }
+        return newChanged;
+      });
+
+      return newSelected;
     });
   };
 
-  const updateApprovers = async (approverIds) => {
+  // 승인권자 업데이트
+  const handleSave = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
+    const approverIds = selectedApprovers.map(approver => approver.userId);
+
     try {
-      const response = await axiosInstance.put(
+      await axiosInstance.put(
         API_ENDPOINTS.APPROVAL.UPDATE_APPROVERS(approvalId),
         { approverIds },
         { withCredentials: true }
       );
-
-      // API 응답이 성공적으로 왔으면 성공으로 처리
-      if (response.data) {
-        alert('승인권자가 성공적으로 수정되었습니다.');
-        onClose();
-        // 승인권자 목록 새로고침
-        fetchCurrentApprovers();
-      } else {
-        throw new Error('승인권자 수정에 실패했습니다.');
-      }
     } catch (error) {
-      console.error('승인권자 수정 중 오류:', error);
-      alert(error.response?.data?.message || '승인권자 수정에 실패했습니다.');
+      alert('승인권자 수정에 실패했습니다.');
+      return;
     }
-  };
 
-  // 저장 버튼 클릭 시 변경된 승인권자만 처리
-  const handleSave = () => {
-    // 전체 승인권자 ID 목록 전달
-    const allApproverIds = selectedApprovers.map(approver => approver.userId);
-    updateApprovers(allApproverIds);
+    alert('승인권자가 성공적으로 수정되었습니다.');
+    onClose();
+    onSave();
+    setIsSaving(false);
   };
 
   return (
@@ -817,11 +840,62 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         <ModalContent>
-          {/* 승인권자 선택 UI 제거 */}
+          <ApproverSection>
+            {companies.length === 0 ? (
+              <EmptyState>연결된 고객사 사용자가 없습니다.</EmptyState>
+            ) : (
+              <EmployeeList>
+                {companies.map(user => {
+                  const isSelected = selectedApprovers.some(approver => approver.userId === user.userId);
+                  const isChanged = changedApprovers.has(user.userId);
+                  return (
+                    <EmployeeItem 
+                      key={user.userId}
+                      style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{user.userName}</span>
+                        <span style={{ 
+                          fontSize: '12px', 
+                          color: '#64748b',
+                          backgroundColor: '#f1f5f9',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          {user.role === 'CLIENT_MANAGER' ? '담당자' : '일반'}
+                        </span>
+                        {isChanged && (
+                          <span style={{ 
+                            fontSize: '12px', 
+                            color: '#2E7D32',
+                            backgroundColor: '#f0fdf4',
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            변경됨
+                          </span>
+                        )}
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={e => {
+                          e.stopPropagation();
+                          handleSelectApprover(user, e.target.checked);
+                        }} 
+                      />
+                    </EmployeeItem>
+                  );
+                })}
+              </EmployeeList>
+            )}
+          </ApproverSection>
         </ModalContent>
         <ModalButtonContainer>
-          <CancelButton onClick={onClose}>취소</CancelButton>
-          <SaveButton onClick={handleSave}>저장</SaveButton>
+          <CancelButton onClick={onClose} disabled={isSaving}>취소</CancelButton>
+          <SaveButton onClick={handleSave} disabled={isSaving}>
+            {isSaving ? '저장 중...' : '저장'}
+          </SaveButton>
         </ModalButtonContainer>
       </ModalContainer>
     </ModalOverlay>

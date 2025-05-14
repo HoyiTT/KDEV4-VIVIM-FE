@@ -1264,11 +1264,15 @@ const ApprovalDetail = () => {
       }
 
       // 승인권자 저장 API 호출
-      await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
-        approverIds: approverIds
-      }, {
-        withCredentials: true
-      });
+      try {
+        await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
+          approverIds: approverIds
+        }, {
+          withCredentials: true
+        });
+      } catch (error) {
+        return;
+      }
 
       // 승인권자 목록 새로고침
       await fetchApprovers();
@@ -1276,8 +1280,11 @@ const ApprovalDetail = () => {
       setIsApproversModalOpen(false);
       alert('승인권자가 성공적으로 저장되었습니다.');
     } catch (error) {
-      console.error('승인권자 저장 중 오류:', error);
-      alert('승인권자 저장에 실패했습니다: ' + (error.response?.data?.message || error.message));
+      // 403이 아닌 다른 에러만 처리
+      if (error.response?.status !== 403) {
+        console.error('승인권자 저장 중 오류:', error);
+        alert('승인권자 저장에 실패했습니다: ' + (error.response?.data?.message || error.message));
+      }
     }
   };
 
