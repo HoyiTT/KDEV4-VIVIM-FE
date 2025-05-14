@@ -522,12 +522,12 @@ const DashboardAdmin = () => {
         
         // 프로젝트 단계별 통계 계산
         const progressCounts = {
-          REQUIREMENTS: activeProjects.filter(p => p.currentProgress === 'REQUIREMENTS').length,
-          WIREFRAME: activeProjects.filter(p => p.currentProgress === 'WIREFRAME').length,
-          DESIGN: activeProjects.filter(p => p.currentProgress === 'DESIGN').length,
-          PUBLISHING: activeProjects.filter(p => p.currentProgress === 'PUBLISHING').length,
-          DEVELOPMENT: activeProjects.filter(p => p.currentProgress === 'DEVELOPMENT').length,
-          INSPECTION: activeProjects.filter(p => p.currentProgress === 'INSPECTION').length,
+          REQUIREMENTS: activeProjects.filter(p => p.currentProgress === '요구사항 정의').length,
+          WIREFRAME: activeProjects.filter(p => p.currentProgress === '화면설계').length,
+          DESIGN: activeProjects.filter(p => p.currentProgress === '디자인').length,
+          PUBLISHING: activeProjects.filter(p => p.currentProgress === '퍼블리싱').length,
+          DEVELOPMENT: activeProjects.filter(p => p.currentProgress === '개발').length,
+          INSPECTION: activeProjects.filter(p => p.currentProgress === '검수').length,
           COMPLETED: activeProjects.filter(p => p.currentProgress === 'COMPLETED').length
         };
 
@@ -664,17 +664,8 @@ const DashboardAdmin = () => {
   };
 
   const getProgressText = (progress) => {
-    switch (progress) {
-      case 'REQUIREMENTS': return '요구사항정의';
-      case 'WIREFRAME': return '화면설계';
-      case 'DESIGN': return '디자인';
-      case 'PUBLISHING': return '퍼블리싱';
-      case 'DEVELOPMENT': return '개발';
-      case 'DEPLOYMENT': return '배포';
-      case 'INSPECTION': return '검수';
-      case 'COMPLETED': return '완료';
-      default: return progress;
-    }
+    if (progress === 'COMPLETED') return '완료';
+    return progress;
   };
 
   const handleInquiryClick = (inquiryId) => {
@@ -692,19 +683,9 @@ const DashboardAdmin = () => {
   const handleChartClick = (elements) => {
     if (elements.length > 0) {
       const index = elements[0].index;
-      const labels = ['요구사항정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', '완료'];
-      const progressMap = {
-        '요구사항정의': 'REQUIREMENTS',
-        '화면설계': 'WIREFRAME',
-        '디자인': 'DESIGN',
-        '퍼블리싱': 'PUBLISHING',
-        '개발': 'DEVELOPMENT',
-        '검수': 'INSPECTION',
-        '완료': 'COMPLETED'
-      };
-      
-      const selectedProgress = progressMap[labels[index]];
-      setModalTitle(`${labels[index]} 단계 프로젝트`);
+      const labels = ['요구사항 정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', 'COMPLETED'];
+      const selectedProgress = labels[index];
+      setModalTitle(`${selectedProgress} 단계 프로젝트`);
       setShowModal(true);
       setLoading(true);
 
