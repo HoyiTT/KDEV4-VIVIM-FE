@@ -293,95 +293,6 @@ const ModalButtonContainer = styled.div`
   border-radius: 0 0 8px 8px;
 `;
 
-const ApproverSection = styled.div`
-  margin-top: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-  background: white;
-`;
-
-const CompanyToggle = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  background: #f8fafc;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 1px solid #e2e8f0;
-  
-  &:hover {
-    background: #f1f5f9;
-  }
-  
-  span:first-child {
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  span:last-child {
-    color: #64748b;
-    font-size: 12px;
-  }
-`;
-
-const EmployeeList = styled.div`
-  font-size: 14px;
-  background: white;
-  padding: 8px 0;
-  overflow-y: auto;
-`;
-
-const EmployeeItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  transition: all 0.2s;
-  border-bottom: 1px solid #e2e8f0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 10px 20px;
-  background: white;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const SaveButton = styled.button`
-  padding: 10px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-  }
-`;
-
 const InputGroup = styled.div`
   margin-bottom: 16px;
   width: 100%;
@@ -725,6 +636,35 @@ const ErrorMessage = styled.span`
   margin-top: 4px;
 `;
 
+const Button = styled.button`
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+`;
+
+const CancelButton = styled(Button)`
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+const SaveButton = styled(Button)`
+  background: #2E7D32;
+  color: white;
+  border: none;
+
+  &:hover {
+    background: #1B5E20;
+  }
+`;
+
 const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, proposalStatus }) => {
   const [companies, setCompanies] = useState([]);
   const [companyEmployees, setCompanyEmployees] = useState({});
@@ -757,72 +697,22 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
     }
   };
 
-  // 프로젝트 참여자 중 고객사 필터링 함수
-  const filterCustomerCompanies = (users) => {
+  // 프로젝트 참여자 중 고객사 필터링 함수 수정
+  const filterCustomerUsers = (users) => {
     if (!users.length) return [];
     
-    // 프로젝트 참여 회사 중 CLIENT_MANAGER와 CLIENT_USER 역할을 가진 사용자만 필터링
-    return users
-      .filter(user => user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER')
-      .reduce((companies, user) => {
-        // 이미 추가된 사용자는 건너뛰기
-        if (companies.some(company => company.id === user.userId)) {
-          return companies;
-        }
-        return [...companies, {
-          id: user.userId,
-          name: user.userName,
-          role: user.role
-        }];
-      }, []);
+    // 프로젝트 참여자 중 CLIENT_MANAGER와 CLIENT_USER 역할을 가진 사용자만 필터링
+    return users.filter(user => 
+      user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER'
+    );
   };
 
-  // 회사별 직원 목록 조회 함수 수정
-  const fetchCompanyEmployees = async (userId) => {
-    try {
-      // 프로젝트 참여자 목록에서 CLIENT_MANAGER와 CLIENT_USER 역할 사용자만 필터링
-      const customerEmployees = projectUsers
-        .filter(user => 
-          user.userId === userId && 
-          (user.role === 'CLIENT_MANAGER' || user.role === 'CLIENT_USER')
-        )
-        .map(user => ({
-          id: user.userId,
-          name: user.userName,
-          role: user.role
-        }));
-
-      console.log('▶ 프로젝트 참여 고객사 직원 목록:', customerEmployees);
-      
-      setCompanyEmployees(prev => ({
-        ...prev,
-        [userId]: customerEmployees
-      }));
-    } catch (error) {
-      console.error('▶ 회사 직원 목록 조회 중 오류:', error);
-      console.error('▶ 에러 상세:', error.response?.data);
-      alert('직원 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  // 프로젝트 참여자 목록이 변경될 때 회사 목록 업데이트
+  // useEffect 수정 - 프로젝트 참여자 목록이 변경될 때 고객사 사용자 필터링
   useEffect(() => {
     if (projectUsers.length > 0) {
-      const customerUsers = filterCustomerCompanies(projectUsers);
-      console.log('▶ 프로젝트 참여 고객사 목록:', customerUsers);
-      
+      const customerUsers = filterCustomerUsers(projectUsers);
+      console.log('▶ 프로젝트 참여 고객사 사용자 목록:', customerUsers);
       setCompanies(customerUsers);
-      
-      // 각 사용자의 정보를 companyEmployees에 저장
-      const employeesByCompany = {};
-      customerUsers.forEach(user => {
-        employeesByCompany[user.id] = [{
-          id: user.id,
-          name: user.userName,
-          role: user.role
-        }];
-      });
-      setCompanyEmployees(employeesByCompany);
     }
   }, [projectUsers]);
 
@@ -874,32 +764,18 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
   }, [isOpen, projectId, approvalId]);
 
   // 승인권자 선택/해제 처리
-  const handleSelectApprover = async (employee, checked) => {
-    // 현재 승인권자인지 확인
-    const isCurrentApprover = currentApprovers.some(approver => approver.userId === employee.id);
-
-    // 승인권자 상태 업데이트
+  const handleSelectApprover = (user, checked) => {
+    console.log('▶ 승인권자 선택:', user, checked);
     setSelectedApprovers(prev => {
-      const newSelected = checked 
-        ? [...prev, { 
-            userId: employee.id, 
-            memberId: employee.id,
-            name: employee.name 
-          }] 
-        : prev.filter(a => a.userId !== employee.id);
-      
-      // 변경된 승인권자 추적
-      setChangedApprovers(prev => {
-        const newChanged = new Set(prev);
-        if (isCurrentApprover !== checked) {
-          newChanged.add(employee.id);
-        } else {
-          newChanged.delete(employee.id);
-        }
-        return newChanged;
-      });
-
-      return newSelected;
+      if (checked) {
+        return [...prev, { 
+          userId: user.userId,
+          memberId: user.userId,
+          name: user.userName
+        }];
+      } else {
+        return prev.filter(a => a.userId !== user.userId);
+      }
     });
   };
 
@@ -941,59 +817,11 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         <ModalContent>
-          <ApproverSection>
-            {companies.length === 0 ? (
-              <EmptyState>연결된 고객사가 없습니다.</EmptyState>
-            ) : (
-              companies.map(user => (
-                <div key={user.id}>
-                  <EmployeeList>
-                    {(companyEmployees[user.id] || []).map(emp => {
-                      const isChanged = changedApprovers.has(emp.id);
-                      return (
-                        <EmployeeItem 
-                          key={emp.id}
-                          style={isChanged ? { backgroundColor: '#f8fafc' } : {}}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>{emp.name}</span>
-                            {isChanged && (
-                              <span style={{ 
-                                fontSize: '12px', 
-                                color: '#2E7D32',
-                                backgroundColor: '#f0fdf4',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                변경됨
-                              </span>
-                            )}
-                          </div>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                            onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                          />
-                        </EmployeeItem>
-                      );
-                    })}
-                  </EmployeeList>
-                </div>
-              ))
-            )}
-          </ApproverSection>
+          {/* 승인권자 선택 UI 제거 */}
         </ModalContent>
         <ModalButtonContainer>
           <CancelButton onClick={onClose}>취소</CancelButton>
-          <SaveButton 
-            onClick={handleSave}
-            style={{
-              opacity: 1,
-              cursor: 'pointer'
-            }}
-          >
-            저장
-          </SaveButton>
+          <SaveButton onClick={handleSave}>저장</SaveButton>
         </ModalButtonContainer>
       </ModalContainer>
     </ModalOverlay>
@@ -1027,11 +855,6 @@ const ApprovalProposal = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
   const contentRef = useRef(null);
-  const [companies, setCompanies] = useState([]);
-  const [companyEmployees, setCompanyEmployees] = useState({});
-  const [expandedCompanies, setExpandedCompanies] = useState(new Set());
-  const [selectedApprovers, setSelectedApprovers] = useState([]);
-  const [projectUsers, setProjectUsers] = useState([]);
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
   const [newLink, setNewLink] = useState({ title: '', url: '' });
@@ -1081,28 +904,6 @@ const ApprovalProposal = ({
     e.target.value = ''; // 파일 선택 초기화
   };
 
-  // 프로젝트 참여자 목록 가져오기
-  const fetchProjectUsers = async () => {
-    try {
-      if (!projectId) {
-        console.log('▶ 프로젝트 ID가 없어 사용자 목록을 조회하지 않습니다.');
-        return;
-      }
-
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}/users`, {
-        withCredentials: true
-      });
-      console.log('▶ 프로젝트 참여자 목록:', data);
-      setProjectUsers(data);
-    } catch (error) {
-      console.error('▶ 프로젝트 사용자 목록 조회 중 오류:', error);
-      if (error.response?.status === 401) {
-        console.log('▶ 인증이 필요합니다.');
-      }
-      setProjectUsers([]);
-    }
-  };
-
   // 프로젝트 정보 조회 함수 추가
   const fetchProjectInfo = async () => {
     try {
@@ -1130,32 +931,9 @@ const ApprovalProposal = ({
 
   useEffect(() => {
     if (projectId) {
-      fetchProjectUsers();
       fetchProjectInfo();  // 프로젝트 정보 조회 추가
     }
   }, [projectId]);
-
-  const toggleCompany = async (company) => {
-    const newExpandedCompanies = new Set(expandedCompanies);
-    if (newExpandedCompanies.has(company.id)) {
-      newExpandedCompanies.delete(company.id);
-    } else {
-      newExpandedCompanies.add(company.id);
-    }
-    setExpandedCompanies(newExpandedCompanies);
-  };
-
-  useEffect(() => {
-    if (isModalOpen) {
-      // 모달이 열릴 때 fetchProjectUsers가 호출되도록 함
-      fetchProjectUsers();
-    } else {
-      setCompanies([]);
-      setCompanyEmployees({});
-      setExpandedCompanies(new Set());
-      setSelectedApprovers([]);
-    }
-  }, [isModalOpen]);
 
   useEffect(() => {
     fetchProposals();
@@ -1193,75 +971,65 @@ const ApprovalProposal = ({
   };
 
   const handleAddProposal = async () => {
-    console.log('▶ 승인요청 생성 시도 - 사용자 정보:', user);
-    console.log('▶ 승인요청 생성 시도 - 프로젝트 정보:', projectInfo);
-
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
       return;
     }
 
-    if (selectedApprovers.length === 0) {
-      alert('승인권자를 한 명 이상 선택해주세요.');
-      return;
-    }
-
     try {
-      // 1. 승인요청 생성
-      console.log('▶ 승인요청 생성 요청 시작:', {
-        progressId,
-        title: newProposal.title,
-        content: newProposal.content
-      });
-
-      const { data } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
+      const { data: response } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         title: newProposal.title,
         content: newProposal.content
       }, {
         withCredentials: true
       });
 
-      const approvalId = data.data;
-      console.log('▶ 승인요청 생성됨, ID:', approvalId);
+      const approvalId = response.data || response;
+      if (!approvalId) {
+        throw new Error('승인요청 ID를 받지 못했습니다.');
+      }
 
       // 2. 파일 업로드 처리
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        try {
-          await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
-            withCredentials: true
-          });
-        } catch (uploadError) {
-          console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
-          throw uploadError;
+      if (files.length > 0) {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+          } catch (uploadError) {
+            console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
+          }
         }
       }
 
       // 3. 링크 저장
-      for (const link of links) {
-        await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(approvalId), {
-          title: link.title,
-          url: link.url
-        }, {
-          withCredentials: true
-        });
+      if (links.length > 0) {
+        for (const link of links) {
+          try {
+            await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(approvalId), {
+              title: link.title,
+              url: link.url
+            }, {
+              withCredentials: true
+            });
+          } catch (linkError) {
+            console.error('▶ 링크 저장 실패:', linkError.response?.data || linkError.message);
+          }
+        }
       }
-
-      // 4. 승인권자 설정
-      await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
-        approverIds: selectedApprovers.map(approver => approver.userId)
-      }, {
-        withCredentials: true
-      });
 
       alert('승인요청이 성공적으로 생성되었습니다.');
       handleCloseCreateModal();
       onShowMore();
       fetchProposals();
     } catch (error) {
-      console.error('Error creating proposal:', error);
+      console.error('▶ 승인요청 생성 실패:', error);
       alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
     }
   };
@@ -1426,14 +1194,8 @@ const ApprovalProposal = ({
   };
 
   const canSendProposal = () => {
-    if (!user) {
-      console.log('▶ 사용자 정보가 없습니다.');
-      return false;
-    }
-    console.log('▶ 현재 사용자 역할:', user.companyRole);
-    const canSend = user.companyRole === 'ADMIN' || user.companyRole === 'DEVELOPER';
-    console.log('▶ 승인요청 전송 가능 여부:', canSend);
-    return canSend;
+    if (!user) return false;
+    return user.companyRole === 'ADMIN' || user.companyRole === 'DEVELOPER';
   };
 
   const handleAddLink = () => {
@@ -1506,28 +1268,12 @@ const ApprovalProposal = ({
 
   const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
 
-  // 승인권자 선택 처리 함수 추가
-  const handleSelectApprover = (employee, checked) => {
-    setSelectedApprovers(prev => {
-      if (checked) {
-        return [...prev, { 
-          userId: employee.id, 
-          memberId: employee.id,
-          name: employee.name 
-        }];
-      } else {
-        return prev.filter(a => a.userId !== employee.id);
-      }
-    });
-  };
-
-  // 모달 닫을 때 상태 초기화 함수
+  // handleCloseCreateModal 함수 추가
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
     setNewProposal({ title: '', content: '' });
     setFiles([]);
     setLinks([]);
-    setSelectedApprovers([]);
     setNewLink({ title: '', url: '' });
   };
 
@@ -1643,41 +1389,6 @@ const ApprovalProposal = ({
                 initialFiles={files}
                 initialLinks={links}
               />
-
-              <ApproverSection>
-                <Label>승인권자 선택</Label>
-                {companies.length === 0 ? (
-                  <EmptyState>연결된 고객사가 없습니다.</EmptyState>
-                ) : (
-                  companies.map(user => (
-                    <div key={user.id}>
-                      <EmployeeList>
-                        {(companyEmployees[user.id] || []).map(emp => (
-                          <EmployeeItem key={emp.id}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>{emp.name}</span>
-                              <span style={{ 
-                                fontSize: '12px', 
-                                color: '#64748b',
-                                backgroundColor: '#f1f5f9',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                {emp.role === 'CLIENT_MANAGER' ? '담당자' : '일반'}
-                              </span>
-                            </div>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedApprovers.some(a => a.userId === emp.id)} 
-                              onChange={e => handleSelectApprover(emp, e.target.checked)} 
-                            />
-                          </EmployeeItem>
-                        ))}
-                      </EmployeeList>
-                    </div>
-                  ))
-                )}
-              </ApproverSection>
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseCreateModal}>취소</CancelButton>
