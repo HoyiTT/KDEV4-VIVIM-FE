@@ -492,9 +492,13 @@ const Navbar = () => {
     if (type.startsWith('PROJECT_')) {
       navigate(`/project/${typeId}`);
     } else if (type.startsWith('PROPOSAL_')) {
-      navigate(`/approval/${typeId}`);
+      // 승인요청 상세 페이지로 이동할 때 projectId도 함께 전달
+      const projectId = notification.projectId;
+      navigate(`/project/${projectId}/approval/${typeId}`);
     } else if (type.startsWith('DECISION_')) {
-      navigate(`/approval/${typeId}`);
+      // 승인응답도 같은 방식으로 처리
+      const projectId = notification.projectId;
+      navigate(`/project/${projectId}/approval/${typeId}`);
     }
   };
 
