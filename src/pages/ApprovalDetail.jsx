@@ -1263,17 +1263,6 @@ const ApprovalDetail = () => {
         return;
       }
 
-      // 승인권자 저장 API 호출
-      try {
-        await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
-          approverIds: approverIds
-        }, {
-          withCredentials: true
-        });
-      } catch (error) {
-        return;
-      }
-
       // 승인권자 목록 새로고침
       await fetchApprovers();
       
