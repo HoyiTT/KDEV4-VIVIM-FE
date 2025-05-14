@@ -732,6 +732,7 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
   const [projectUsers, setProjectUsers] = useState([]);
   const [currentApprovers, setCurrentApprovers] = useState([]);
   const [changedApprovers, setChangedApprovers] = useState(new Set());
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // 현재 등록된 승인권자 목록 조회
   const fetchCurrentApprovers = async () => {
@@ -766,8 +767,13 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
       });
       console.log('회사 직원 목록 응답:', response);
       
+      // API 응답의 data 배열 사용
       const employees = response.data || [];
+      console.log('처리된 직원 목록:', employees);
+      
+      // CUSTOMER 회사의 직원만 필터링
       const customerEmployees = employees.filter(emp => emp.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 직원 목록:', customerEmployees);
       
       setCompanyEmployees(prev => ({
         ...prev,
@@ -775,6 +781,7 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
       }));
     } catch (error) {
       console.error('회사 직원 목록 조회 중 오류:', error);
+      console.error('에러 상세:', error.response?.data);
       alert('직원 목록을 불러오는데 실패했습니다.');
     }
   };
@@ -786,7 +793,10 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
         withCredentials: true
       });
       
+      // CUSTOMER 회사만 필터링
       const customerCompanies = data.filter(company => company.companyRole === 'CUSTOMER');
+      console.log('필터링된 고객사 목록:', customerCompanies);
+      
       setCompanies(customerCompanies);
       
       // 각 회사의 직원 목록 가져오기
@@ -961,7 +971,10 @@ const ApprovalProposal = ({
   progressId, 
   projectId,
   showMore, 
-  onShowMore
+  onShowMore,
+  stage,
+  progressStatus,
+  currentProgress
 }) => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -984,13 +997,14 @@ const ApprovalProposal = ({
   const [companyEmployees, setCompanyEmployees] = useState({});
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [selectedApprovers, setSelectedApprovers] = useState([]);
-  const [isCustomer, setIsCustomer] = useState(false);
   const [projectUsers, setProjectUsers] = useState([]);
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [links, setLinks] = useState([]);
   const [projectInfo, setProjectInfo] = useState(null);
+  const [approvalRate, setApprovalRate] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
   
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -1165,6 +1179,7 @@ const ApprovalProposal = ({
       });
       setProposals(data.approvalList || []);
       setLoading(false);
+      fetchApprovalRate();
     } catch (error) {
       console.error('Error fetching proposals:', error);
       alert(error.response?.data?.message || '승인요청 목록을 불러오는데 실패했습니다.');
@@ -1179,7 +1194,6 @@ const ApprovalProposal = ({
   const handleAddProposal = async () => {
     console.log('▶ 승인요청 생성 시도 - 사용자 정보:', user);
     console.log('▶ 승인요청 생성 시도 - 프로젝트 정보:', projectInfo);
-    console.log('▶ 승인요청 생성 시도 - 고객사 여부:', isCustomer);
 
     if (!newProposal.title.trim() || !newProposal.content.trim()) {
       alert('제목과 내용을 입력해주세요.');
@@ -1408,22 +1422,10 @@ const ApprovalProposal = ({
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const isCustomerUser = decodedToken.role === 'CUSTOMER';
-        setIsCustomer(isCustomerUser);
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        setIsCustomer(false);
-      }
-    }
+  const isClient = () => {
+    if (!user) return false;
+    console.log('user companyRole:', user.companyRole);
+    return user.companyRole === 'CUSTOMER';
   };
 
   const handleAddLink = () => {
@@ -1496,6 +1498,34 @@ const ApprovalProposal = ({
       alert('직원 목록을 불러오는데 실패했습니다.');
     }
   };
+
+  const isStageCompleted = () => {
+    return approvalRate === 100;
+  };
+
+  // 승인률 조회 함수 수정
+  const fetchApprovalRate = async () => {
+    try {
+      const { data } = await axiosInstance.get(
+        `${API_ENDPOINTS.PROJECTS}/${progressId}/approval-rate`,
+        { withCredentials: true }
+      );
+      console.log('▶ 승인률 조회 결과:', data);
+      setApprovalRate(data);
+      setIsCompleted(data === 100);
+    } catch (error) {
+      console.error('▶ 승인률 조회 실패:', error);
+      setApprovalRate(0);
+      setIsCompleted(false);
+    }
+  };
+
+  // 승인률 조회를 위한 useEffect
+  useEffect(() => {
+    if (progressId) {
+      fetchApprovalRate();
+    }
+  }, [progressId]);
 
   const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
 
@@ -1585,10 +1615,10 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!isCustomer && !Boolean(projectInfo?.isDeleted) && (
+        {!Boolean(projectInfo?.isDeleted) && !isCompleted && !isClient() && (
           <AddButtonContainer>
             <AddButton onClick={() => { fetchCompanies(); setIsModalOpen(true); }}>
-              + 승인요청 추가
+              + 승인요청 추가  
             </AddButton>
           </AddButtonContainer>
         )}
