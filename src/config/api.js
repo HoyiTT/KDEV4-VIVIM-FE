@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'https://localhost/api';
-export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
+export const API_BASE_URL = 'https://localhost/api';
+// export const API_BASE_URL = 'https://dev.vivim.co.kr/api';
  
 export const API_ENDPOINTS = {
   // Auth
@@ -7,6 +7,11 @@ export const API_ENDPOINTS = {
   USER_INFO: `${API_BASE_URL}/auth/user`,
   
   //File,Link
+  POST_FILE_UPLOAD: (Id) =>`${API_BASE_URL}/posts/${Id}/file/multipart`,
+  APPROVAL_FILE_UPLOAD: (Id) =>`${API_BASE_URL}/approvals/${Id}/file/multipart`,
+  DECISION_FILE_UPLOAD: (Id) =>`${API_BASE_URL}/decisions/${Id}/file/multipart`,
+  FILE_COMPLETE: () => `${API_BASE_URL}/upload/complete`,
+  POST_FILE_UPLOAD: (Id) =>`${API_BASE_URL}/posts/${Id}/file/multipart`,
   FILE_DELETE: (fileId) => `${API_BASE_URL}/files/${fileId}`,
   LINK_DELETE: (linkId) => `${API_BASE_URL}/links/${linkId}`,
 
@@ -32,7 +37,6 @@ export const API_ENDPOINTS = {
   PROJECT_POSTS: (projectId) => `${API_BASE_URL}/projects/${projectId}/posts`,
   PROJECT_POST_LINK: (projectId, postId) => `${API_BASE_URL}/posts/${postId}/link`,
   PROJECT_POST_FILE_MULTIPART: (postId) => `${API_BASE_URL}/posts/${postId}/file/multipart`,
-  PROJECT_POST_FILE_COMPLETE: () => `${API_BASE_URL}/upload/complete`,
   PROJECT_PROGRESS_POSITION: (projectId, progressId) => `${API_BASE_URL}/projects/${projectId}/progress/${progressId}/positioning`,
   PROJECTS_SEARCH: `${API_BASE_URL}/projects/search`,
 
@@ -53,8 +57,6 @@ export const API_ENDPOINTS = {
     CREATE_APPROVER: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
     UPDATE_APPROVERS: (proposalId) => `${API_BASE_URL}/approval/${proposalId}/approvers`,
     FILES: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files`,
-    FILE_PRESIGNED: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files/presigned`,
-    FILE_UPLOAD: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/files/upload`,
     FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
     LINKS: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/link`,
     GET_LINKS: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/link`,
@@ -69,7 +71,6 @@ export const API_ENDPOINTS = {
     LIST: (approvalId) => `${API_BASE_URL}/approval/${approvalId}/decision`,
     ALL: () => `${API_BASE_URL}/approval/approver/decision`,
     SEND: (decisionId) => `${API_BASE_URL}/decision/${decisionId}/send`,
-    FILE_PRESIGNED: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/file/presigned`,
     FILES: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/files`,
     FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
     GET_LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
