@@ -8,6 +8,7 @@ import ApprovalProposal from './ApprovalProposal';
 import { useAuth } from '../hooks/useAuth';
 import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
+import ConfirmModal from './common/ConfirmModal';
 
 // currentProgress 열거형 값과 단계 이름 매핑
 const PROGRESS_STAGE_MAP = {
@@ -337,6 +338,7 @@ const ProjectStageProgress = ({
   const [isModifyingPosition, setIsModifyingPosition] = useState(false);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [stages, setStages] = useState([]);
+  const [currentStageApprovalCount, setCurrentStageApprovalCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -508,6 +510,28 @@ const ProjectStageProgress = ({
     setShowMore(!showMore);
   };
 
+  // 현재 단계의 승인요청 개수를 확인하는 함수 추가
+  const getCurrentStageApprovalCount = async (stageId) => {
+    try {
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(stageId), {
+        withCredentials: true
+      });
+      return data.approvalList?.length || 0;
+    } catch (error) {
+      console.error('승인요청 개수 조회 실패:', error);
+      return 0;
+    }
+  };
+
+  // 현재 단계가 변경될 때마다 승인요청 개수 조회
+  useEffect(() => {
+    if (currentStage) {
+      getCurrentStageApprovalCount(currentStage.id).then(count => {
+        setCurrentStageApprovalCount(count);
+      });
+    }
+  }, [currentStage]);
+
   if (isLoading) {
     return (
       <StageProgressColumn>
@@ -571,12 +595,14 @@ const ProjectStageProgress = ({
                         }}>
                           <FaEdit /> 현재 단계명 수정
                         </DropdownItem>
-                        <DropdownItem onClick={() => {
-                          openStageModal('delete', currentStage);
-                          setShowMenu(false);
-                        }}>
-                          <FaTrashAlt /> 현재 단계 삭제
-                        </DropdownItem>
+                        {currentStageApprovalCount === 0 && (
+                          <DropdownItem onClick={() => {
+                            openStageModal('delete', currentStage);
+                            setShowMenu(false);
+                          }}>
+                            <FaTrashAlt /> 현재 단계 삭제
+                          </DropdownItem>
+                        )}
                       </>
                     )}
                   </ManageDropdown>

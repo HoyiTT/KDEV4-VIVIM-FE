@@ -83,9 +83,11 @@ const Sidebar = () => {
     if (type.startsWith('PROJECT_')) {
       navigate(`/project/${typeId}`);
     } else if (type.startsWith('PROPOSAL_')) {
-      navigate(`/approval/${typeId}`);
+      const projectId = notification.projectId;
+      navigate(`/project/${projectId}/approval/${typeId}`);
     } else if (type.startsWith('DECISION_')) {
-      navigate(`/approval/${typeId}`);
+      const projectId = notification.projectId;
+      navigate(`/project/${projectId}/approval/${typeId}`);
     } else if (type.startsWith('POST_')) {
       navigate(`/post/${typeId}`);
     } else if (type.startsWith('INQUIRY_')) {
