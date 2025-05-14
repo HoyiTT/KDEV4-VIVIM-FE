@@ -904,12 +904,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
     fetchDecisions();
   }, [approvalId]);
 
-  useEffect(() => {
-    console.log('statusSummary:', statusSummary);
-    console.log('proposalStatus:', statusSummary?.proposalStatus);
-    console.log('DRAFT:', ApprovalProposalStatus.DRAFT);
-  }, [statusSummary]);
-
   const fetchDecisions = async () => {
     try {
       const response = await axiosInstance.get(API_ENDPOINTS.DECISION.LIST(approvalId));
@@ -1189,8 +1183,6 @@ const ApprovalDecision = ({ approvalId, statusSummary }) => {
       alert('파일 다운로드에 실패했습니다.');
     }
   };
-
-  console.log('statusSummary:', statusSummary);
 
   return (
     <>

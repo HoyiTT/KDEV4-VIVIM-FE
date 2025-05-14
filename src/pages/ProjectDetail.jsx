@@ -1955,13 +1955,6 @@ const ProjectDetail = () => {
                         >
                           <StageHeader>
                             <StageTitle title={stage.name} />
-                            {!project?.isDeleted && !isAllApprovalsApproved(stage.id) && !stage.isCompleted && !isClient && (
-                              <StageHeaderActions>
-                                <StageActionButton onClick={() => navigate(`/project/${id}/approval/create`, { state: { stageId: stage.id } })}>
-                                  <FaPlus /> 승인요청 추가
-                                </StageActionButton>
-                              </StageHeaderActions>
-                            )}
                           </StageHeader>
                           {approvalRequests.filter(req => req.stageId === stage.id).length === 0 && (
                             <EmptyStage>
