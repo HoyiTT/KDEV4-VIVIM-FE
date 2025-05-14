@@ -271,32 +271,50 @@ const ProgressFill = styled.div`
   border-radius: 2px;
 `;
 
-const SortableItem = ({ id, name, targetIndex }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
+const SortableStageItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  &:hover {
+    background: #f8fafc;
+  }
+`;
 
-  return (
-    <SortableStageItem ref={setNodeRef} style={style}>
-      <DragHandle {...attributes} {...listeners}>
-        <FaGripVertical />
-      </DragHandle>
-      <StageItemContent>
-        <StageItemName>{name}</StageItemName>
-        <StageItemPosition>{targetIndex}번째</StageItemPosition>
-      </StageItemContent>
-    </SortableStageItem>
-  );
-};
+const DragHandle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: #64748b;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const StageItemContent = styled.div`
+  flex: 1;
+  margin-left: 12px;
+`;
+
+const StageItemName = styled.div`
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+`;
+
+const StageItemPosition = styled.div`
+  font-size: 12px;
+  color: #64748b;
+`;
 
 /**
  * 프로젝트 단계별 진행 상황을 타임라인으로 표시하는 컴포넌트
@@ -336,8 +354,6 @@ const ProjectStageProgress = ({
   const menuRef = useRef(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [isModifyingPosition, setIsModifyingPosition] = useState(false);
-  const [showPositionModal, setShowPositionModal] = useState(false);
   const [stages, setStages] = useState([]);
   const [currentStageApprovalCount, setCurrentStageApprovalCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -361,70 +377,11 @@ const ProjectStageProgress = ({
   }, [progressList]);
 
   const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    
-    if (active.id !== over.id) {
-      const oldIndex = stages.findIndex(item => item.id === active.id);
-      const newIndex = stages.findIndex(item => item.id === over.id);
-      
-      // 현재 진행 중인 단계의 position 찾기
-      const currentProgressStage = stages.find(stage => 
-        stage.name === PROGRESS_STAGE_MAP[currentProgress] || 
-        stage.name === currentProgress
-      );
-      const currentProgressPosition = currentProgressStage?.position || 0;
-
-      // 이동하려는 위치가 현재 진행 중인 단계보다 앞이면 이동 불가
-      if (newIndex + 1 < currentProgressPosition) {
-        alert('현재 진행 중인 단계보다 이전 단계로는 이동할 수 없습니다.');
-        return;
-      }
-      
-      // 드래그된 아이템의 새로운 위치로 API 호출
-      try {
-        await axiosInstance.put(
-          API_ENDPOINTS.PROJECT_PROGRESS_POSITION(projectId, active.id),
-          { targetIndex: newIndex }
-        );
-        
-        // 성공적으로 위치가 변경되면 로컬 상태 업데이트
-        setStages((items) => {
-          const newItems = arrayMove(items, oldIndex, newIndex);
-          return newItems.map((item, index) => ({
-            ...item,
-            position: index + 1
-          }));
-        });
-      } catch (error) {
-        console.error('단계 순서 변경 중 오류 발생:', error);
-        alert('단계 순서 변경에 실패했습니다.');
-      }
-    }
+    // ... 삭제 ...
   };
 
   const handleSavePositions = async () => {
-    if (isModifyingPosition) return;
-    
-    try {
-      setIsModifyingPosition(true);
-      
-      // 각 단계의 새로운 위치를 순차적으로 업데이트
-      for (let i = 0; i < stages.length; i++) {
-        const stage = stages[i];
-        await axiosInstance.put(
-          API_ENDPOINTS.PROJECT_PROGRESS_POSITION(projectId, stage.id),
-          { targetIndex: i }
-        );
-      }
-      
-      alert('단계 순서가 성공적으로 변경되었습니다.');
-      setShowPositionModal(false);
-    } catch (error) {
-      console.error('단계 순서 변경 중 오류 발생:', error);
-      alert('단계 순서 변경에 실패했습니다.');
-    } finally {
-      setIsModifyingPosition(false);
-    }
+    // ... 삭제 ...
   };
 
   // 메뉴 외부 클릭 시 메뉴 닫기
@@ -479,6 +436,11 @@ const ProjectStageProgress = ({
 
   const getCurrentStageStatus = (stage, index) => {
     if (!stage || !currentProgress) return { isCurrent: false, isCompleted: false };
+    
+    // currentProgress가 COMPLETED인 경우 모든 단계를 완료 처리
+    if (currentProgress === 'COMPLETED') {
+      return { isCurrent: false, isCompleted: true };
+    }
     
     // 현재 단계의 name과 currentProgress가 일치하는지 확인
     const isCurrent = stage.name === currentProgress;
@@ -573,6 +535,33 @@ const ProjectStageProgress = ({
       });
     }
   }, [currentStage]);
+
+  const SortableItem = ({ id, name, targetIndex }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+      <SortableStageItem ref={setNodeRef} style={style}>
+        <DragHandle {...attributes} {...listeners}>
+          <FaGripVertical />
+        </DragHandle>
+        <StageItemContent>
+          <StageItemName>{name}</StageItemName>
+          <StageItemPosition>{targetIndex}번째</StageItemPosition>
+        </StageItemContent>
+      </SortableStageItem>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -755,7 +744,8 @@ const ProjectStageProgress = ({
                     const currentStage = progressList[currentStageIndex];
                     const { isCurrent } = getCurrentStageStatus(currentStage, currentStageIndex);
                     
-                    if (isCurrent) {
+                    // 현재 단계이거나 마지막 단계인 경우 승급 버튼 표시
+                    if (isCurrent || currentStageIndex === progressList.length-2) {
                       return (
                         <IncreaseProgressButton 
                           onClick={() => setShowConfirmModal(true)}
@@ -816,47 +806,6 @@ const ProjectStageProgress = ({
           />
         )}
       </ApprovalRequestContainer>
-      {showPositionModal && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalHeader>
-              <h2>단계 순서 변경</h2>
-            </ModalHeader>
-            <ModalBody>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={progressList.map(item => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <StageList>
-                    {progressList.map((stage) => (
-                      <SortableItem
-                        key={stage.id}
-                        id={stage.id}
-                        name={stage.name}
-                        position={stage.position}
-                        component={SortableStageItem}
-                      />
-                    ))}
-                  </StageList>
-                </SortableContext>
-              </DndContext>
-            </ModalBody>
-            <ModalFooter>
-              <ActionButton onClick={handleSavePositions}>
-                순서 저장
-              </ActionButton>
-              <CancelButton onClick={() => setShowPositionModal(false)}>
-                취소
-              </CancelButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
-      )}
       {showConfirmModal && (
         <ConfirmModal
           isOpen={showConfirmModal}
@@ -1064,51 +1013,6 @@ const IncreaseProgressButton = styled.button`
     background-color: #A5D6A7;
     cursor: not-allowed;
   }
-`;
-
-const SortableStageItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: grab;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f8fafc;
-  }
-`;
-
-const DragHandle = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  color: #64748b;
-  cursor: grab;
-  
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-const StageItemContent = styled.div`
-  flex: 1;
-  margin-left: 12px;
-`;
-
-const StageItemName = styled.div`
-  font-weight: 500;
-  color: #1e293b;
-  margin-bottom: 4px;
-`;
-
-const StageItemPosition = styled.div`
-  font-size: 12px;
-  color: #64748b;
 `;
 
 const ModalOverlay = styled.div`

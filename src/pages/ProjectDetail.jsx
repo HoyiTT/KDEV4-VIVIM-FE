@@ -1749,7 +1749,7 @@ const ProjectDetail = () => {
   // 상태 텍스트 반환 함수 수정: COMPLETED는 '완료됨'으로, ENDED는 제거
   const getProjectStatusText = (project) => {
     if (project.isDeleted) return '삭제됨';
-    if (project.projectStatus === 'COMPLETED') return '완료됨';
+    if (project.currentProgress === 'COMPLETED') return '완료';
     return '진행중';
   };
 
@@ -1908,32 +1908,39 @@ const ProjectDetail = () => {
                   {progressList.length > 0 ? (
                     progressList
                   .sort((a, b) => a.position - b.position)
-                    .map((stage, index) => (
-                      <StageContainer 
-                        key={stage.id} 
-                        style={{ display: index === currentStageIndex ? 'block' : 'none' }}
-                      >
-                        <StageItem 
-                          ref={el => stageRefs.current[index] = el} 
+                    .map((stage, index) => {
+                      // 전체 단계들 중에서의 순서 계산
+                      const totalOrder = progressList
+                        .sort((a, b) => a.position - b.position)
+                        .findIndex(s => s.id === stage.id) + 1;
+                      
+                      return (
+                        <StageContainer 
+                          key={stage.id} 
+                          style={{ display: index === currentStageIndex ? 'block' : 'none' }}
                         >
-                          <StageHeader>
-                            <StageTitle title={stage.name} />
-                          </StageHeader>
-                          {approvalRequests.filter(req => req.stageId === stage.id).length === 0 && (
-                            <EmptyStage>
-                              <div>
-                                <FaInfoCircle /> 등록된 승인요청이 없습니다.
-                              </div>
-                              {checkUserRole() && (
-                                <div style={{ fontSize: '13px', color: '#64748b' }}>
-                                  개발사의 승인요청이 아직 전송되지 않았습니다.
+                          <StageItem 
+                            ref={el => stageRefs.current[index] = el} 
+                          >
+                            <StageHeader>
+                              <StageTitle title={stage.name} />
+                            </StageHeader>
+                            {approvalRequests.filter(req => req.stageId === stage.id).length === 0 && (
+                              <EmptyStage>
+                                <div>
+                                  <FaInfoCircle /> 등록된 승인요청이 없습니다.
                                 </div>
-                              )}
-                            </EmptyStage>
-                          )}
-                        </StageItem>
-                      </StageContainer>
-                    ))
+                                {checkUserRole() && (
+                                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                    개발사의 승인요청이 아직 전송되지 않았습니다.
+                                  </div>
+                                )}
+                              </EmptyStage>
+                            )}
+                          </StageItem>
+                        </StageContainer>
+                      );
+                    })
                   ) : (
                     <EmptyStage>
                       <FaInfoCircle /> 진행 단계가 없습니다.
@@ -2125,7 +2132,17 @@ const ProjectDetail = () => {
                         }}
                       >
                         <SortableContext
-                          items={progressList.map(item => item.id)}
+                          items={progressList
+                            .filter(stage => {
+                              // 현재 진행 중인 단계 찾기
+                              const currentProgressStage = progressList.find(s => 
+                                s.name === PROGRESS_STAGE_MAP[project?.currentProgress] || 
+                                s.name === project?.currentProgress
+                              );
+                              const currentPosition = currentProgressStage?.position || 0;
+                              return stage.position > currentPosition;
+                            })
+                            .map(item => item.id)}
                           strategy={verticalListSortingStrategy}
                         >
                           <StageList>
@@ -2144,16 +2161,32 @@ const ProjectDetail = () => {
                               </div>
                             )}
                             {progressList
+                              .filter(stage => {
+                                // 현재 진행 중인 단계 찾기
+                                const currentProgressStage = progressList.find(s => 
+                                  s.name === PROGRESS_STAGE_MAP[project?.currentProgress] || 
+                                  s.name === project?.currentProgress
+                                );
+                                const currentPosition = currentProgressStage?.position || 0;
+                                return stage.position > currentPosition;
+                              })
                               .sort((a, b) => a.position - b.position)
-                              .map((stage, index) => (
-                                <SortableItem
-                                  key={stage.id}
-                                  id={stage.id}
-                                  name={stage.name}
-                                  position={index + 1}
-                                  disabled={isSavingPositions}
-                                />
-                              ))}
+                              .map((stage) => {
+                                // 전체 단계들 중에서의 순서 계산
+                                const totalOrder = progressList
+                                  .sort((a, b) => a.position - b.position)
+                                  .findIndex(s => s.id === stage.id) + 1;
+                                
+                                return (
+                                  <SortableItem
+                                    key={stage.id}
+                                    id={stage.id}
+                                    name={stage.name}
+                                    position={totalOrder}  // 전체 단계들 중에서의 순서
+                                    disabled={isSavingPositions}
+                                  />
+                                );
+                              })}
                           </StageList>
                         </SortableContext>
                       </DndContext>
