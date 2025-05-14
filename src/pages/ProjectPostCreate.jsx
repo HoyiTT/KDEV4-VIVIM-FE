@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
-import FileLinkDeleter from '../components/common/FileLinkDeleter';
+import FileLinkUploader from '../components/common/FileLinkUploader';
+import { ActionBadge } from '../components/common/Badge';
 
 const ProjectPostCreate = () => {
   const { projectId } = useParams();
@@ -101,8 +102,8 @@ const ProjectPostCreate = () => {
     setFiles(newFiles);
   };
 
-  const handleLinksChange = (newLinks) => {
-    setLinks(newLinks);
+  const handleLinksChange = (linkChanges) => {
+    setLinks(linkChanges.currentLinks);
   };
 
   const handleSubmit = async (e) => {
@@ -116,10 +117,10 @@ const ProjectPostCreate = () => {
         content,
         projectPostStatus: postStatus,
         parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null,
-        links: links.map(link => ({
+        links: Array.isArray(links) ? links.map(link => ({
           title: link.title,
           url: link.url
-        }))
+        })) : []
       }, {
         withCredentials: true
       });
@@ -199,7 +200,7 @@ const ProjectPostCreate = () => {
       }
 
       // 3. 링크 업로드 처리
-      if (links.length > 0) {
+      if (Array.isArray(links) && links.length > 0) {
         for (const link of links) {
           await axiosInstance.post(
             API_ENDPOINTS.PROJECT_POST_LINK(projectId, createdPostId),
@@ -288,89 +289,27 @@ const ProjectPostCreate = () => {
 
             <InputGroup>
               <Label>파일 첨부 (선택사항)</Label>
-              <FileInputContainer>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <HiddenFileInput
-                    type="file"
-                    onChange={handleFileChange}
-                    multiple
-                    accept={allowedMimeTypes.join(',')}
-                    id="fileInput"
-                  />
-                  <FileButton type="button" onClick={() => document.getElementById('fileInput').click()}>
-                    파일 선택
-                  </FileButton>
-                  <FileSizeGuide>* 파일 크기는 500MB 이하여야 합니다.</FileSizeGuide>
-                </div>
-                {files.length > 0 && (
-                  <FileLinkDeleter
-                    files={files}
-                    onFileDelete={handleFileDelete}
-                  />
-                )}
-              </FileInputContainer>
-            </InputGroup>
-
-            <InputGroup>
-              <Label>링크 (선택사항)</Label>
-              <LinkInputContainer>
-                <LinkInputGroup>
-                  <Input
-                    type="text"
-                    value={linkTitle}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 60) {
-                        setLinkTitle(e.target.value);
-                      }
-                    }}
-                    placeholder="링크 제목을 입력하세요"
-                    maxLength={60}
-                  />
-                  <CharacterCount>
-                    {linkTitle.length}/60
-                  </CharacterCount>
-                </LinkInputGroup>
-                
-                <LinkInputGroup>
-                  <Input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 1000) {
-                        setLinkUrl(e.target.value);
-                      }
-                    }}
-                    placeholder="URL을 입력하세요"
-                    maxLength={1000}
-                  />
-                  <CharacterCount>
-                    {linkUrl.length}/1000
-                  </CharacterCount>
-                </LinkInputGroup>
-                <AddButton
-                  type="button"
-                  onClick={handleAddLink}
-                  disabled={!linkTitle || !linkUrl}
-                >
-                  추가
-                </AddButton>
-              </LinkInputContainer>
-              
-              {links.length > 0 && (
-                <FileLinkDeleter
-                  links={links}
-                  onLinkDelete={handleLinkDelete}
-                />
-              )}
+              <FileLinkUploader
+                onFilesChange={handleFilesChange}
+                onLinksChange={handleLinksChange}
+                initialFiles={files}
+                initialLinks={links}
+              />
             </InputGroup>
 
             <ButtonContainer>
               <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
                 취소
               </CancelButton>
-              <SubmitButton type="submit" disabled={loading}>
+              <ActionBadge
+                type="success"
+                size="large"
+                onClick={handleSubmit}
+                disabled={loading}
+                style={{ minWidth: '120px' }}
+              >
                 {loading ? '저장 중...' : '저장'}
-              </SubmitButton>
+              </ActionBadge>
             </ButtonContainer>
           </FormContainer>
         </ContentContainer>
