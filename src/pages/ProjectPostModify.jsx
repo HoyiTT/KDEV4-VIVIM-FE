@@ -7,6 +7,8 @@ import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios'; 
 import FileLinkDeleter from '../components/common/FileLinkDeleter';
+import { ActionBadge } from '../components/common/Badge';
+import FileLinkUploader from '../components/common/FileLinkUploader';
 
 // 파일 크기 제한 상수 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -38,6 +40,10 @@ const ProjectPostModify = () => {
   const [existingFiles, setExistingFiles] = useState([]);
   const [newLinks, setNewLinks] = useState([]);
   const [linkUrlError, setLinkUrlError] = useState('');
+  const [pendingFileChanges, setPendingFileChanges] = useState({
+    currentFiles: [],
+    deletedFiles: []
+  });
 
   useEffect(() => {
     const fetchPostDetail = async () => {
@@ -76,12 +82,8 @@ const ProjectPostModify = () => {
 
   // URL 형식 검증 함수
   const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+    if (!url) return true; // 빈 URL은 유효한 것으로 처리 (에러 메시지 표시 안함)
+    return url.startsWith('http://') || url.startsWith('https://');
   };
 
   const handleAddFile = (e) => {
@@ -171,7 +173,7 @@ const ProjectPostModify = () => {
     }
 
     if (!isValidUrl(linkUrl)) {
-      setLinkUrlError('올바른 URL 형식이 아닙니다. (예: https://www.example.com)');
+      setLinkUrlError('URL은 http:// 또는 https://로 시작해야 합니다.');
       return;
     }
 
@@ -192,7 +194,13 @@ const ProjectPostModify = () => {
     }
   };
   
-  
+  const handleFilesChange = (fileChanges) => {
+    setPendingFileChanges(fileChanges);
+  };
+
+  const handleLinksChange = (newLinks) => {
+    setNewLinks(newLinks);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -233,7 +241,19 @@ const ProjectPostModify = () => {
       if (!postResponse.ok) {
         throw new Error(`게시글 수정 실패: ${postResponse.status}`);
       }
-  
+
+      // 파일 변경사항 적용
+      setExistingFiles(pendingFileChanges.currentFiles);
+      // 삭제된 파일 처리
+      for (const file of pendingFileChanges.deletedFiles) {
+        if (file.id) {  // 기존 파일인 경우에만 삭제 API 호출
+          await fetch(API_ENDPOINTS.FILE_DELETE(file.id), {
+            method: 'PATCH',
+            credentials: 'include'
+          });
+        }
+      }
+
       // Delete links that were marked for deletion
       for (const linkId of linksToDelete) {
         const deleteLinkResponse = await fetch(API_ENDPOINTS.LINK_DELETE(linkId), {
@@ -478,9 +498,12 @@ const ProjectPostModify = () => {
                     placeholder="링크 제목을 입력하세요"
                     maxLength={60}
                   />
-                  <CharacterCount>
-                    {linkTitle.length}/60
-                  </CharacterCount>
+                  <InputFooter>
+                    <div style={{ flex: 1 }} />
+                    <CharacterCount>
+                      {linkTitle.length}/60
+                    </CharacterCount>
+                  </InputFooter>
                 </LinkInputGroup>
                 
                 <LinkInputGroup>
@@ -490,22 +513,38 @@ const ProjectPostModify = () => {
                     onChange={(e) => {
                       if (e.target.value.length <= 1000) {
                         setLinkUrl(e.target.value);
+                        if (e.target.value && !isValidUrl(e.target.value)) {
+                          setLinkUrlError('URL은 http:// 또는 https://로 시작해야 합니다.');
+                        } else {
+                          setLinkUrlError('');
+                        }
                       }
                     }}
-                    placeholder="URL을 입력하세요"
+                    placeholder="URL을 입력하세요 (http:// 또는 https://로 시작)"
                     maxLength={1000}
                   />
-                  <CharacterCount>
-                    {linkUrl.length}/1000
-                  </CharacterCount>
+                  <InputFooter>
+                    {linkUrlError ? (
+                      <ErrorMessage>{linkUrlError}</ErrorMessage>
+                    ) : (
+                      <div style={{ flex: 1 }} />
+                    )}
+                    <CharacterCount>
+                      {linkUrl.length}/1000
+                    </CharacterCount>
+                  </InputFooter>
                 </LinkInputGroup>
-                <AddButton
-                  type="button"
-                  onClick={handleAddLink}
-                  disabled={!linkTitle || !linkUrl}
-                >
-                  추가
-                </AddButton>
+                {(linkTitle || linkUrl) && (
+                  <ActionBadge
+                    type="success"
+                    size="large"
+                    onClick={handleAddLink}
+                    disabled={!linkTitle || !linkUrl}
+                    style={{ minWidth: '100px', height: '65px' }}
+                  >
+                    추가
+                  </ActionBadge>
+                )}
               </LinkInputContainer>
               
               {(existingLinks.length > 0 || newLinks.length > 0) && (
@@ -520,12 +559,18 @@ const ProjectPostModify = () => {
             </InputGroup>
 
             <ButtonContainer>
-              <CancelButton type="button" onClick={() => navigate(`/project/${projectId}`)}>
+              <CancelButton type="button" onClick={() => navigate(`/project/${projectId}/post/${postId}`)}>
                 취소
               </CancelButton>
-              <SubmitButton type="submit" disabled={loading}>
+              <ActionBadge
+                type="success"
+                size="large"
+                onClick={handleSubmit}
+                disabled={loading}
+                style={{ minWidth: '120px' }}
+              >
                 {loading ? '저장 중...' : '저장'}
-              </SubmitButton>
+              </ActionBadge>
             </ButtonContainer>
           </FormContainer>
         </ContentContainer>
@@ -569,24 +614,6 @@ const LinkInputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-`;
-
-const AddButton = styled(Button)`
-  background-color: #2E7D32;
-  border: none;
-  color: white;
-  padding: 16px 20px;  // Increased vertical padding
-  margin-top: 2px;
-  height: 65px;        // Added fixed height
-  
-  &:hover {
-    background-color: #1B5E20;
-  }
-  
-  &:disabled {
-    background-color: #e2e8f0;
-    cursor: not-allowed;
-  }
 `;
 
 const LinkList = styled.ul`
@@ -675,10 +702,11 @@ const FileButton = styled.button`
     background-color: #f8fafc;
   }
 `;
-const ErrorMessage = styled.span`
+const ErrorMessage = styled.div`
   font-size: 12px;
   color: #ef4444;
-  margin-top: 4px;
+  font-weight: 500;
+  flex: 1;
 `;
 
 const PageContainer = styled.div`
@@ -789,24 +817,17 @@ const CancelButton = styled(Button)`
 
 `;
 
-const SubmitButton = styled(Button)`
-  background-color: #2563eb;
-  border: none;
-  color: white;
-  &:hover {
-    background-color: #1d4ed8;
-  }
-  &:disabled {
-    background-color: #93c5fd;
-    cursor: not-allowed;
-  }
-`;
-
 const CharacterCount = styled.span`
   font-size: 12px;
   color: ${props => props.theme.isNearLimit ? '#ef4444' : '#64748b'};
-  text-align: right;
+`;
+
+const InputFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 4px;
+  gap: 8px;
 `;
 
 export default ProjectPostModify;

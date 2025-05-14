@@ -17,9 +17,9 @@ export const ProgressBadge = ({ progress, children }) => {
   );
 };
 
-export const ActionBadge = ({ type = 'primary', size = 'medium', onClick, disabled, children }) => {
+export const ActionBadge = ({ type = 'primary', size = 'medium', onClick, disabled, hoverable = true, children }) => {
   return (
-    <StyledActionBadge type={type} size={size} onClick={onClick} disabled={disabled}>
+    <StyledActionBadge type={type} size={size} onClick={onClick} disabled={disabled} $hoverable={hoverable}>
       {children}
     </StyledActionBadge>
   );
@@ -118,7 +118,7 @@ const StyledActionBadge = styled.button`
   border: none;
   border-radius: 4px;
   font-weight: 600;
-  cursor: pointer;
+  cursor: ${props => props.$hoverable ? 'pointer' : 'default'};
   transition: all 0.15s ease;
   white-space: nowrap;
   letter-spacing: -0.02em;
@@ -162,37 +162,45 @@ const StyledActionBadge = styled.button`
           background: #F1F5F9;
           color: #64748B;
           
-          &:hover:not(:disabled) {
-            background: #E2E8F0;
-            color: #475569;
-          }
+          ${props.$hoverable && `
+            &:hover:not(:disabled) {
+              background: #E2E8F0;
+              color: #475569;
+            }
+          `}
         `;
       case 'danger':
         return `
           background: #FEE2E2;
           color: #B91C1C;
           
-          &:hover:not(:disabled) {
-            background: #FECACA;
-          }
+          ${props.$hoverable && `
+            &:hover:not(:disabled) {
+              background: #FECACA;
+            }
+          `}
         `;
       case 'success':
         return `
           background: #b3f8c9;
           color: #15803D;
           
-          &:hover:not(:disabled) {
-            background: #DCFCE7;
-          }
+          ${props.$hoverable && `
+            &:hover:not(:disabled) {
+              background: #DCFCE7;
+            }
+          `}
         `;
       default: // primary
         return `
           background: #E0E7FF;
           color: #3730A3;
           
-          &:hover:not(:disabled) {
-            background: #C7D2FE;
-          }
+          ${props.$hoverable && `
+            &:hover:not(:disabled) {
+              background: #C7D2FE;
+            }
+          `}
         `;
     }
   }}
