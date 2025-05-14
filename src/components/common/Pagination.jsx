@@ -87,26 +87,27 @@ const PageButton = styled.button`
   min-width: 36px;
   height: 36px;
   padding: 0 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: ${props => props.active ? '#2E7D32' : 'white'};
-  color: ${props => props.active ? 'white' : '#1e293b'};
-  font-size: 14px;
-  font-weight: ${props => props.active ? '600' : '400'};
+  border: none;
+  border-radius: 4px;
+  background: ${props => props.active ? '#E0E7FF' : '#F1F5F9'};
+  color: ${props => props.active ? '#3730A3' : '#64748B'};
+  font-size: 13px;
+  font-weight: ${props => props.active ? '600' : '500'};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: -0.02em;
 
   &:hover {
-    background: ${props => props.active ? '#1B5E20' : '#f8fafc'};
-    border-color: ${props => props.active ? '#1B5E20' : '#cbd5e1'};
-    transform: translateY(-1px);
+    background: ${props => props.active ? '#C7D2FE' : '#E2E8F0'};
+    color: ${props => props.active ? '#3730A3' : '#475569'};
+    transform: none;
   }
 
   &:active {
-    transform: translateY(0);
+    transform: none;
   }
 `;
 

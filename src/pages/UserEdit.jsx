@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
+import { ActionBadge } from '../components/common/Badge';
 
 // Styled components
 const PageContainer = styled.div`
@@ -122,56 +123,6 @@ const CancelButton = styled.button`
   
   &:hover {
     background: #f8fafc;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 12px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(46, 125, 50, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #1B5E20;
-  }
-`;
-
-const PasswordButton = styled.button`
-  padding: 10px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(46, 125, 50, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    background: #1B5E20;
   }
 `;
 
@@ -533,9 +484,13 @@ const UserEdit = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="새 비밀번호를 입력하세요"
                 />
-                <PasswordButton type="button" onClick={handlePasswordChange}>
+                <ActionBadge 
+                  type="primary" 
+                  size="large" 
+                  onClick={handlePasswordChange}
+                >
                   비밀번호 변경
-                </PasswordButton>
+                </ActionBadge>
               </PasswordContainer>
             </FormGroup>
 
@@ -581,9 +536,13 @@ const UserEdit = () => {
               <CancelButton type="button" onClick={() => navigate('/user-management')}>
                 취소
               </CancelButton>
-              <SubmitButton type="submit">
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleSubmit}
+              >
                 수정하기
-              </SubmitButton>
+              </ActionBadge>
             </ButtonContainer>
           </FormContainer>
         </div>

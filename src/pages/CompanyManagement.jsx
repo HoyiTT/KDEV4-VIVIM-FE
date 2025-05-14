@@ -8,6 +8,7 @@ import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
 import Pagination from '../components/common/Pagination';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { ActionBadge } from '../components/common/Badge';
 import { FaSearch } from 'react-icons/fa';
 
 const CompanyManagement = () => {
@@ -130,9 +131,13 @@ const CompanyManagement = () => {
           <Header>
             <PageTitle>회사 관리</PageTitle>
             <ButtonContainer>
-              <AddButton onClick={() => navigate('/company-create')}>
-                새 회사 등록
-              </AddButton>
+              <ActionBadge 
+                type="primary" 
+                size="xlarge" 
+                onClick={() => navigate('/company-create')}
+              >
+                + 새 회사 등록
+              </ActionBadge>
             </ButtonContainer>
           </Header>
 
@@ -168,9 +173,13 @@ const CompanyManagement = () => {
                 />
                 삭제된 회사만 검색
               </SearchCheckbox>
-              <SearchButton onClick={handleSearch}>
+              <ActionBadge 
+                type="success" 
+                size="large" 
+                onClick={handleSearch}
+              >
                 검색
-              </SearchButton>
+              </ActionBadge>
             </div>
           </SearchSection>
         </Card>
@@ -209,15 +218,23 @@ const CompanyManagement = () => {
                         </RoleBadge>
                       </TableCell>
                       <TableCell>
-                        <ActionButtonContainer>
+                        <ActionButtonContainer onClick={(e) => e.stopPropagation()}>
                           {!company.isDeleted && (
                             <>
-                              <ActionButton onClick={() => navigate(`/company-edit/${company.id}`)}>
+                              <ActionBadge 
+                                type="primary" 
+                                size="medium" 
+                                onClick={() => navigate(`/company-edit/${company.id}`)}
+                              >
                                 수정
-                              </ActionButton>
-                              <DeleteButton onClick={() => handleDeleteClick(company.id)}>
+                              </ActionBadge>
+                              <ActionBadge 
+                                type="danger" 
+                                size="medium" 
+                                onClick={() => handleDeleteClick(company.id)}
+                              >
                                 삭제
-                              </DeleteButton>
+                              </ActionBadge>
                             </>
                           )}
                         </ActionButtonContainer>
@@ -310,38 +327,6 @@ const ButtonContainer = styled.div`
   align-items: center;
 `;
 
-const AddButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-  
-  &:before {
-    content: '+';
-    font-size: 18px;
-    font-weight: 400;
-  }
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
 const SearchSection = styled.div`
   display: flex;
   justify-content: flex-start;
@@ -395,32 +380,6 @@ const SearchCheckbox = styled.label`
     height: 16px;
     cursor: pointer;
     accent-color: #2E7D32;
-  }
-`;
-
-const SearchButton = styled.button`
-  padding: 10px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 `;
 
@@ -507,50 +466,7 @@ const RoleBadge = styled.span`
 const ActionButtonContainer = styled.div`
   display: flex;
   gap: 8px;
-`;
-
-const ActionButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 8px 16px;
-  background: #EF4444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #C51111;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  white-space: nowrap;
 `;
 
 const LoadingMessage = styled.div`

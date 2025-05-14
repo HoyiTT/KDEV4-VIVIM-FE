@@ -3,27 +3,27 @@ import styled, { keyframes } from 'styled-components';
 
 const slideIn = keyframes`
   from {
-    transform: translateX(-100%);
+    transform: translateY(-20px);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
 `;
 
 const slideOut = keyframes`
   from {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
   to {
-    transform: translateX(-100%);
+    transform: translateY(-20px);
     opacity: 0;
   }
 `;
 
-const ToastNotification = ({ notification, onClose }) => {
+const ToastNotification = ({ notification, onClose, index }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -60,7 +60,7 @@ const ToastNotification = ({ notification, onClose }) => {
   const { label, color } = getNotificationTypeInfo(notification.type);
 
   return (
-    <ToastContainer $color={color}>
+    <ToastContainer $color={color} $index={index}>
       <ToastHeader>
         <ToastType>{label}</ToastType>
         <CloseButton onClick={onClose}>✕</CloseButton>
@@ -78,7 +78,7 @@ const ToastNotification = ({ notification, onClose }) => {
 
 const ToastContainer = styled.div`
   position: fixed;
-  top: 24px;
+  top: ${props => 24 + (props.$index * 120)}px;
   left: 340px;  /* Sidebar(300px) + 여백(40px) */
   width: 320px;
   padding: 16px;
@@ -87,7 +87,7 @@ const ToastContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-left: 4px solid ${props => props.$color};
   animation: ${slideIn} 0.3s ease-out forwards;
-  z-index: 9999;
+  z-index: ${props => 9999 - props.$index};
 
   &.closing {
     animation: ${slideOut} 0.3s ease-in forwards;

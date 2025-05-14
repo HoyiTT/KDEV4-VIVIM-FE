@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import Select from '../components/common/Select';
 import Pagination from '../components/common/Pagination';
+import { ActionBadge } from '../components/common/Badge';
 
 const AdminInquiryList = () => {
   const navigate = useNavigate();
@@ -192,9 +193,13 @@ const AdminInquiryList = () => {
                 min={searchParams.startDate || undefined}
               />
             </DateInputGroup>
-            <SearchButton onClick={handleSearch}>
+            <ActionBadge 
+              type="success" 
+              size="large" 
+              onClick={handleSearch}
+            >
               검색
-            </SearchButton>
+            </ActionBadge>
           </SearchSection>
         </Header>
 
@@ -227,13 +232,17 @@ const AdminInquiryList = () => {
                       </StatusBadge>
                     </TableCell>
                     <TableCell nowrap>
-                      <ActionButtonContainer>
-                        <ActionButton onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/inquiry/${inquiry.id}`);
-                        }}>
+                      <ActionButtonContainer onClick={(e) => e.stopPropagation()}>
+                        <ActionBadge 
+                          type="primary" 
+                          size="medium" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/inquiry/${inquiry.id}`);
+                          }}
+                        >
                           상세보기
-                        </ActionButton>
+                        </ActionBadge>
                       </ActionButtonContainer>
                     </TableCell>
                   </TableRow>
@@ -379,32 +388,6 @@ const DateSeparator = styled.span`
   margin: 0 4px;
 `;
 
-const SearchButton = styled.button`
-  padding: 8px 20px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  height: 36px;
-  flex-shrink: 0;
-  
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: none;
-  }
-`;
-
 const LoadingMessage = styled.div`
   display: flex;
   justify-content: center;
@@ -495,28 +478,7 @@ const StatusBadge = styled.span`
 const ActionButtonContainer = styled.div`
   display: flex;
   gap: 8px;
-`;
-
-const ActionButton = styled.button`
-  padding: 8px 16px;
-  background: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #1B5E20;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  white-space: nowrap;
 `;
 
 const TableInfo = styled.div`
