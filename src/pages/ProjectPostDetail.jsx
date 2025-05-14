@@ -5,6 +5,7 @@ import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 import axiosInstance from '../utils/axiosInstance';
 import MainContent from '../components/common/MainContent';
 import { useAuth } from '../hooks/useAuth';
+import { ActionBadge } from '../components/common/Badge';
 
 const ProjectPostDetail = () => {
   const { projectId, postId } = useParams();
@@ -274,12 +275,20 @@ const ProjectPostDetail = () => {
                   </div>
                   {(isAdmin || user?.id === post.creatorId) && (
                     <ButtonContainer>
-                      <EditButton onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}>
+                      <ActionBadge
+                        type="primary"
+                        size="large"
+                        onClick={() => navigate(`/project/${projectId}/post/${postId}/modify`)}
+                      >
                         수정
-                      </EditButton>
-                      <DeleteButton onClick={handleDeletePost}>
+                      </ActionBadge>
+                      <ActionBadge
+                        type="danger"
+                        size="large"
+                        onClick={handleDeletePost}
+                      >
                         삭제
-                      </DeleteButton>
+                      </ActionBadge>
                     </ButtonContainer>
                   )}
                 </HeaderContent>
@@ -365,9 +374,13 @@ const ProjectPostDetail = () => {
                   {commentContent.length}/1000
                 </CharacterCount>
                 <ButtonContainer>
-                  <SubmitButton type="submit">
+                  <ActionBadge
+                    type="success"
+                    size="large"
+                    onClick={(e) => handleCommentSubmit(e)}
+                  >
                     댓글 작성
-                  </SubmitButton>
+                  </ActionBadge>
                 </ButtonContainer>
               </FormContainer>
               {comments.length > 0 ? (
@@ -386,19 +399,23 @@ const ProjectPostDetail = () => {
                                 placeholder="댓글을 입력하세요 (최대 1000자)"
                               />
                               <EditButtonContainer>
-                                <ActionButton 
+                                <ActionBadge
+                                  type="success"
+                                  size="medium"
                                   onClick={() => handleUpdateComment(parentComment.commentId)}
                                 >
                                   저장
-                                </ActionButton>
-                                <ActionButton 
+                                </ActionBadge>
+                                <ActionBadge
+                                  type="secondary"
+                                  size="medium"
                                   onClick={() => {
                                     setEditingCommentId(null);
                                     setEditedComment('');
                                   }}
                                 >
                                   취소
-                                </ActionButton>
+                                </ActionBadge>
                               </EditButtonContainer>
                             </EditCommentForm>
                           ) : (
@@ -444,9 +461,13 @@ const ProjectPostDetail = () => {
                                 )}
                               </CommentMoreOptionsContainer>
                               <CommentActions>
-                                <ActionButton onClick={() => handleReplyClick(parentComment.commentId)}>
+                                <ActionBadge
+                                  type="primary"
+                                  size="medium"
+                                  onClick={() => handleReplyClick(parentComment.commentId)}
+                                >
                                   답글
-                                </ActionButton>
+                                </ActionBadge>
                               </CommentActions>
                               <CommentInfo>
                                 <CommentDate>
@@ -470,9 +491,13 @@ const ProjectPostDetail = () => {
                               {commentContent.length}/1000
                             </CharacterCount>
                             <ButtonContainer>
-                              <SubmitButton type="submit">
+                              <ActionBadge
+                                type="success"
+                                size="large"
+                                onClick={(e) => handleCommentSubmit(e, parentComment)}
+                              >
                                 답글 작성
-                              </SubmitButton>
+                              </ActionBadge>
                             </ButtonContainer>
                           </FormContainer>
                           </div>
@@ -493,19 +518,23 @@ const ProjectPostDetail = () => {
                                       placeholder="댓글을 입력하세요 (최대 1000자)"
                                     />
                                     <EditButtonContainer>
-                                      <ActionButton 
+                                      <ActionBadge
+                                        type="success"
+                                        size="medium"
                                         onClick={() => handleUpdateComment(childComment.commentId)}
                                       >
                                         저장
-                                      </ActionButton>
-                                      <ActionButton 
+                                      </ActionBadge>
+                                      <ActionBadge
+                                        type="secondary"
+                                        size="medium"
                                         onClick={() => {
                                           setEditingCommentId(null);
                                           setEditedComment('');
                                         }}
                                       >
                                         취소
-                                      </ActionButton>
+                                      </ActionBadge>
                                     </EditButtonContainer>
                                   </EditCommentForm>
                                 ) : (
@@ -549,9 +578,13 @@ const ProjectPostDetail = () => {
                                       )}
                                     </CommentMoreOptionsContainer>
                                     <CommentActions>
-                                      <ActionButton onClick={() => handleReplyClick(childComment.commentId)}>
+                                      <ActionBadge
+                                        type="primary"
+                                        size="medium"
+                                        onClick={() => handleReplyClick(childComment.commentId)}
+                                      >
                                         답글
-                                      </ActionButton>
+                                      </ActionBadge>
                                     </CommentActions>
                                     <CommentInfo>
                                       <CommentDate>
@@ -574,9 +607,13 @@ const ProjectPostDetail = () => {
                                     {commentContent.length}/1000
                                   </CharacterCount>
                                   <ButtonContainer>
-                                    <SubmitButton type="submit">
+                                    <ActionBadge
+                                      type="success"
+                                      size="large"
+                                      onClick={(e) => handleCommentSubmit(e, childComment)}
+                                    >
                                       답글 작성
-                                    </SubmitButton>
+                                    </ActionBadge>
                                   </ButtonContainer>
                                 </FormContainer>
                               </div>
@@ -624,22 +661,6 @@ const ButtonContainer = styled.div`
   gap: 8px;
   margin-top: 0;
   flex-shrink: 0;
-`;
-
-const SubmitButton = styled.button`
-  padding: 10px 20px;
-  background-color: #2563eb;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
 `;
 
 const CharacterCount = styled.div`
@@ -1059,22 +1080,6 @@ const CommentThread = styled.div`
   margin-bottom: 20px;
 `;
 
-const ActionButton = styled.button`
-  background: white;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 6px;
-  
-  &:hover {
-    color: #2563eb;
-    border-color: #2563eb;
-    background-color: #f8fafc;
-  }
-`;
-
 const HeaderContent = styled.div`
   display: flex;
   justify-content: space-between;
@@ -1085,38 +1090,6 @@ const HeaderContent = styled.div`
 
 const PostMoreOptionsContainer = styled.div`
   position: relative;
-`;
-
-const EditButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
-
-const DeleteButton = styled.button`
-  padding: 8px 16px;
-  background-color: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #b91c1c;
-  }
 `;
 
 const QuestionResponseContainer = styled.div`

@@ -17,6 +17,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useAuth } from '../hooks/useAuth';
 import MainContent from '../components/common/MainContent';
 import SortableItem from '../components/SortableItem';
+import { ActionBadge } from '../components/common/Badge';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
@@ -29,16 +30,6 @@ const PROGRESS_STAGE_MAP = {
   'INSPECTION': '검수',
   'COMPLETED': '완료'
 };
-
-const StatusBadge = styled.div`
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-    font-size: 14px;
-  font-weight: 500;
-  background-color: ${props => props.$isDeleted ? '#ef4444' : '#2E7D32'};
-  color: white;
-`;
 
 const ContentWrapper = styled.div`
   display: flex;
@@ -1824,17 +1815,29 @@ const ProjectDetail = () => {
             </div>
             <ProjectInfoSection>
               <ProjectHeader>
-                <StatusBadge $isDeleted={project?.isDeleted}>
+                <ActionBadge 
+                  type={project?.isDeleted ? "error" : "success"}
+                  size="medium"
+                  hoverable={false}
+                >
                   {getProjectStatusText(project)}
-                </StatusBadge>
+                </ActionBadge>
                 {isAdmin && !project?.isDeleted && (
                   <ActionButtons>
-                    <CreateButton onClick={() => navigate(`/projectModify/${id}`)}>
+                    <ActionBadge
+                      type="primary"
+                      size="medium"
+                      onClick={() => navigate(`/projectModify/${id}`)}
+                    >
                       수정
-                    </CreateButton>
-                    <CreateButton $delete onClick={() => handleDeleteProject()}>
+                    </ActionBadge>
+                    <ActionBadge
+                      type="error"
+                      size="medium"
+                      onClick={() => handleDeleteProject()}
+                    >
                       삭제
-                    </CreateButton>
+                    </ActionBadge>
                   </ActionButtons>
                 )}
               </ProjectHeader>
@@ -1987,9 +1990,13 @@ const ProjectDetail = () => {
                         <BoardSection>
                           <BoardHeader>
                             <SectionTitle>게시판</SectionTitle>
-                            <CreateButton onClick={() => navigate(`/project/${id}/post/create`)}>
+                            <ActionBadge
+                              type="success"
+                              size="medium"
+                              onClick={() => navigate(`/project/${id}/post/create`)}
+                            >
                               글쓰기
-                            </CreateButton>
+                            </ActionBadge>
                           </BoardHeader>
                           <BoardTable>
                             <thead>
