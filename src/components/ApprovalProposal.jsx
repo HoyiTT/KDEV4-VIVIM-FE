@@ -812,10 +812,16 @@ const EditApproversModal = ({ isOpen, onClose, onSave, projectId, approvalId, pr
       
       setCompanies(customerUsers);
       
-      // 각 사용자의 정보 가져오기
+      // 각 사용자의 정보를 companyEmployees에 저장
+      const employeesByCompany = {};
       customerUsers.forEach(user => {
-        fetchCompanyEmployees(user.id);
+        employeesByCompany[user.id] = [{
+          id: user.id,
+          name: user.userName,
+          role: user.role
+        }];
       });
+      setCompanyEmployees(employeesByCompany);
     }
   }, [projectUsers]);
 
@@ -1015,6 +1021,7 @@ const ApprovalProposal = ({
   const [newDecision, setNewDecision] = useState({ content: '', status: '' });
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newProposal, setNewProposal] = useState({ title: '', content: '' });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
@@ -1031,7 +1038,7 @@ const ApprovalProposal = ({
   const [projectInfo, setProjectInfo] = useState(null);
   const [approvalRate, setApprovalRate] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
-  
+
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
     'application/pdf', 'application/rtf', 'text/plain', 'text/rtf',
@@ -1191,6 +1198,11 @@ const ApprovalProposal = ({
       return;
     }
 
+    if (selectedApprovers.length === 0) {
+      alert('승인권자를 한 명 이상 선택해주세요.');
+      return;
+    }
+
     try {
       // 1. 승인요청 생성
       console.log('▶ 승인요청 생성 요청 시작:', {
@@ -1211,22 +1223,13 @@ const ApprovalProposal = ({
 
       // 2. 파일 업로드 처리
       for (const file of files) {
-        console.log('▶ 파일 업로드 시도:', file.name, file.size, file.type);
-        
         const formData = new FormData();
         formData.append('file', file);
         
-        // FormData 내용 확인
-        console.log('▶ FormData 내용:');
-        for (const [key, value] of formData.entries()) {
-          console.log(key, value);
-        }
-
         try {
-          const response = await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
+          await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
             withCredentials: true
           });
-          console.log('▶ 파일 업로드 성공:', response.data);
         } catch (uploadError) {
           console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
           throw uploadError;
@@ -1244,21 +1247,14 @@ const ApprovalProposal = ({
       }
 
       // 4. 승인권자 설정
-      if (selectedApprovers.length > 0) {
-        await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
-          approverIds: selectedApprovers.map(approver => approver.userId)
-        }, {
-          withCredentials: true
-        });
-      }
+      await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE_APPROVER(approvalId), {
+        approverIds: selectedApprovers.map(approver => approver.userId)
+      }, {
+        withCredentials: true
+      });
 
       alert('승인요청이 성공적으로 생성되었습니다.');
-      setNewProposal({ title: '', content: '' });
-      setFiles([]);
-      setLinks([]);
-      setNewLink({ title: '', url: '' });
-      setSelectedApprovers([]);
-      setIsModalOpen(false);
+      handleCloseCreateModal();
       onShowMore();
       fetchProposals();
     } catch (error) {
@@ -1500,6 +1496,31 @@ const ApprovalProposal = ({
 
   const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
 
+  // 승인권자 선택 처리 함수 추가
+  const handleSelectApprover = (employee, checked) => {
+    setSelectedApprovers(prev => {
+      if (checked) {
+        return [...prev, { 
+          userId: employee.id, 
+          memberId: employee.id,
+          name: employee.name 
+        }];
+      } else {
+        return prev.filter(a => a.userId !== employee.id);
+      }
+    });
+  };
+
+  // 모달 닫을 때 상태 초기화 함수
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setNewProposal({ title: '', content: '' });
+    setFiles([]);
+    setLinks([]);
+    setSelectedApprovers([]);
+    setNewLink({ title: '', url: '' });
+  };
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1580,22 +1601,89 @@ const ApprovalProposal = ({
         </ProposalList>
         {!Boolean(projectInfo?.isDeleted) && !isCompleted && !isClient() && (
           <AddButtonContainer>
-            <AddButton onClick={() => setIsModalOpen(true)}>
+            <AddButton onClick={() => setIsCreateModalOpen(true)}>
               + 승인요청 추가  
             </AddButton>
           </AddButtonContainer>
         )}
       </ProposalContainer>
 
-      {isModalOpen && (
-        <EditApproversModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleAddProposal}
-          projectId={projectId}
-          approvalId={null}
-          proposalStatus={null}
-        />
+      {isCreateModalOpen && (
+        <ModalOverlay onClick={handleCloseCreateModal}>
+          <ModalContainer onClick={e => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>승인요청 생성</ModalTitle>
+              <CloseButton onClick={handleCloseCreateModal}>×</CloseButton>
+            </ModalHeader>
+            <ModalContent>
+              <InputGroup>
+                <Label>제목</Label>
+                <Input
+                  type="text"
+                  name="title"
+                  value={newProposal.title}
+                  onChange={handleInputChange}
+                  placeholder="제목을 입력하세요"
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>내용</Label>
+                <TextArea
+                  name="content"
+                  value={newProposal.content}
+                  onChange={handleInputChange}
+                  placeholder="내용을 입력하세요"
+                />
+              </InputGroup>
+
+              <FileLinkUploader
+                onFilesChange={handleFilesChange}
+                onLinksChange={handleLinksChange}
+                initialFiles={files}
+                initialLinks={links}
+              />
+
+              <ApproverSection>
+                <Label>승인권자 선택</Label>
+                {companies.length === 0 ? (
+                  <EmptyState>연결된 고객사가 없습니다.</EmptyState>
+                ) : (
+                  companies.map(user => (
+                    <div key={user.id}>
+                      <EmployeeList>
+                        {(companyEmployees[user.id] || []).map(emp => (
+                          <EmployeeItem key={emp.id}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>{emp.name}</span>
+                              <span style={{ 
+                                fontSize: '12px', 
+                                color: '#64748b',
+                                backgroundColor: '#f1f5f9',
+                                padding: '2px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                {emp.role === 'CLIENT_MANAGER' ? '담당자' : '일반'}
+                              </span>
+                            </div>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedApprovers.some(a => a.userId === emp.id)} 
+                              onChange={e => handleSelectApprover(emp, e.target.checked)} 
+                            />
+                          </EmployeeItem>
+                        ))}
+                      </EmployeeList>
+                    </div>
+                  ))
+                )}
+              </ApproverSection>
+            </ModalContent>
+            <ModalButtonContainer>
+              <CancelButton onClick={handleCloseCreateModal}>취소</CancelButton>
+              <SaveButton onClick={handleAddProposal}>저장</SaveButton>
+            </ModalButtonContainer>
+          </ModalContainer>
+        </ModalOverlay>
       )}
 
       {isEditModalOpen && editingProposal && (
