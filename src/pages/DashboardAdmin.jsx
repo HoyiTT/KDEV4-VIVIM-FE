@@ -97,6 +97,7 @@ const DashboardAdmin = () => {
       borderWidth: 0,
     }]
   });
+  const [isProjectStatusLoading, setIsProjectStatusLoading] = useState(true);
 
   const monthlyStatsData = {
     labels: monthlyStats.map(stat => stat.month),
@@ -393,6 +394,7 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchProjectStatusData = async () => {
       try {
+        setIsProjectStatusLoading(true);
         console.log('▶ 프로젝트 상태 데이터 조회 시도');
         const { data } = await axiosInstance.get('/projects/dashboard/inspection_count', {
           withCredentials: true
@@ -427,6 +429,8 @@ const DashboardAdmin = () => {
           console.log('▶ 기타 오류 발생');
           alert('프로젝트 상태 데이터를 불러오는데 실패했습니다.');
         }
+      } finally {
+        setIsProjectStatusLoading(false);
       }
     };
 
@@ -768,10 +772,14 @@ const DashboardAdmin = () => {
               <CardTitle>프로젝트 현황</CardTitle>
               <CardContent>
                 <DoughnutChartSection>
-                  <Doughnut 
-                    data={projectStatusData}
-                    options={doughnutOptions}
-                  />
+                  {isProjectStatusLoading ? (
+                    <LoadingMessage>프로젝트 현황을 불러오는 중...</LoadingMessage>
+                  ) : (
+                    <Doughnut 
+                      data={projectStatusData}
+                      options={doughnutOptions}
+                    />
+                  )}
                 </DoughnutChartSection>
               </CardContent>
             </Card>
