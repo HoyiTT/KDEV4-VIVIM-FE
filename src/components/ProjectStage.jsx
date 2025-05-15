@@ -350,7 +350,8 @@ const ProjectStageProgress = ({
   onProgressStatusUpdate,
   children
 }) => {
-  const { isAdmin, isClient } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const [isClient, setIsClient] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
@@ -376,6 +377,28 @@ const ProjectStageProgress = ({
       })));
     }
   }, [progressList]);
+
+  // 프로젝트 역할 확인
+  useEffect(() => {
+    const checkProjectRole = async () => {
+      try {
+        const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}?userId=${user.id}`, {
+          withCredentials: true
+        });
+        
+        // 현재 프로젝트의 역할 확인
+        const currentProject = data.find(p => p.projectId === projectId);
+        setIsClient(currentProject?.myRole === 'CLIENT_MANAGER');
+      } catch (error) {
+        console.error('프로젝트 역할 확인 중 오류 발생:', error);
+        setIsClient(false);
+      }
+    };
+
+    if (projectId && user?.id) {
+      checkProjectRole();
+    }
+  }, [projectId, user?.id]);
 
   const handleDragEnd = async (event) => {
     // ... 삭제 ...
@@ -722,8 +745,14 @@ const ProjectStageProgress = ({
   const handleAddProposal = async () => {
     try {
       setIsIncreasing(true);
-      await onIncreaseProgress();
+      const { data } = await axiosInstance.patch(
+        `${API_ENDPOINTS.PROJECTS}/${projectId}/progress/increase_current_progress`,
+        {},
+        { withCredentials: true }
+      );
+      
       setShowConfirmModal(false);
+      window.location.reload(); // 페이지 새로고침
     } catch (error) {
       console.error('단계 승급 실패:', error);
       alert('단계 승급에 실패했습니다.');
@@ -1109,20 +1138,27 @@ const DropdownItem = styled.button`
     font-size: 14px;
     flex-shrink: 0;
   }
+`;
 
-  &:first-child {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+const IncreaseProgressButton = styled.button`
+  margin-top: 12px;
+  padding: 8px 16px;
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: #1B5E20;
   }
 
-  &:last-child {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-  }
-  
-  @media (max-width: 768px) {
-    padding: 12px 16px;
-    font-size: 13px;
+  &:disabled {
+    background-color: #A5D6A7;
+    cursor: not-allowed;
   }
 `;
 
@@ -1177,264 +1213,6 @@ const LoadingMessage = styled.div`
 `;
 
 const ApprovalRequestContainer = styled.div`
-  margin-top: 24px;
-`;
-
-const IncreaseProgressButton = styled.button`
-  margin-top: 12px;
-  padding: 8px 16px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #1B5E20;
-  }
-
-  &:disabled {
-    background-color: #A5D6A7;
-    cursor: not-allowed;
-  }
-`;
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const ModalTitle = styled.h3`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #64748b;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  
-  &:hover {
-    color: #1e293b;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 20px;
-`;
-
-const DragInstructions = styled.div`
-  color: #64748b;
-  font-size: 14px;
-  margin-bottom: 16px;
-  text-align: center;
-`;
-
-const StageList = styled.div`
-  margin-bottom: 20px;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
-`;
-
-const ActionButton = styled.button`
-  padding: 8px 16px;
-  background-color: #2E7D32;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #2E7D32;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 8px 16px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #e2e8f0;
-    color: #1e293b;
-  }
-`;
-
-// 승인요청 목록을 위한 스타일 컴포넌트 추가
-const ProposalList = styled.div`
-  width: 100%;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0;
-  box-sizing: border-box;
-  margin-top: 24px;
-`;
-
-const ProposalItem = styled.div`
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border: 1px solid #e2e8f0;
-  
-  &:hover {
-    background-color: #f8fafc;
-  }
-`;
-
-const ProposalHeader = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  box-sizing: border-box;
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  margin-left: 8px;
-`;
-
-const ProposalTitle = styled.div`
-  font-size: 15px;
-  font-weight: 500;
-  color: #1e293b;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ProposalStatus = styled.div`
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: ${props => props.$status === 'FINAL_APPROVED' ? '#f0fdf4' : 
-                              props.$status === 'FINAL_REJECTED' ? '#fef2f2' : 
-                              props.$status === 'UNDER_REVIEW' ? '#eff6ff' : '#f8fafc'};
-  color: ${props => props.$status === 'FINAL_APPROVED' ? '#166534' : 
-                    props.$status === 'FINAL_REJECTED' ? '#991b1b' : 
-                    props.$status === 'UNDER_REVIEW' ? '#1e40af' : '#64748b'};
-`;
-
-const ProposalInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-`;
-
-const ProposalMeta = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-`;
-
-const ProposalDate = styled.span`
-  font-size: 12px;
-  color: #64748b;
-`;
-
-const ProposalCreator = styled.span`
-  font-size: 12px;
-  color: #1e293b;
-  font-weight: 500;
-`;
-
-const ProposalApprovalInfo = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-`;
-
-const ApprovalCount = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const EmptyState = styled.div`
-  padding: 20px;
-  text-align: center;
-  color: #64748b;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
   margin-top: 24px;
 `;
 
