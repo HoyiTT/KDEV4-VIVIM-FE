@@ -126,6 +126,25 @@ const DashboardAdmin = () => {
           padding: 10,
           font: {
             size: 11
+          },
+          generateLabels: function(chart) {
+            const datasets = chart.data.datasets;
+            const labels = chart.data.labels;
+            const data = datasets[0].data;
+            
+            return labels.map((label, i) => ({
+              text: `${label} (${data[i]}개)`,
+              fillStyle: datasets[0].backgroundColor[i],
+              hidden: false,
+              lineCap: 'butt',
+              lineDash: [],
+              lineDashOffset: 0,
+              lineJoin: 'miter',
+              lineWidth: 1,
+              strokeStyle: '#fff',
+              pointStyle: 'circle',
+              rotation: 0
+            }));
           }
         }
       },
@@ -490,7 +509,7 @@ const DashboardAdmin = () => {
   useEffect(() => {
     const fetchRecentProposals = async () => {
       try {
-        const { data } = await axiosInstance.get('/proposals/recent', {
+        const { data } = await axiosInstance.get('/approval/admin/recent', {
           withCredentials: true
         });
         console.log('Recent proposals data:', data);
@@ -526,13 +545,13 @@ const DashboardAdmin = () => {
         
         // 프로젝트 단계별 통계 계산
         const progressCounts = {
-          REQUIREMENTS: activeProjects.filter(p => p.currentProgress === '요구사항 정의').length,
-          WIREFRAME: activeProjects.filter(p => p.currentProgress === '화면설계').length,
-          DESIGN: activeProjects.filter(p => p.currentProgress === '디자인').length,
-          PUBLISHING: activeProjects.filter(p => p.currentProgress === '퍼블리싱').length,
-          DEVELOPMENT: activeProjects.filter(p => p.currentProgress === '개발').length,
-          INSPECTION: activeProjects.filter(p => p.currentProgress === '검수').length,
-          COMPLETED: activeProjects.filter(p => p.currentProgress === 'COMPLETED').length
+          REQUIREMENTS: activeProjects.filter(p => !p.deleted && p.currentProgress === '요구사항 정의').length,
+          WIREFRAME: activeProjects.filter(p => !p.deleted && p.currentProgress === '화면설계').length,
+          DESIGN: activeProjects.filter(p => !p.deleted && p.currentProgress === '디자인').length,
+          PUBLISHING: activeProjects.filter(p => !p.deleted && p.currentProgress === '퍼블리싱').length,
+          DEVELOPMENT: activeProjects.filter(p => !p.deleted && p.currentProgress === '개발').length,
+          INSPECTION: activeProjects.filter(p => !p.deleted && p.currentProgress === '검수').length,
+          COMPLETED: activeProjects.filter(p => !p.deleted && (p.currentProgress === 'COMPLETED' || p.currentProgress === '완료')).length
         };
 
         // 도넛 차트 데이터 업데이트
@@ -691,14 +710,25 @@ const DashboardAdmin = () => {
   const handleChartClick = (elements) => {
     if (elements.length > 0) {
       const index = elements[0].index;
-      const labels = ['요구사항 정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', 'COMPLETED'];
+      const labels = ['요구사항 정의', '화면설계', '디자인', '퍼블리싱', '개발', '검수', '완료'];
       const selectedProgress = labels[index];
       setModalTitle(`${selectedProgress} 단계 프로젝트`);
       setShowModal(true);
       setLoading(true);
 
       try {
-        const filteredProjects = allProjects.filter(project => project.currentProgress === selectedProgress);
+        let filteredProjects;
+        if (selectedProgress === '완료') {
+          // 완료 단계인 경우 COMPLETED 또는 '완료' 상태인 프로젝트 필터링
+          filteredProjects = allProjects.filter(project => 
+            !project.deleted && (project.currentProgress === 'COMPLETED' || project.currentProgress === '완료')
+          );
+        } else {
+          // 다른 단계인 경우 해당 단계의 프로젝트만 필터링
+          filteredProjects = allProjects.filter(project => 
+            !project.deleted && project.currentProgress === selectedProgress
+          );
+        }
         setProjectList(filteredProjects);
       } catch (error) {
         console.error('Error filtering projects:', error);
