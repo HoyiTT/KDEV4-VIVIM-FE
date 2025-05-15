@@ -496,53 +496,6 @@ const ProjectStageProgress = ({
     scrollToCurrentStage();
   }, [currentStageIndex]);
 
-  const handleAddProposal = async () => {
-    try {
-      // 현재 선택된 단계 정보를 localStorage에 저장
-      localStorage.setItem('selectedStageIndex', currentStageIndex);
-      
-      const response = await axiosInstance.patch(
-        API_ENDPOINTS.PROJECT_PROGRESS_INCREASE(projectId),
-        {},
-        { withCredentials: true }
-      );
-      
-      // 승급 후 필요한 데이터만 새로고침
-      if (response.data) {
-        // 승인요청 목록 새로고침
-        await refreshApprovalData();
-        // 프로젝트 진행 상태 새로고침
-        if (fetchProjectProgress) {
-          await fetchProjectProgress();
-        }
-        // 승인 상태 새로고침
-        await fetchProgressStatus();
-      }
-      
-      setShowConfirmModal(false);
-    } catch (error) {
-      console.error('단계 승급 실패:', error);
-      alert('단계 승급 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 페이지 로드 시 저장된 단계로 스크롤
-  useEffect(() => {
-    const savedStageIndex = localStorage.getItem('selectedStageIndex');
-    if (savedStageIndex !== null) {
-      const index = parseInt(savedStageIndex);
-      setCurrentStageIndex(index);
-      // 스크롤은 약간의 지연 후 실행 (컴포넌트가 완전히 렌더링된 후)
-      setTimeout(() => {
-        scrollToCurrentStage();
-      }, 100);
-      localStorage.removeItem('selectedStageIndex'); // 사용 후 삭제
-    }
-  }, []);
-
-  // 데이터 로딩 상태 체크
-  const isLoading = !progressList || progressList.length === 0 || !progressStatus || !progressStatus.progressList;
-
   const handleShowMore = () => {
     setShowMore(!showMore);
   };
@@ -760,6 +713,23 @@ const ProjectStageProgress = ({
         </StageItemContent>
       </SortableStageItem>
     );
+  };
+
+  // 데이터 로딩 상태 체크
+  const isLoading = !progressList || progressList.length === 0 || !progressStatus || !progressStatus.progressList;
+
+  // 승인요청 생성 핸들러
+  const handleAddProposal = async () => {
+    try {
+      setIsIncreasing(true);
+      await onIncreaseProgress();
+      setShowConfirmModal(false);
+    } catch (error) {
+      console.error('단계 승급 실패:', error);
+      alert('단계 승급에 실패했습니다.');
+    } finally {
+      setIsIncreasing(false);
+    }
   };
 
   if (isLoading) {
