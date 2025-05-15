@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaArrowUp, FaArrowDown, FaGripVertical } from 'react-icons/fa';
+import { FaCheck, FaClock, FaPlus, FaArrowLeft, FaArrowRight, FaEdit, FaTrashAlt, FaEllipsisV, FaArrowUp, FaArrowDown, FaGripVertical, FaTimes } from 'react-icons/fa';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -347,6 +347,7 @@ const ProjectStageProgress = ({
   currentProgress,
   projectId,
   fetchProjectProgress,
+  onProgressStatusUpdate,
   children
 }) => {
   const { isAdmin, isClient } = useAuth();
@@ -401,24 +402,44 @@ const ProjectStageProgress = ({
     // checkUserRole 함수 호출 제거
   }, []);
 
-  // currentProgress가 변경될 때마다 해당 단계를 찾아 선택
+  // 컴포넌트 마운트 시 currentProgress와 일치하는 단계의 인덱스로 초기화
   useEffect(() => {
     if (progressList && progressList.length > 0 && currentProgress) {
-      // currentProgress 값(예: "화면설계")을 단계 이름과 비교
-      const currentStageIndex = progressList.findIndex(stage => 
+      console.log('▶ 초기 단계 설정 시작:', {
+        currentProgress,
+        mappedProgress: PROGRESS_STAGE_MAP[currentProgress],
+        progressList: progressList.map(stage => ({
+          id: stage.id,
+          name: stage.name,
+          position: stage.position
+        }))
+      });
+
+      const initialStageIndex = progressList.findIndex(stage => 
         stage.name === PROGRESS_STAGE_MAP[currentProgress] || 
         stage.name === currentProgress
       );
       
-      if (currentStageIndex !== -1) {
-        setCurrentStageIndex(currentStageIndex);
-        // 컴포넌트가 렌더링된 후 스크롤
-        setTimeout(() => {
-          scrollToCurrentStage();
-        }, 100);
+      if (initialStageIndex !== -1) {
+        console.log('▶ 초기 단계 인덱스 설정:', {
+          currentProgress,
+          mappedProgress: PROGRESS_STAGE_MAP[currentProgress],
+          initialStageIndex,
+          stageName: progressList[initialStageIndex]?.name,
+          stageId: progressList[initialStageIndex]?.id
+        });
+        setCurrentStageIndex(initialStageIndex);
+      } else {
+        console.log('▶ 초기 단계를 찾을 수 없음:', {
+          currentProgress,
+          mappedProgress: PROGRESS_STAGE_MAP[currentProgress],
+          availableStages: progressList.map(stage => stage.name)
+        });
+        // 진행 중인 단계를 찾을 수 없는 경우, 첫 번째 단계로 설정
+        setCurrentStageIndex(0);
       }
     }
-  }, [currentProgress, progressList]); // currentProgress나 progressList가 변경될 때마다 실행
+  }, [progressList, currentProgress]);
 
   const handlePrevStage = () => {
     if (currentStageIndex > 0) {
@@ -475,18 +496,30 @@ const ProjectStageProgress = ({
     scrollToCurrentStage();
   }, [currentStageIndex]);
 
-  const handleConfirmIncrease = async () => {
-    setShowConfirmModal(false);
+  const handleAddProposal = async () => {
     try {
+      // 현재 선택된 단계 정보를 localStorage에 저장
+      localStorage.setItem('selectedStageIndex', currentStageIndex);
+      
       const response = await axiosInstance.patch(
         API_ENDPOINTS.PROJECT_PROGRESS_INCREASE(projectId),
         {},
         { withCredentials: true }
       );
       
-      // 승급 성공 후 현재 단계 정보를 localStorage에 저장
-      localStorage.setItem('scrollToStage', currentStageIndex);
-      window.location.reload();
+      // 승급 후 필요한 데이터만 새로고침
+      if (response.data) {
+        // 승인요청 목록 새로고침
+        await refreshApprovalData();
+        // 프로젝트 진행 상태 새로고침
+        if (fetchProjectProgress) {
+          await fetchProjectProgress();
+        }
+        // 승인 상태 새로고침
+        await fetchProgressStatus();
+      }
+      
+      setShowConfirmModal(false);
     } catch (error) {
       console.error('단계 승급 실패:', error);
       alert('단계 승급 중 오류가 발생했습니다.');
@@ -495,7 +528,7 @@ const ProjectStageProgress = ({
 
   // 페이지 로드 시 저장된 단계로 스크롤
   useEffect(() => {
-    const savedStageIndex = localStorage.getItem('scrollToStage');
+    const savedStageIndex = localStorage.getItem('selectedStageIndex');
     if (savedStageIndex !== null) {
       const index = parseInt(savedStageIndex);
       setCurrentStageIndex(index);
@@ -503,7 +536,7 @@ const ProjectStageProgress = ({
       setTimeout(() => {
         scrollToCurrentStage();
       }, 100);
-      localStorage.removeItem('scrollToStage'); // 사용 후 삭제
+      localStorage.removeItem('selectedStageIndex'); // 사용 후 삭제
     }
   }, []);
 
@@ -514,27 +547,193 @@ const ProjectStageProgress = ({
     setShowMore(!showMore);
   };
 
-  // 현재 단계의 승인요청 개수를 확인하는 함수 추가
+  // 현재 단계의 승인요청 개수를 확인하는 함수 수정
   const getCurrentStageApprovalCount = async (stageId) => {
     try {
+      console.log('▶ 승인요청 개수 조회 시작:', {
+        requestedStageId: stageId,
+        currentStageIndex,
+        currentStageId: progressList[currentStageIndex]?.id,
+        currentStageName: progressList[currentStageIndex]?.name,
+        currentProgress,
+        mappedProgress: PROGRESS_STAGE_MAP[currentProgress]
+      });
+
+      // 현재 단계가 아닌 경우 0 반환
+      if (stageId !== progressList[currentStageIndex]?.id) {
+        console.log('▶ 현재 단계가 아님 - 0 반환:', {
+          requestedStageId: stageId,
+          currentStageId: progressList[currentStageIndex]?.id
+        });
+        return 0;
+      }
+      
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(stageId), {
         withCredentials: true
       });
+      console.log('▶ 승인요청 목록 조회 결과:', {
+        stageId,
+        currentStageId: progressList[currentStageIndex]?.id,
+        approvalList: data.approvalList?.map(approval => ({
+          id: approval.id,
+          title: approval.title,
+          progressId: approval.progress?.id,
+          progressName: approval.progress?.name
+        }))
+      });
       return data.approvalList?.length || 0;
     } catch (error) {
-      console.error('승인요청 개수 조회 실패:', error);
+      console.error('▶ 승인요청 개수 조회 실패:', error);
       return 0;
     }
   };
 
   // 현재 단계가 변경될 때마다 승인요청 개수 조회
   useEffect(() => {
+    console.log('▶ currentStage 변경 감지:', {
+      currentStage,
+      currentStageId: currentStage?.id,
+      currentStageName: currentStage?.name,
+      currentStageIndex,
+      currentProgress,
+      mappedProgress: PROGRESS_STAGE_MAP[currentProgress]
+    });
+
     if (currentStage) {
       getCurrentStageApprovalCount(currentStage.id).then(count => {
+        console.log('▶ 승인요청 개수 업데이트:', {
+          stageId: currentStage.id,
+          stageName: currentStage.name,
+          count
+        });
         setCurrentStageApprovalCount(count);
       });
     }
   }, [currentStage]);
+
+  // progressStatus를 새로 가져오는 함수
+  const fetchProgressStatus = async () => {
+    try {
+      console.log('▶ progressStatus 조회 시작');
+      const { data } = await axiosInstance.get(
+        `${API_ENDPOINTS.PROJECTS}/${projectId}/progress/status`,
+        { withCredentials: true }
+      );
+      console.log('▶ 받아온 progressStatus 데이터:', data);
+      
+      // progressStatus 업데이트
+      if (onProgressStatusUpdate) {
+        console.log('▶ onProgressStatusUpdate 호출');
+        onProgressStatusUpdate(data);
+      } else {
+        console.log('▶ onProgressStatusUpdate 함수가 없음');
+      }
+    } catch (error) {
+      console.error('▶ 진행 상태 조회 실패:', error);
+    }
+  };
+
+  // 승인요청 관련 데이터 새로고침 함수 수정
+  const refreshApprovalData = async () => {
+    try {
+      console.log('▶ 승인요청 데이터 새로고침 시작:', {
+        currentStageIndex,
+        currentStage: progressList[currentStageIndex],
+        currentProgress,
+        mappedProgress: PROGRESS_STAGE_MAP[currentProgress]
+      });
+
+      const currentStage = progressList[currentStageIndex];
+      if (currentStage) {
+        console.log('▶ 현재 단계 정보:', {
+          stageId: currentStage.id,
+          stageName: currentStage.name,
+          position: currentStage.position
+        });
+        
+        // 현재 단계의 승인요청 목록만 새로고침
+        const { data: approvalData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(currentStage.id), {
+          withCredentials: true
+        });
+        console.log('▶ 현재 단계 승인요청 목록:', {
+          stageId: currentStage.id,
+          stageName: currentStage.name,
+          approvalList: approvalData.approvalList?.map(approval => ({
+            id: approval.id,
+            title: approval.title,
+            progressId: approval.progress?.id,
+            progressName: approval.progress?.name
+          }))
+        });
+        
+        // 현재 단계의 승인 비율만 새로고침
+        const { data: approvalRateData } = await axiosInstance.get(
+          `${API_ENDPOINTS.PROJECTS}/${currentStage.id}/approval-rate`,
+          { withCredentials: true }
+        );
+        console.log('▶ 현재 단계 승인 비율:', {
+          stageId: currentStage.id,
+          stageName: currentStage.name,
+          approvalRate: approvalRateData
+        });
+
+        // progressStatus 새로고침
+        await fetchProgressStatus();
+
+        // 프로젝트 진행단계 정보 새로고침
+        if (fetchProjectProgress) {
+          console.log('▶ fetchProjectProgress 호출');
+          await fetchProjectProgress();
+        }
+      }
+    } catch (error) {
+      console.error('▶ 승인요청 데이터 새로고침 중 오류:', error);
+    }
+  };
+
+  // useEffect 추가: progressStatus 변경 감지
+  useEffect(() => {
+    console.log('▶ progressStatus 변경됨:', progressStatus);
+  }, [progressStatus]);
+
+  // 승인요청 변경 이벤트 처리 함수
+  const handleApprovalChange = async () => {
+    console.log('▶ 승인요청 변경 감지 - 승인 비율 업데이트 시작');
+    try {
+      // 현재 단계의 승인 상태 새로고침
+      const currentStage = progressList[currentStageIndex];
+      if (currentStage) {
+        console.log('▶ 현재 단계 정보:', currentStage);
+        
+        // 현재 단계의 승인 비율 조회
+        const { data: approvalRateData } = await axiosInstance.get(
+          `${API_ENDPOINTS.PROJECTS}/${currentStage.id}/approval-rate`,
+          { withCredentials: true }
+        );
+        console.log('▶ 현재 단계 승인 비율:', approvalRateData);
+
+        // 전체 progress status 조회
+        const { data: progressStatusData } = await axiosInstance.get(
+          `${API_ENDPOINTS.PROJECTS}/${projectId}/progress/status`,
+          { withCredentials: true }
+        );
+        console.log('▶ 받아온 progressStatus 데이터:', progressStatusData);
+        
+        // 현재 단계의 승인 상태 찾기
+        const currentStageStatus = progressStatusData.progressList.find(status => status.progressId === currentStage.id);
+        console.log('▶ 현재 단계 승인 상태:', currentStageStatus);
+        
+        if (onProgressStatusUpdate) {
+          console.log('▶ onProgressStatusUpdate 호출');
+          onProgressStatusUpdate(progressStatusData);
+        } else {
+          console.log('▶ onProgressStatusUpdate 함수가 없음');
+        }
+      }
+    } catch (error) {
+      console.error('▶ 승인 상태 새로고침 실패:', error);
+    }
+  };
 
   const SortableItem = ({ id, name, targetIndex }) => {
     const {
@@ -661,7 +860,6 @@ const ProjectStageProgress = ({
                 onClick={() => setCurrentStageIndex(index)}
                 data-active={isViewing.toString()}
                 ref={isCurrentProgress ? stageRef : null}
-    
               >
                 <StageProgressMarker 
                   data-completed={isCompleted.toString()}
@@ -720,11 +918,20 @@ const ProjectStageProgress = ({
                 ? progressStatus.progressList.find(status => status.progressId === currentStage.id)
                 : null;
                 
+              console.log('▶ 현재 단계 승인 비율 계산:', {
+                currentStage,
+                stageStatus,
+                approvedCount: stageStatus?.approvedApprovalCount,
+                totalCount: stageStatus?.totalApprovalCount,
+                progressStatus: progressStatus
+              });
+              
               if (!stageStatus || stageStatus.totalApprovalCount === 0) {
                 return <ProgressInfoValue>승인요청 없음</ProgressInfoValue>;
               }
 
               const progressPercent = Math.round((stageStatus.approvedApprovalCount / stageStatus.totalApprovalCount) * 100);
+              console.log('▶ 계산된 승인 비율:', progressPercent + '%');
               
               return (
                 <>
@@ -745,7 +952,8 @@ const ProjectStageProgress = ({
                     const { isCurrent } = getCurrentStageStatus(currentStage, currentStageIndex);
                     
                     // 현재 단계이거나 마지막 단계인 경우 승급 버튼 표시
-                    if (isCurrent || currentStageIndex === progressList.length-2) {
+                    if ((isCurrent || currentStageIndex === progressList.length-2) && 
+                        (progressPercent === 100 && (isAdmin || isClient))) {
                       return (
                         <IncreaseProgressButton 
                           onClick={() => setShowConfirmModal(true)}
@@ -803,6 +1011,15 @@ const ProjectStageProgress = ({
             showMore={showMore}
             onShowMore={handleShowMore}
             progressStatus={progressStatus}
+            isProjectCompleted={(() => {
+              const currentProgressStage = progressList.find(s => s.name === PROGRESS_STAGE_MAP[currentProgress] || s.name === currentProgress);
+              const currentProgressPosition = currentProgressStage?.position || 0;
+              return progressList[currentStageIndex].position < currentProgressPosition;
+            })()}
+            currentStageIndex={currentStageIndex}
+            progressList={progressList}
+            fetchProjectProgress={fetchProjectProgress}
+            onApprovalChange={handleApprovalChange}
           />
         )}
       </ApprovalRequestContainer>
@@ -810,7 +1027,7 @@ const ProjectStageProgress = ({
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
-          onConfirm={handleConfirmIncrease}
+          onConfirm={handleAddProposal}
           title="단계 승급 확인"
           message="현재 단계를 다음 단계로 승급하시겠습니까?"
           confirmText="승급"
@@ -1126,6 +1343,129 @@ const CancelButton = styled.button`
     background-color: #e2e8f0;
     color: #1e293b;
   }
+`;
+
+// 승인요청 목록을 위한 스타일 컴포넌트 추가
+const ProposalList = styled.div`
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+  box-sizing: border-box;
+  margin-top: 24px;
+`;
+
+const ProposalItem = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid #e2e8f0;
+  
+  &:hover {
+    background-color: #f8fafc;
+  }
+`;
+
+const ProposalHeader = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  box-sizing: border-box;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  margin-left: 8px;
+`;
+
+const ProposalTitle = styled.div`
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ProposalStatus = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: ${props => props.$status === 'FINAL_APPROVED' ? '#f0fdf4' : 
+                              props.$status === 'FINAL_REJECTED' ? '#fef2f2' : 
+                              props.$status === 'UNDER_REVIEW' ? '#eff6ff' : '#f8fafc'};
+  color: ${props => props.$status === 'FINAL_APPROVED' ? '#166534' : 
+                    props.$status === 'FINAL_REJECTED' ? '#991b1b' : 
+                    props.$status === 'UNDER_REVIEW' ? '#1e40af' : '#64748b'};
+`;
+
+const ProposalInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+`;
+
+const ProposalMeta = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ProposalDate = styled.span`
+  font-size: 12px;
+  color: #64748b;
+`;
+
+const ProposalCreator = styled.span`
+  font-size: 12px;
+  color: #1e293b;
+  font-weight: 500;
+`;
+
+const ProposalApprovalInfo = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ApprovalCount = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const EmptyState = styled.div`
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 24px;
 `;
 
 export default ProjectStageProgress;

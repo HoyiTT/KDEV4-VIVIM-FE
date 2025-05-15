@@ -13,6 +13,17 @@ import ConfirmModal from './common/ConfirmModal';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
+// currentProgress 열거형 값과 단계 이름 매핑
+const PROGRESS_STAGE_MAP = {
+  '요구사항정의': '요구사항 정의',
+  '화면설계': '화면 설계',
+  '디자인': '디자인',
+  '퍼블리싱': '퍼블리싱',
+  '개발': '개발',
+  '검수': '검수',
+  '완료': '완료'
+};
+
 // Styled Components
 const LoadingMessage = styled.div`
   padding: 20px;
@@ -909,7 +920,12 @@ const ApprovalProposal = ({
   onShowMore,
   stage,
   progressStatus,
-  currentProgress
+  currentProgress,
+  isProjectCompleted,
+  currentStageIndex,
+  progressList,
+  fetchProjectProgress,
+  onApprovalChange
 }) => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -1009,9 +1025,79 @@ const ApprovalProposal = ({
     }
   }, [projectId]);
 
+  // 승인요청 목록 조회 함수
+  const fetchProposals = async () => {
+    if (!progressId || !progressList || currentStageIndex === undefined) {
+      console.log('▶ 필수 데이터가 없어 승인요청 목록을 조회하지 않습니다:', {
+        progressId,
+        currentStageIndex,
+        progressList: progressList?.map(stage => ({
+          id: stage.id,
+          name: stage.name,
+          position: stage.position
+        }))
+      });
+      return;
+    }
+    
+    try {
+      // 현재 선택된 단계 정보 확인
+      const selectedStage = progressList[currentStageIndex];
+      if (!selectedStage) {
+        console.log('▶ 선택된 단계를 찾을 수 없음:', {
+          currentStageIndex,
+          progressList: progressList.map(stage => ({
+            id: stage.id,
+            name: stage.name,
+            position: stage.position
+          }))
+        });
+        return;
+      }
+
+      const stageId = selectedStage.id;
+      console.log('▶ 선택된 단계 승인요청 목록 조회 시작:', {
+        stageId,
+        stageName: selectedStage.name,
+        currentStageIndex,
+        currentProgress
+      });
+      
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(stageId), {
+        withCredentials: true
+      });
+      
+      console.log('▶ 선택된 단계 승인요청 목록 조회 결과:', {
+        stageId,
+        stageName: selectedStage.name,
+        approvalCount: data.approvalList?.length || 0,
+        approvals: data.approvalList
+      });
+      
+      setProposals(data.approvalList || []);
+      setLoading(false);
+      fetchApprovalRate();
+    } catch (error) {
+      console.error('▶ 승인요청 목록 조회 실패:', {
+        stageId: progressList[currentStageIndex]?.id,
+        error: error.response?.data || error.message
+      });
+      setProposals([]);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchProposals();
-  }, [progressId]);
+    console.log('▶ ApprovalProposal useEffect 실행:', {
+      currentStageIndex,
+      selectedStage: progressList?.[currentStageIndex]?.name,
+      currentProgress
+    });
+    
+    if (progressList && currentStageIndex !== undefined) {
+      fetchProposals();
+    }
+  }, [currentStageIndex, progressList]);
 
   useEffect(() => {
     if (isProposalModalOpen) {
@@ -1025,23 +1111,19 @@ const ApprovalProposal = ({
     };
   }, [isProposalModalOpen]);
 
-  const fetchProposals = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(progressId), {
-        withCredentials: true
-      });
-      setProposals(data.approvalList || []);
-      setLoading(false);
-      fetchApprovalRate();
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-      alert(error.response?.data?.message || '승인요청 목록을 불러오는데 실패했습니다.');
-      setLoading(false);
-    }
-  };
-
   const handleProposalClick = (proposal) => {
     navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
+  };
+
+  // 전체 데이터 새로고침 함수 수정
+  const refreshAllData = async () => {
+    try {
+      if (fetchProjectProgress) {
+        await fetchProjectProgress();
+      }
+    } catch (error) {
+      console.error('데이터 새로고침 중 오류 발생:', error);
+    }
   };
 
   const handleAddProposal = async () => {
@@ -1101,7 +1183,14 @@ const ApprovalProposal = ({
       alert('승인요청이 성공적으로 생성되었습니다.');
       handleCloseCreateModal();
       onShowMore();
-      fetchProposals();
+      
+      // 승인요청 목록 새로고침
+      await fetchProposals();
+      
+      // 승인요청 변경 이벤트 발생
+      if (onApprovalChange) {
+        await onApprovalChange();
+      }
     } catch (error) {
       console.error('▶ 승인요청 생성 실패:', error);
       alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
@@ -1211,7 +1300,14 @@ const ApprovalProposal = ({
       await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(deleteTargetId), {
         withCredentials: true
       });
-      fetchProposals();
+      
+      // 승인요청 목록 새로고침
+      await fetchProposals();
+      
+      // 승인요청 변경 이벤트 발생
+      if (onApprovalChange) {
+        await onApprovalChange();
+      }
     } catch (error) {
       console.error('Error deleting proposal:', error);
       alert(error.response?.data?.message || '승인요청 삭제에 실패했습니다.');
@@ -1239,7 +1335,11 @@ const ApprovalProposal = ({
 
       if (response.data) {
         window.alert('승인요청이 성공적으로 전송되었습니다.');
-        fetchProposals();
+        
+        // 승인요청 변경 이벤트 발생
+        if (onApprovalChange) {
+          await onApprovalChange();
+        }
       }
     } catch (error) {
       console.error('승인요청 전송 중 오류:', error);
@@ -1351,6 +1451,26 @@ const ApprovalProposal = ({
     setNewLink({ title: '', url: '' });
   };
 
+  // 현재 단계가 진행 중인 단계 이전인지 확인하는 함수 수정
+  const isPreviousStage = () => {
+    if (!currentProgress || !progressList) return false;
+    
+    // 현재 진행 중인 단계 찾기
+    const currentProgressStage = progressList.find(stage => 
+      stage.name === currentProgress || 
+      stage.name === PROGRESS_STAGE_MAP[currentProgress]
+    );
+    
+    if (!currentProgressStage) return false;
+    
+    // 현재 단계 찾기
+    const currentStage = progressList.find(stage => stage.id === progressId);
+    if (!currentStage) return false;
+    
+    // 현재 단계의 position이 진행 중인 단계의 position보다 작으면 이전 단계
+    return currentStage.position < currentProgressStage.position;
+  };
+
   if (loading) {
     return <LoadingMessage>데이터를 불러오는 중...</LoadingMessage>;
   }
@@ -1376,7 +1496,8 @@ const ApprovalProposal = ({
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
+                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && 
+                           !isPreviousStage() && (
                             <ActionIcons>
                               <ActionIcon className="delete" onClick={(e) => handleDeleteClick(e, proposal.id)} title="삭제">
                                 <FaTimes />
@@ -1420,7 +1541,7 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!Boolean(projectInfo?.isDeleted) && !isCompleted && !isClient() && (
+        {!Boolean(projectInfo?.isDeleted) && !isClient() && !isProjectCompleted && (
           <AddButtonContainer>
             <AddButton onClick={() => setIsCreateModalOpen(true)}>
               + 승인요청 추가  
