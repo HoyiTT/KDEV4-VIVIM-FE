@@ -350,7 +350,8 @@ const ProjectStageProgress = ({
   onProgressStatusUpdate,
   children
 }) => {
-  const { isAdmin, isClient } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const [isClient, setIsClient] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const [isIncreasing, setIsIncreasing] = useState(false);
@@ -376,6 +377,28 @@ const ProjectStageProgress = ({
       })));
     }
   }, [progressList]);
+
+  // 프로젝트 역할 확인
+  useEffect(() => {
+    const checkProjectRole = async () => {
+      try {
+        const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}?userId=${user.id}`, {
+          withCredentials: true
+        });
+        
+        // 현재 프로젝트의 역할 확인
+        const currentProject = data.find(p => p.projectId === projectId);
+        setIsClient(currentProject?.myRole === 'CLIENT_MANAGER');
+      } catch (error) {
+        console.error('프로젝트 역할 확인 중 오류 발생:', error);
+        setIsClient(false);
+      }
+    };
+
+    if (projectId && user?.id) {
+      checkProjectRole();
+    }
+  }, [projectId, user?.id]);
 
   const handleDragEnd = async (event) => {
     // ... 삭제 ...
