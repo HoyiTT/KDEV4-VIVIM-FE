@@ -582,7 +582,7 @@ const ProjectCreate = () => {
             )}
 
             <ButtonGroup>
-              <CancelButton type="button" onClick={() => navigate('/dashboard')}>취소</CancelButton>
+              <CancelButton type="button" onClick={() => navigate('/admin/projects')}>취소</CancelButton>
               <SubmitButton type="submit">프로젝트 생성</SubmitButton>
             </ButtonGroup>
           </Form>
