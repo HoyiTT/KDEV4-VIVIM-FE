@@ -98,12 +98,16 @@ const ProjectPostCreate = () => {
     setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
   };
 
-  const handleFilesChange = (newFiles) => {
-    setFiles(newFiles);
+  const handleFilesChange = (fileChanges) => {
+    console.log('▶ 파일 변경 이벤트:', fileChanges);
+    if (fileChanges && 'currentFiles' in fileChanges) {
+      setFiles(fileChanges.currentFiles);
+    }
   };
 
-  const handleLinksChange = (linkChanges) => {
-    setLinks(linkChanges.currentLinks);
+  const handleLinksChange = (links) => {
+    console.log('▶ 링크 변경 이벤트:', links);
+    setLinks(Array.isArray(links) ? links : []);
   };
 
   const handleSubmit = async (e) => {

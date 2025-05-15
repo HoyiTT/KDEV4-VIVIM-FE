@@ -1070,19 +1070,27 @@ const ApprovalProposal = ({
   };
 
   const handleFilesChange = (fileChanges) => {
+    console.log('▶ 파일 변경 이벤트 발생:', fileChanges);
     if (typeof fileChanges === 'object' && 'currentFiles' in fileChanges) {
       // FileLinkUploader에서 전달된 경우
-      const { currentFiles, deletedFiles } = fileChanges;
-      setExistingFiles(currentFiles);
-      setFilesToDelete(prev => [...prev, ...deletedFiles.map(file => file.id)]);
+      const { currentFiles } = fileChanges;
+      setFiles(currentFiles);
     } else {
       // 직접 파일 배열이 전달된 경우
-      setNewFiles(fileChanges);
+      setFiles(Array.isArray(fileChanges) ? fileChanges : []);
     }
   };
 
-  const handleLinksChange = (newLinks) => {
-    setNewLinks(Array.isArray(newLinks) ? newLinks : []);
+  const handleLinksChange = (linkChanges) => {
+    console.log('▶ 링크 변경 이벤트 발생:', linkChanges);
+    if (typeof linkChanges === 'object' && 'currentLinks' in linkChanges) {
+      // FileLinkUploader에서 전달된 경우
+      const { currentLinks } = linkChanges;
+      setLinks(currentLinks);
+    } else {
+      // 직접 링크 배열이 전달된 경우
+      setLinks(Array.isArray(linkChanges) ? linkChanges : []);
+    }
   };
 
   const handleCloseModal = () => {
@@ -1112,54 +1120,133 @@ const ApprovalProposal = ({
   };
 
   const handleAddProposal = async () => {
+    if (!newProposal.title.trim() || !newProposal.content.trim()) {
+      alert('제목과 내용을 입력해주세요.');
+      return;
+    }
+
     try {
-      // 1. 승인요청 생성
-      const { data: response } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
+      console.log('▶ 승인요청 생성 시작:', {
         title: newProposal.title,
-        content: newProposal.content
+        content: newProposal.content,
+        files: files,
+        links: links
       });
+
+      // 1. 승인요청 생성
+      const { data: response } = await axiosInstance.post(
+        API_ENDPOINTS.APPROVAL.CREATE(progressId),
+        {
+          title: newProposal.title,
+          content: newProposal.content
+        },
+        {
+          withCredentials: true
+        }
+      );
 
       const approvalId = response.data || response;
       console.log('▶ 승인요청 생성 성공:', { approvalId });
 
-      // 2. 파일 업로드
+      // 2. 파일 업로드 처리 (멀티파트 업로드)
       if (Array.isArray(files) && files.length > 0) {
         console.log('▶ 파일 업로드 시작:', { filesCount: files.length });
         for (const file of files) {
+          if (!(file instanceof File)) {
+            console.error('▶ 유효하지 않은 파일 객체:', file);
+            continue;
+          }
+
+          if (file.size > MAX_FILE_SIZE) {
+            throw new Error(`파일 크기 제한 초과: ${file.name}`);
+          }
+
           try {
-            const formData = new FormData();
-            formData.append('file', file);
-            console.log('▶ 파일 업로드 시도:', { fileName: file.name, fileSize: file.size });
-            
-            const uploadResponse = await axiosInstance.post(
-              API_ENDPOINTS.APPROVAL.FILES(approvalId), 
-              formData,
+            // 1. 멀티파트 업로드를 위한 presigned URL 요청
+            const { data: presignedData } = await axiosInstance.post(
+              API_ENDPOINTS.APPROVAL_FILE_UPLOAD(approvalId),
               {
-                headers: { 
-                  'Content-Type': 'multipart/form-data',
-                  'Accept': 'application/json'
-                },
+                fileName: file.name,
+                fileSize: file.size,
+                contentType: file.type
+              },
+              {
                 withCredentials: true
               }
             );
-            console.log('▶ 파일 업로드 성공:', { fileName: file.name, response: uploadResponse.data });
-          } catch (uploadError) {
+
+            const { objectKey, uploadId, presignedParts } = presignedData;
+
+            // 2. 각 파트 업로드 (병렬 처리)
+            const partSize = 25 * 1000 * 1000; // 25MB
+            const totalParts = Math.ceil(file.size / partSize);
+            const uploadPromises = [];
+
+            for (let i = 0; i < totalParts; i++) {
+              const start = i * partSize;
+              const end = Math.min(start + partSize, file.size);
+              const chunk = file.slice(start, end);
+              const partNumber = i + 1;
+              const presignedUrl = presignedParts.find(part => part.partNumber === partNumber).presignedUrl;
+
+              uploadPromises.push(
+                fetch(presignedUrl, {
+                  method: 'PUT',
+                  body: chunk,
+                  headers: {
+                    'Content-Type': file.type
+                  }
+                }).then(async (response) => {
+                  if (!response.ok) {
+                    throw new Error(`파일 파트 업로드 실패: ${file.name} (파트 ${partNumber})`);
+                  }
+                  const etag = response.headers.get('ETag');
+                  return {
+                    partNumber,
+                    etag
+                  };
+                })
+              );
+            }
+
+            // 모든 파트 업로드가 완료될 때까지 대기
+            const uploadedParts = await Promise.all(uploadPromises);
+
+            // 3. 멀티파트 업로드 완료 요청
+            await axiosInstance.post(
+              API_ENDPOINTS.FILE_COMPLETE(),
+              {
+                key: objectKey,
+                uploadId: uploadId,
+                parts: uploadedParts
+              },
+              {
+                withCredentials: true
+              }
+            );
+
+            console.log('▶ 파일 업로드 성공:', { fileName: file.name });
+          } catch (error) {
             console.error('▶ 파일 업로드 실패:', {
               fileName: file.name,
-              error: uploadError.response?.data || uploadError.message
+              error: error.response?.data || error.message
             });
-            throw new Error(`파일 "${file.name}" 업로드 실패: ${uploadError.response?.data?.message || uploadError.message}`);
+            throw new Error(`파일 "${file.name}" 업로드 실패: ${error.response?.data?.message || error.message}`);
           }
         }
       }
 
-      // 3. 링크 저장
+      // 3. 링크 업로드 처리
       if (Array.isArray(links) && links.length > 0) {
-        console.log('▶ 링크 저장 시작:', { linksCount: links.length });
+        console.log('▶ 링크 업로드 시작:', { linksCount: links.length });
         for (const link of links) {
+          if (!link.title || !link.url) {
+            console.error('▶ 유효하지 않은 링크 데이터:', link);
+            continue;
+          }
+
           try {
-            console.log('▶ 링크 저장 시도:', { linkTitle: link.title, linkUrl: link.url });
-            const linkResponse = await axiosInstance.post(
+            await axiosInstance.post(
               API_ENDPOINTS.APPROVAL.LINKS(approvalId),
               {
                 title: link.title,
@@ -1169,13 +1256,13 @@ const ApprovalProposal = ({
                 withCredentials: true
               }
             );
-            console.log('▶ 링크 저장 성공:', { linkTitle: link.title, response: linkResponse.data });
-          } catch (linkError) {
-            console.error('▶ 링크 저장 실패:', {
+            console.log('▶ 링크 업로드 성공:', link.title);
+          } catch (error) {
+            console.error('▶ 링크 업로드 실패:', {
               linkTitle: link.title,
-              error: linkError.response?.data || linkError.message
+              error: error.response?.data || error.message
             });
-            throw new Error(`링크 "${link.title}" 저장 실패: ${linkError.response?.data?.message || linkError.message}`);
+            throw new Error(`링크 "${link.title}" 업로드 실패: ${error.response?.data?.message || error.message}`);
           }
         }
       }
@@ -1645,12 +1732,25 @@ const ApprovalProposal = ({
                 />
               </InputGroup>
 
-              <FileLinkUploader
-                onFilesChange={handleFilesChange}
-                onLinksChange={handleLinksChange}
-                initialFiles={files}
-                initialLinks={links}
-              />
+              <InputGroup>
+                <Label>첨부파일 및 링크</Label>
+                <FileLinkUploader
+                  onFilesChange={handleFilesChange}
+                  onLinksChange={handleLinksChange}
+                  initialFiles={files}
+                  initialLinks={links}
+                  maxFileSize={MAX_FILE_SIZE}
+                  allowedMimeTypes={allowedMimeTypes}
+                />
+                <span style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  color: '#64748b',
+                  marginTop: '4px'
+                }}>
+                  * 파일 크기는 10MB 이하여야 합니다.
+                </span>
+              </InputGroup>
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseCreateModal}>취소</CancelButton>
