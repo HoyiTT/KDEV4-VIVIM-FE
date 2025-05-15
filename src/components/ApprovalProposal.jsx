@@ -13,6 +13,17 @@ import ConfirmModal from './common/ConfirmModal';
 
 const { getApprovalStatusText, getApprovalStatusBackgroundColor, getApprovalStatusTextColor } = approvalUtils;
 
+// currentProgress 열거형 값과 단계 이름 매핑
+const PROGRESS_STAGE_MAP = {
+  '요구사항정의': '요구사항 정의',
+  '화면설계': '화면 설계',
+  '디자인': '디자인',
+  '퍼블리싱': '퍼블리싱',
+  '개발': '개발',
+  '검수': '검수',
+  '완료': '완료'
+};
+
 // Styled Components
 const LoadingMessage = styled.div`
   padding: 20px;
@@ -909,7 +920,12 @@ const ApprovalProposal = ({
   onShowMore,
   stage,
   progressStatus,
-  currentProgress
+  currentProgress,
+  isProjectCompleted,
+  currentStageIndex,
+  progressList,
+  fetchProjectProgress,
+  onApprovalChange
 }) => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -931,13 +947,19 @@ const ApprovalProposal = ({
   const contentRef = useRef(null);
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
-  const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [links, setLinks] = useState([]);
+  const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [projectInfo, setProjectInfo] = useState(null);
   const [approvalRate, setApprovalRate] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [filesToDelete, setFilesToDelete] = useState([]);
+  const [linksToDelete, setLinksToDelete] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
+  const [existingLinks, setExistingLinks] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
+  const [newLinks, setNewLinks] = useState([]);
 
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -951,97 +973,150 @@ const ApprovalProposal = ({
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-  const handleFileDelete = (indexToDelete) => {
-    setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    console.log('▶ 파일 선택됨:', selectedFiles);
-    
-    // 파일 크기 검증
-    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
-    
-    if (oversizedFiles.length > 0) {
-      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n' + 
-        oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
-      e.target.value = ''; // 파일 선택 초기화
+  // 승인요청 목록 조회 함수
+  const fetchProposals = async () => {
+    if (!progressId || !progressList || currentStageIndex === undefined) {
+      console.log('▶ 필수 데이터가 없어 승인요청 목록을 조회하지 않습니다:', {
+        progressId,
+        currentStageIndex,
+        progressList: progressList?.map(stage => ({
+          id: stage.id,
+          name: stage.name,
+          position: stage.position
+        }))
+      });
       return;
     }
-
-    // 기존 파일 목록에 새로 선택된 파일들 추가
-    setFiles(prevFiles => {
-      const newFiles = [...prevFiles, ...selectedFiles];
-      console.log('▶ 현재 파일 목록:', newFiles);
-      return newFiles;
-    });
-    e.target.value = ''; // 파일 선택 초기화
-  };
-
-  // 프로젝트 정보 조회 함수 추가
-  const fetchProjectInfo = async () => {
+    
     try {
-      if (!projectId) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 프로젝트 ID 없음');
+      // 현재 선택된 단계 정보 확인
+      const selectedStage = progressList[currentStageIndex];
+      if (!selectedStage) {
+        console.log('▶ 선택된 단계를 찾을 수 없음:', {
+          currentStageIndex,
+          progressList: progressList.map(stage => ({
+            id: stage.id,
+            name: stage.name,
+            position: stage.position
+          }))
+        });
         return;
       }
 
-      console.log('▶ 프로젝트 정보 조회 시도:', projectId);
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
+      const stageId = selectedStage.id;
+      console.log('▶ 선택된 단계 승인요청 목록 조회 시작:', {
+        stageId,
+        stageName: selectedStage.name,
+        currentStageIndex,
+        currentProgress
+      });
+      
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(stageId), {
         withCredentials: true
       });
-      console.log('▶ 프로젝트 정보 조회 성공:', data);
-      setProjectInfo(data);
-    } catch (error) {
-      console.error('▶ 프로젝트 정보 조회 실패:', error);
-      if (error.response?.status === 401) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 인증 필요');
-      } else if (error.response?.status === 403) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 권한 없음');
-      }
-      setProjectInfo(null);
-    }
-  };
-
-  useEffect(() => {
-    if (projectId) {
-      fetchProjectInfo();  // 프로젝트 정보 조회 추가
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchProposals();
-  }, [progressId]);
-
-  useEffect(() => {
-    if (isProposalModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isProposalModalOpen]);
-
-  const fetchProposals = async () => {
-    try {
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LIST(progressId), {
-        withCredentials: true
+      
+      console.log('▶ 선택된 단계 승인요청 목록 조회 결과:', {
+        stageId,
+        stageName: selectedStage.name,
+        approvalCount: data.approvalList?.length || 0,
+        approvals: data.approvalList
       });
+      
       setProposals(data.approvalList || []);
       setLoading(false);
       fetchApprovalRate();
     } catch (error) {
-      console.error('Error fetching proposals:', error);
-      alert(error.response?.data?.message || '승인요청 목록을 불러오는데 실패했습니다.');
+      console.error('▶ 승인요청 목록 조회 실패:', {
+        stageId: progressList[currentStageIndex]?.id,
+        error: error.response?.data || error.message
+      });
+      setProposals([]);
       setLoading(false);
     }
   };
 
+  // 승인요청 목록 조회를 위한 useEffect
+  useEffect(() => {
+    console.log('▶ ApprovalProposal useEffect 실행:', {
+      currentStageIndex,
+      selectedStage: progressList?.[currentStageIndex]?.name,
+      currentProgress
+    });
+    
+    if (progressList && currentStageIndex !== undefined) {
+      fetchProposals();
+    }
+  }, [currentStageIndex, progressList]);
+
+  // 파일과 링크 관련 핸들러 함수들
+  const handleFileDelete = (index, isExisting) => {
+    if (isExisting) {
+      const fileToDelete = existingFiles[index];
+      setFilesToDelete(prev => [...prev, fileToDelete.id]);
+      setExistingFiles(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setNewFiles(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleLinkDelete = (index, isExisting) => {
+    if (isExisting) {
+      const linkToDelete = existingLinks[index];
+      setLinksToDelete(prev => [...prev, linkToDelete.id]);
+      setExistingLinks(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setNewLinks(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleFilesChange = (fileChanges) => {
+    console.log('▶ 파일 변경 이벤트 발생:', fileChanges);
+    if (typeof fileChanges === 'object' && 'currentFiles' in fileChanges) {
+      // FileLinkUploader에서 전달된 경우
+      const { currentFiles } = fileChanges;
+      setFiles(currentFiles);
+    } else {
+      // 직접 파일 배열이 전달된 경우
+      setFiles(Array.isArray(fileChanges) ? fileChanges : []);
+    }
+  };
+
+  const handleLinksChange = (linkChanges) => {
+    console.log('▶ 링크 변경 이벤트 발생:', linkChanges);
+    if (typeof linkChanges === 'object' && 'currentLinks' in linkChanges) {
+      // FileLinkUploader에서 전달된 경우
+      const { currentLinks } = linkChanges;
+      setLinks(currentLinks);
+    } else {
+      // 직접 링크 배열이 전달된 경우
+      setLinks(Array.isArray(linkChanges) ? linkChanges : []);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProposal(null);
+    setExistingFiles([]);
+    setExistingLinks([]);
+    setNewFiles([]);
+    setNewLinks([]);
+    setFilesToDelete([]);
+    setLinksToDelete([]);
+  };
+
   const handleProposalClick = (proposal) => {
     navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
+  };
+
+  // 전체 데이터 새로고침 함수 수정
+  const refreshAllData = async () => {
+    try {
+      if (fetchProjectProgress) {
+        await fetchProjectProgress();
+      }
+    } catch (error) {
+      console.error('데이터 새로고침 중 오류 발생:', error);
+    }
   };
 
   const handleAddProposal = async () => {
@@ -1051,60 +1126,165 @@ const ApprovalProposal = ({
     }
 
     try {
-      const { data: response } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
+      console.log('▶ 승인요청 생성 시작:', {
         title: newProposal.title,
-        content: newProposal.content
-      }, {
-        withCredentials: true
+        content: newProposal.content,
+        files: files,
+        links: links
       });
 
+      // 1. 승인요청 생성
+      const { data: response } = await axiosInstance.post(
+        API_ENDPOINTS.APPROVAL.CREATE(progressId),
+        {
+          title: newProposal.title,
+          content: newProposal.content
+        },
+        {
+          withCredentials: true
+        }
+      );
+
       const approvalId = response.data || response;
-      if (!approvalId) {
-        throw new Error('승인요청 ID를 받지 못했습니다.');
-      }
+      console.log('▶ 승인요청 생성 성공:', { approvalId });
 
-      // 2. 파일 업로드 처리
-      if (files.length > 0) {
+      // 2. 파일 업로드 처리 (멀티파트 업로드)
+      if (Array.isArray(files) && files.length > 0) {
+        console.log('▶ 파일 업로드 시작:', { filesCount: files.length });
         for (const file of files) {
-          const formData = new FormData();
-          formData.append('file', file);
-          
+          if (!(file instanceof File)) {
+            console.error('▶ 유효하지 않은 파일 객체:', file);
+            continue;
+          }
+
+          if (file.size > MAX_FILE_SIZE) {
+            throw new Error(`파일 크기 제한 초과: ${file.name}`);
+          }
+
           try {
-            await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(approvalId), formData, {
-              withCredentials: true,
-              headers: {
-                'Content-Type': 'multipart/form-data'
+            // 1. 멀티파트 업로드를 위한 presigned URL 요청
+            const { data: presignedData } = await axiosInstance.post(
+              API_ENDPOINTS.APPROVAL_FILE_UPLOAD(approvalId),
+              {
+                fileName: file.name,
+                fileSize: file.size,
+                contentType: file.type
+              },
+              {
+                withCredentials: true
               }
+            );
+
+            const { objectKey, uploadId, presignedParts } = presignedData;
+
+            // 2. 각 파트 업로드 (병렬 처리)
+            const partSize = 25 * 1000 * 1000; // 25MB
+            const totalParts = Math.ceil(file.size / partSize);
+            const uploadPromises = [];
+
+            for (let i = 0; i < totalParts; i++) {
+              const start = i * partSize;
+              const end = Math.min(start + partSize, file.size);
+              const chunk = file.slice(start, end);
+              const partNumber = i + 1;
+              const presignedUrl = presignedParts.find(part => part.partNumber === partNumber).presignedUrl;
+
+              uploadPromises.push(
+                fetch(presignedUrl, {
+                  method: 'PUT',
+                  body: chunk,
+                  headers: {
+                    'Content-Type': file.type
+                  }
+                }).then(async (response) => {
+                  if (!response.ok) {
+                    throw new Error(`파일 파트 업로드 실패: ${file.name} (파트 ${partNumber})`);
+                  }
+                  const etag = response.headers.get('ETag');
+                  return {
+                    partNumber,
+                    etag
+                  };
+                })
+              );
+            }
+
+            // 모든 파트 업로드가 완료될 때까지 대기
+            const uploadedParts = await Promise.all(uploadPromises);
+
+            // 3. 멀티파트 업로드 완료 요청
+            await axiosInstance.post(
+              API_ENDPOINTS.FILE_COMPLETE(),
+              {
+                key: objectKey,
+                uploadId: uploadId,
+                parts: uploadedParts
+              },
+              {
+                withCredentials: true
+              }
+            );
+
+            console.log('▶ 파일 업로드 성공:', { fileName: file.name });
+          } catch (error) {
+            console.error('▶ 파일 업로드 실패:', {
+              fileName: file.name,
+              error: error.response?.data || error.message
             });
-          } catch (uploadError) {
-            console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
+            throw new Error(`파일 "${file.name}" 업로드 실패: ${error.response?.data?.message || error.message}`);
           }
         }
       }
 
-      // 3. 링크 저장
-      if (links.length > 0) {
+      // 3. 링크 업로드 처리
+      if (Array.isArray(links) && links.length > 0) {
+        console.log('▶ 링크 업로드 시작:', { linksCount: links.length });
         for (const link of links) {
+          if (!link.title || !link.url) {
+            console.error('▶ 유효하지 않은 링크 데이터:', link);
+            continue;
+          }
+
           try {
-            await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(approvalId), {
-              title: link.title,
-              url: link.url
-            }, {
-              withCredentials: true
+            await axiosInstance.post(
+              API_ENDPOINTS.APPROVAL.LINKS(approvalId),
+              {
+                title: link.title,
+                url: link.url
+              },
+              {
+                withCredentials: true
+              }
+            );
+            console.log('▶ 링크 업로드 성공:', link.title);
+          } catch (error) {
+            console.error('▶ 링크 업로드 실패:', {
+              linkTitle: link.title,
+              error: error.response?.data || error.message
             });
-          } catch (linkError) {
-            console.error('▶ 링크 저장 실패:', linkError.response?.data || linkError.message);
+            throw new Error(`링크 "${link.title}" 업로드 실패: ${error.response?.data?.message || error.message}`);
           }
         }
       }
 
+      console.log('▶ 승인요청 생성 완료');
       alert('승인요청이 성공적으로 생성되었습니다.');
       handleCloseCreateModal();
       onShowMore();
-      fetchProposals();
+      
+      // 승인요청 목록 새로고침
+      await fetchProposals();
+      
+      // 승인요청 변경 이벤트 발생
+      if (onApprovalChange) {
+        await onApprovalChange();
+      }
     } catch (error) {
-      console.error('▶ 승인요청 생성 실패:', error);
-      alert(error.response?.data?.message || '승인요청 생성에 실패했습니다.');
+      console.error('▶ 승인요청 생성 실패:', {
+        error: error.response?.data || error.message,
+        stack: error.stack
+      });
+      alert(error.message || error.response?.data?.message || '승인요청 생성에 실패했습니다.');
     }
   };
 
@@ -1114,66 +1294,6 @@ const ApprovalProposal = ({
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleModifyProposal = async () => {
-    try {
-      const requestBody = {};
-      
-      if (editingProposal.title !== undefined) {
-        requestBody.title = editingProposal.title;
-      }
-      if (editingProposal.content !== undefined) {
-        requestBody.content = editingProposal.content;
-      }
-
-      const { data } = await axiosInstance.patch(
-        API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id),
-        requestBody,
-        {
-          withCredentials: true
-        }
-      );
-      
-      if (data.statusCode === 201) {
-        // 파일 업로드 처리
-        for (const file of files) {
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          try {
-            await axiosInstance.post(API_ENDPOINTS.APPROVAL.FILES(editingProposal.id), formData, {
-              withCredentials: true
-            });
-          } catch (uploadError) {
-            console.error('▶ 파일 업로드 실패:', uploadError.response?.data || uploadError.message);
-            throw uploadError;
-          }
-        }
-
-        // 링크 저장
-        for (const link of links) {
-          await axiosInstance.post(API_ENDPOINTS.APPROVAL.LINKS(editingProposal.id), {
-            title: link.title,
-            url: link.url
-          }, {
-            withCredentials: true
-          });
-        }
-
-        setIsEditModalOpen(false);
-        setEditingProposal(null);
-        setFiles([]);
-        setLinks([]);
-        setNewLink({ title: '', url: '' });
-        fetchProposals();
-      } else {
-        throw new Error(data.statusMessage || '승인요청 수정에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Error modifying proposal:', error);
-      alert(error.response?.data?.message || error.message);
-    }
   };
 
   const handleEditClick = async (proposal) => {
@@ -1187,14 +1307,155 @@ const ApprovalProposal = ({
       // 링크 목록 조회
       const { data: linksData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LINKS(proposal.id));
       
+      console.log('▶ 승인요청 상세 정보 조회:', {
+        proposal: data,
+        files: filesData,
+        links: linksData
+      });
+
       setEditingProposal({ ...proposal });
-      setFiles(filesData || []);
-      setLinks(linksData || []);
-      setNewLink({ title: '', url: '' });
+      setExistingFiles(filesData?.files || []);
+      setExistingLinks(linksData?.links || []);
+      setNewFiles([]);
+      setNewLinks([]);
+      setFilesToDelete([]);
+      setLinksToDelete([]);
       setIsEditModalOpen(true);
     } catch (error) {
-      console.error('Error fetching proposal details:', error);
+      console.error('▶ 승인요청 상세 정보 조회 실패:', error);
       alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const handleModifyProposal = async () => {
+    try {
+      console.log('▶ 승인요청 수정 시작:', {
+        editingProposal,
+        existingFiles,
+        newFiles,
+        filesToDelete,
+        existingLinks,
+        newLinks,
+        linksToDelete
+      });
+
+      const requestBody = {};
+      
+      if (editingProposal.title !== undefined) {
+        requestBody.title = editingProposal.title;
+      }
+      if (editingProposal.content !== undefined) {
+        requestBody.content = editingProposal.content;
+      }
+
+      // 1. 승인요청 기본 정보 수정
+      const { data } = await axiosInstance.patch(
+        API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id),
+        requestBody,
+        {
+          withCredentials: true
+        }
+      );
+      
+      if (data.statusCode === 201) {
+        // 2. 삭제할 파일 처리
+        for (const fileId of filesToDelete) {
+          try {
+            console.log('▶ 파일 삭제 시도:', { fileId });
+            await axiosInstance.patch(
+              API_ENDPOINTS.FILE_DELETE(fileId),
+              {},
+              { withCredentials: true }
+            );
+            console.log('▶ 파일 삭제 성공:', { fileId });
+          } catch (error) {
+            console.error('▶ 파일 삭제 실패:', { fileId, error });
+            throw new Error(`파일 삭제 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        // 3. 삭제할 링크 처리
+        for (const linkId of linksToDelete) {
+          try {
+            console.log('▶ 링크 삭제 시도:', { linkId });
+            await axiosInstance.patch(
+              API_ENDPOINTS.LINK_DELETE(linkId),
+              {},
+              { withCredentials: true }
+            );
+            console.log('▶ 링크 삭제 성공:', { linkId });
+          } catch (error) {
+            console.error('▶ 링크 삭제 실패:', { linkId, error });
+            throw new Error(`링크 삭제 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        // 4. 새 파일 업로드
+        for (const file of newFiles) {
+          try {
+            if (file instanceof File) {
+              const formData = new FormData();
+              formData.append('file', file);
+              console.log('▶ 새 파일 업로드 시도:', { fileName: file.name });
+              
+              const uploadResponse = await axiosInstance.post(
+                API_ENDPOINTS.APPROVAL.FILES(editingProposal.id), 
+                formData,
+                {
+                  headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json'
+                  },
+                  withCredentials: true
+                }
+              );
+              console.log('▶ 새 파일 업로드 성공:', { fileName: file.name });
+            }
+          } catch (error) {
+            console.error('▶ 새 파일 업로드 실패:', { fileName: file.name, error });
+            throw new Error(`파일 "${file.name}" 업로드 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        // 5. 새 링크 추가
+        for (const link of newLinks) {
+          try {
+            if (link.title && link.url) {
+              console.log('▶ 새 링크 추가 시도:', { linkTitle: link.title });
+              const linkResponse = await axiosInstance.post(
+                API_ENDPOINTS.APPROVAL.LINKS(editingProposal.id),
+                {
+                  title: link.title,
+                  url: link.url
+                },
+                {
+                  withCredentials: true
+                }
+              );
+              console.log('▶ 새 링크 추가 성공:', { linkTitle: link.title });
+            }
+          } catch (error) {
+            console.error('▶ 새 링크 추가 실패:', { linkTitle: link.title, error });
+            throw new Error(`링크 "${link.title}" 추가 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        console.log('▶ 승인요청 수정 완료');
+        setIsEditModalOpen(false);
+        setEditingProposal(null);
+        setExistingFiles([]);
+        setExistingLinks([]);
+        setNewFiles([]);
+        setNewLinks([]);
+        setFilesToDelete([]);
+        setLinksToDelete([]);
+        await fetchProposals();
+      } else {
+        throw new Error(data.statusMessage || '승인요청 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('▶ 승인요청 수정 실패:', error);
+      alert(error.response?.data?.message || error.message || '승인요청 수정에 실패했습니다.');
     }
   };
 
@@ -1211,7 +1472,14 @@ const ApprovalProposal = ({
       await axiosInstance.delete(API_ENDPOINTS.APPROVAL.DELETE(deleteTargetId), {
         withCredentials: true
       });
-      fetchProposals();
+      
+      // 승인요청 목록 새로고침
+      await fetchProposals();
+      
+      // 승인요청 변경 이벤트 발생
+      if (onApprovalChange) {
+        await onApprovalChange();
+      }
     } catch (error) {
       console.error('Error deleting proposal:', error);
       alert(error.response?.data?.message || '승인요청 삭제에 실패했습니다.');
@@ -1239,7 +1507,11 @@ const ApprovalProposal = ({
 
       if (response.data) {
         window.alert('승인요청이 성공적으로 전송되었습니다.');
-        fetchProposals();
+        
+        // 승인요청 변경 이벤트 발생
+        if (onApprovalChange) {
+          await onApprovalChange();
+        }
       }
     } catch (error) {
       console.error('승인요청 전송 중 오류:', error);
@@ -1285,20 +1557,19 @@ const ApprovalProposal = ({
       return;
     }
 
-    setLinks(prevLinks => [...prevLinks, { ...newLink }]);
+    // links가 undefined나 null인 경우를 대비해 빈 배열로 초기화
+    setLinks(prevLinks => {
+      const currentLinks = Array.isArray(prevLinks) ? prevLinks : [];
+      return [...currentLinks, { ...newLink }];
+    });
     
     // 입력 필드 초기화
     setNewLink({ title: '', url: '' });
   };
 
-  const handleLinkDelete = (indexToDelete) => {
-    setLinks(prevLinks => prevLinks.filter((_, index) => index !== indexToDelete));
-  };
-
-  // 모달이 닫힐 때 상태 초기화
-  const handleCloseModal = () => {
-    setIsEditModalOpen(false);
-    setEditingProposal(null);
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setNewProposal({ title: '', content: '' });
     setFiles([]);
     setLinks([]);
     setNewLink({ title: '', url: '' });
@@ -1307,14 +1578,6 @@ const ApprovalProposal = ({
   useEffect(() => {
     if (authLoading) return;
   }, [authLoading]);
-
-  const handleFilesChange = (newFiles) => {
-    setFiles(newFiles);
-  };
-
-  const handleLinksChange = (newLinks) => {
-    setLinks(newLinks);
-  };
 
   // 승인률 조회 함수 수정
   const fetchApprovalRate = async () => {
@@ -1342,13 +1605,24 @@ const ApprovalProposal = ({
 
   const displayedProposals = showAllProposals ? proposals : proposals.slice(0, 5);
 
-  // handleCloseCreateModal 함수 추가
-  const handleCloseCreateModal = () => {
-    setIsCreateModalOpen(false);
-    setNewProposal({ title: '', content: '' });
-    setFiles([]);
-    setLinks([]);
-    setNewLink({ title: '', url: '' });
+  // 현재 단계가 진행 중인 단계 이전인지 확인하는 함수 수정
+  const isPreviousStage = () => {
+    if (!currentProgress || !progressList) return false;
+    
+    // 현재 진행 중인 단계 찾기
+    const currentProgressStage = progressList.find(stage => 
+      stage.name === currentProgress || 
+      stage.name === PROGRESS_STAGE_MAP[currentProgress]
+    );
+    
+    if (!currentProgressStage) return false;
+    
+    // 현재 단계 찾기
+    const currentStage = progressList.find(stage => stage.id === progressId);
+    if (!currentStage) return false;
+    
+    // 현재 단계의 position이 진행 중인 단계의 position보다 작으면 이전 단계
+    return currentStage.position < currentProgressStage.position;
   };
 
   if (loading) {
@@ -1376,7 +1650,8 @@ const ApprovalProposal = ({
                           <ListProposalTitle>{proposal.title}</ListProposalTitle>
                         </HeaderLeft>
                         <HeaderRight>
-                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && (
+                          {proposal.approvalProposalStatus !== 'FINAL_APPROVED' && 
+                           !isPreviousStage() && (
                             <ActionIcons>
                               <ActionIcon className="delete" onClick={(e) => handleDeleteClick(e, proposal.id)} title="삭제">
                                 <FaTimes />
@@ -1420,7 +1695,7 @@ const ApprovalProposal = ({
             </>
           )}
         </ProposalList>
-        {!Boolean(projectInfo?.isDeleted) && !isCompleted && !isClient() && (
+        {!Boolean(projectInfo?.isDeleted) && !isClient() && !isProjectCompleted && (
           <AddButtonContainer>
             <AddButton onClick={() => setIsCreateModalOpen(true)}>
               + 승인요청 추가  
@@ -1457,12 +1732,25 @@ const ApprovalProposal = ({
                 />
               </InputGroup>
 
-              <FileLinkUploader
-                onFilesChange={handleFilesChange}
-                onLinksChange={handleLinksChange}
-                initialFiles={files}
-                initialLinks={links}
-              />
+              <InputGroup>
+                <Label>첨부파일 및 링크</Label>
+                <FileLinkUploader
+                  onFilesChange={handleFilesChange}
+                  onLinksChange={handleLinksChange}
+                  initialFiles={files}
+                  initialLinks={links}
+                  maxFileSize={MAX_FILE_SIZE}
+                  allowedMimeTypes={allowedMimeTypes}
+                />
+                <span style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  color: '#64748b',
+                  marginTop: '4px'
+                }}>
+                  * 파일 크기는 10MB 이하여야 합니다.
+                </span>
+              </InputGroup>
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseCreateModal}>취소</CancelButton>
@@ -1503,10 +1791,9 @@ const ApprovalProposal = ({
               <FileLinkUploader
                 onFilesChange={handleFilesChange}
                 onLinksChange={handleLinksChange}
-                initialFiles={files}
-                initialLinks={links}
+                initialFiles={[...existingFiles, ...newFiles]}
+                initialLinks={[...existingLinks, ...newLinks]}
               />
-
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseModal}>취소</CancelButton>

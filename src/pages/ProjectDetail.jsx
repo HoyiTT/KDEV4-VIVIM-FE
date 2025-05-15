@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
-import ApprovalProposal from '../components/ApprovalProposal';
 import ProjectPostCreate from './ProjectPostCreate';
 import { FaArrowLeft, FaArrowRight, FaPlus, FaCheck, FaClock, FaFlag, FaEdit, FaTrashAlt, FaTimes, FaGripVertical, FaInfoCircle } from 'react-icons/fa';
 import ProjectStageProgress from '../components/ProjectStage';
@@ -1904,6 +1903,7 @@ const ProjectDetail = () => {
                   currentProgress={project?.currentProgress}
                   projectId={project?.id}
                   fetchProjectProgress={fetchProjectProgress}
+                  onProgressStatusUpdate={setProgressStatus}
                 >
                   {progressList.length > 0 ? (
                     progressList
