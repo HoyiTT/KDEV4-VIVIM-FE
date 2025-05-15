@@ -954,6 +954,12 @@ const ApprovalProposal = ({
   const [isCompleted, setIsCompleted] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [filesToDelete, setFilesToDelete] = useState([]);
+  const [linksToDelete, setLinksToDelete] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
+  const [existingLinks, setExistingLinks] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
+  const [newLinks, setNewLinks] = useState([]);
 
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
@@ -966,64 +972,6 @@ const ApprovalProposal = ({
   ];
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-  const handleFileDelete = (indexToDelete) => {
-    setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToDelete));
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    console.log('▶ 파일 선택됨:', selectedFiles);
-    
-    // 파일 크기 검증
-    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
-    
-    if (oversizedFiles.length > 0) {
-      alert('10MB 이상의 파일은 업로드할 수 없습니다:\n' + 
-        oversizedFiles.map(file => `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n'));
-      e.target.value = ''; // 파일 선택 초기화
-      return;
-    }
-
-    // 기존 파일 목록에 새로 선택된 파일들 추가
-    setFiles(prevFiles => {
-      const newFiles = [...prevFiles, ...selectedFiles];
-      console.log('▶ 현재 파일 목록:', newFiles);
-      return newFiles;
-    });
-    e.target.value = ''; // 파일 선택 초기화
-  };
-
-  // 프로젝트 정보 조회 함수 추가
-  const fetchProjectInfo = async () => {
-    try {
-      if (!projectId) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 프로젝트 ID 없음');
-        return;
-      }
-
-      console.log('▶ 프로젝트 정보 조회 시도:', projectId);
-      const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECTS}/${projectId}`, {
-        withCredentials: true
-      });
-      console.log('▶ 프로젝트 정보 조회 성공:', data);
-      setProjectInfo(data);
-    } catch (error) {
-      console.error('▶ 프로젝트 정보 조회 실패:', error);
-      if (error.response?.status === 401) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 인증 필요');
-      } else if (error.response?.status === 403) {
-        console.log('▶ 프로젝트 정보 조회 실패 - 권한 없음');
-      }
-      setProjectInfo(null);
-    }
-  };
-
-  useEffect(() => {
-    if (projectId) {
-      fetchProjectInfo();  // 프로젝트 정보 조회 추가
-    }
-  }, [projectId]);
 
   // 승인요청 목록 조회 함수
   const fetchProposals = async () => {
@@ -1087,6 +1035,7 @@ const ApprovalProposal = ({
     }
   };
 
+  // 승인요청 목록 조회를 위한 useEffect
   useEffect(() => {
     console.log('▶ ApprovalProposal useEffect 실행:', {
       currentStageIndex,
@@ -1099,17 +1048,53 @@ const ApprovalProposal = ({
     }
   }, [currentStageIndex, progressList]);
 
-  useEffect(() => {
-    if (isProposalModalOpen) {
-      document.body.style.overflow = 'hidden';
+  // 파일과 링크 관련 핸들러 함수들
+  const handleFileDelete = (index, isExisting) => {
+    if (isExisting) {
+      const fileToDelete = existingFiles[index];
+      setFilesToDelete(prev => [...prev, fileToDelete.id]);
+      setExistingFiles(prev => prev.filter((_, i) => i !== index));
     } else {
-      document.body.style.overflow = 'auto';
+      setNewFiles(prev => prev.filter((_, i) => i !== index));
     }
+  };
 
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isProposalModalOpen]);
+  const handleLinkDelete = (index, isExisting) => {
+    if (isExisting) {
+      const linkToDelete = existingLinks[index];
+      setLinksToDelete(prev => [...prev, linkToDelete.id]);
+      setExistingLinks(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setNewLinks(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleFilesChange = (fileChanges) => {
+    if (typeof fileChanges === 'object' && 'currentFiles' in fileChanges) {
+      // FileLinkUploader에서 전달된 경우
+      const { currentFiles, deletedFiles } = fileChanges;
+      setExistingFiles(currentFiles);
+      setFilesToDelete(prev => [...prev, ...deletedFiles.map(file => file.id)]);
+    } else {
+      // 직접 파일 배열이 전달된 경우
+      setNewFiles(fileChanges);
+    }
+  };
+
+  const handleLinksChange = (newLinks) => {
+    setNewLinks(Array.isArray(newLinks) ? newLinks : []);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProposal(null);
+    setExistingFiles([]);
+    setExistingLinks([]);
+    setNewFiles([]);
+    setNewLinks([]);
+    setFilesToDelete([]);
+    setLinksToDelete([]);
+  };
 
   const handleProposalClick = (proposal) => {
     navigate(`/project/${proposal.projectId}/approval/${proposal.id}`);
@@ -1128,13 +1113,6 @@ const ApprovalProposal = ({
 
   const handleAddProposal = async () => {
     try {
-      console.log('▶ 승인요청 생성 시작:', {
-        title: newProposal.title,
-        content: newProposal.content,
-        filesCount: files.length,
-        linksCount: links.length
-      });
-
       // 1. 승인요청 생성
       const { data: response } = await axiosInstance.post(API_ENDPOINTS.APPROVAL.CREATE(progressId), {
         title: newProposal.title,
@@ -1145,7 +1123,7 @@ const ApprovalProposal = ({
       console.log('▶ 승인요청 생성 성공:', { approvalId });
 
       // 2. 파일 업로드
-      if (files.length > 0) {
+      if (Array.isArray(files) && files.length > 0) {
         console.log('▶ 파일 업로드 시작:', { filesCount: files.length });
         for (const file of files) {
           try {
@@ -1176,7 +1154,7 @@ const ApprovalProposal = ({
       }
 
       // 3. 링크 저장
-      if (links.length > 0) {
+      if (Array.isArray(links) && links.length > 0) {
         console.log('▶ 링크 저장 시작:', { linksCount: links.length });
         for (const link of links) {
           try {
@@ -1231,8 +1209,49 @@ const ApprovalProposal = ({
     }));
   };
 
+  const handleEditClick = async (proposal) => {
+    try {
+      // 승인요청 상세 정보 조회
+      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id));
+      
+      // 파일 목록 조회
+      const { data: filesData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILES(proposal.id));
+      
+      // 링크 목록 조회
+      const { data: linksData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LINKS(proposal.id));
+      
+      console.log('▶ 승인요청 상세 정보 조회:', {
+        proposal: data,
+        files: filesData,
+        links: linksData
+      });
+
+      setEditingProposal({ ...proposal });
+      setExistingFiles(filesData?.files || []);
+      setExistingLinks(linksData?.links || []);
+      setNewFiles([]);
+      setNewLinks([]);
+      setFilesToDelete([]);
+      setLinksToDelete([]);
+      setIsEditModalOpen(true);
+    } catch (error) {
+      console.error('▶ 승인요청 상세 정보 조회 실패:', error);
+      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
   const handleModifyProposal = async () => {
     try {
+      console.log('▶ 승인요청 수정 시작:', {
+        editingProposal,
+        existingFiles,
+        newFiles,
+        filesToDelete,
+        existingLinks,
+        newLinks,
+        linksToDelete
+      });
+
       const requestBody = {};
       
       if (editingProposal.title !== undefined) {
@@ -1242,6 +1261,7 @@ const ApprovalProposal = ({
         requestBody.content = editingProposal.content;
       }
 
+      // 1. 승인요청 기본 정보 수정
       const { data } = await axiosInstance.patch(
         API_ENDPOINTS.APPROVAL.MODIFY(editingProposal.id),
         requestBody,
@@ -1251,14 +1271,45 @@ const ApprovalProposal = ({
       );
       
       if (data.statusCode === 201) {
-        // 파일 업로드 처리
-        if (files.length > 0) {
-          console.log('▶ 파일 업로드 시작:', { filesCount: files.length });
-          for (const file of files) {
-            try {
+        // 2. 삭제할 파일 처리
+        for (const fileId of filesToDelete) {
+          try {
+            console.log('▶ 파일 삭제 시도:', { fileId });
+            await axiosInstance.patch(
+              API_ENDPOINTS.FILE_DELETE(fileId),
+              {},
+              { withCredentials: true }
+            );
+            console.log('▶ 파일 삭제 성공:', { fileId });
+          } catch (error) {
+            console.error('▶ 파일 삭제 실패:', { fileId, error });
+            throw new Error(`파일 삭제 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        // 3. 삭제할 링크 처리
+        for (const linkId of linksToDelete) {
+          try {
+            console.log('▶ 링크 삭제 시도:', { linkId });
+            await axiosInstance.patch(
+              API_ENDPOINTS.LINK_DELETE(linkId),
+              {},
+              { withCredentials: true }
+            );
+            console.log('▶ 링크 삭제 성공:', { linkId });
+          } catch (error) {
+            console.error('▶ 링크 삭제 실패:', { linkId, error });
+            throw new Error(`링크 삭제 실패: ${error.response?.data?.message || error.message}`);
+          }
+        }
+
+        // 4. 새 파일 업로드
+        for (const file of newFiles) {
+          try {
+            if (file instanceof File) {
               const formData = new FormData();
               formData.append('file', file);
-              console.log('▶ 파일 업로드 시도:', { fileName: file.name, fileSize: file.size });
+              console.log('▶ 새 파일 업로드 시도:', { fileName: file.name });
               
               const uploadResponse = await axiosInstance.post(
                 API_ENDPOINTS.APPROVAL.FILES(editingProposal.id), 
@@ -1271,23 +1322,19 @@ const ApprovalProposal = ({
                   withCredentials: true
                 }
               );
-              console.log('▶ 파일 업로드 성공:', { fileName: file.name, response: uploadResponse.data });
-            } catch (uploadError) {
-              console.error('▶ 파일 업로드 실패:', {
-                fileName: file.name,
-                error: uploadError.response?.data || uploadError.message
-              });
-              throw new Error(`파일 "${file.name}" 업로드 실패: ${uploadError.response?.data?.message || uploadError.message}`);
+              console.log('▶ 새 파일 업로드 성공:', { fileName: file.name });
             }
+          } catch (error) {
+            console.error('▶ 새 파일 업로드 실패:', { fileName: file.name, error });
+            throw new Error(`파일 "${file.name}" 업로드 실패: ${error.response?.data?.message || error.message}`);
           }
         }
 
-        // 링크 저장
-        if (links.length > 0) {
-          console.log('▶ 링크 저장 시작:', { linksCount: links.length });
-          for (const link of links) {
-            try {
-              console.log('▶ 링크 저장 시도:', { linkTitle: link.title, linkUrl: link.url });
+        // 5. 새 링크 추가
+        for (const link of newLinks) {
+          try {
+            if (link.title && link.url) {
+              console.log('▶ 새 링크 추가 시도:', { linkTitle: link.title });
               const linkResponse = await axiosInstance.post(
                 API_ENDPOINTS.APPROVAL.LINKS(editingProposal.id),
                 {
@@ -1298,51 +1345,30 @@ const ApprovalProposal = ({
                   withCredentials: true
                 }
               );
-              console.log('▶ 링크 저장 성공:', { linkTitle: link.title, response: linkResponse.data });
-            } catch (linkError) {
-              console.error('▶ 링크 저장 실패:', {
-                linkTitle: link.title,
-                error: linkError.response?.data || linkError.message
-              });
-              throw new Error(`링크 "${link.title}" 저장 실패: ${linkError.response?.data?.message || linkError.message}`);
+              console.log('▶ 새 링크 추가 성공:', { linkTitle: link.title });
             }
+          } catch (error) {
+            console.error('▶ 새 링크 추가 실패:', { linkTitle: link.title, error });
+            throw new Error(`링크 "${link.title}" 추가 실패: ${error.response?.data?.message || error.message}`);
           }
         }
 
+        console.log('▶ 승인요청 수정 완료');
         setIsEditModalOpen(false);
         setEditingProposal(null);
-        setFiles([]);
-        setLinks([]);
-        setNewLink({ title: '', url: '' });
-        fetchProposals();
+        setExistingFiles([]);
+        setExistingLinks([]);
+        setNewFiles([]);
+        setNewLinks([]);
+        setFilesToDelete([]);
+        setLinksToDelete([]);
+        await fetchProposals();
       } else {
         throw new Error(data.statusMessage || '승인요청 수정에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Error modifying proposal:', error);
-      alert(error.response?.data?.message || error.message);
-    }
-  };
-
-  const handleEditClick = async (proposal) => {
-    try {
-      // 승인요청 상세 정보 조회
-      const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(proposal.id));
-      
-      // 파일 목록 조회
-      const { data: filesData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.FILES(proposal.id));
-      
-      // 링크 목록 조회
-      const { data: linksData } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.LINKS(proposal.id));
-      
-      setEditingProposal({ ...proposal });
-      setFiles(filesData || []);
-      setLinks(linksData || []);
-      setNewLink({ title: '', url: '' });
-      setIsEditModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching proposal details:', error);
-      alert('승인요청 상세 정보를 불러오는데 실패했습니다.');
+      console.error('▶ 승인요청 수정 실패:', error);
+      alert(error.response?.data?.message || error.message || '승인요청 수정에 실패했습니다.');
     }
   };
 
@@ -1454,12 +1480,6 @@ const ApprovalProposal = ({
     setNewLink({ title: '', url: '' });
   };
 
-  const handleLinksChange = (newLinks) => {
-    // newLinks가 undefined나 null인 경우를 대비해 빈 배열로 설정
-    setLinks(Array.isArray(newLinks) ? newLinks : []);
-  };
-
-  // 모달이 닫힐 때 상태 초기화
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
     setNewProposal({ title: '', content: '' });
@@ -1468,21 +1488,9 @@ const ApprovalProposal = ({
     setNewLink({ title: '', url: '' });
   };
 
-  const handleCloseModal = () => {
-    setIsEditModalOpen(false);
-    setEditingProposal(null);
-    setFiles([]);
-    setLinks([]);
-    setNewLink({ title: '', url: '' });
-  };
-
   useEffect(() => {
     if (authLoading) return;
   }, [authLoading]);
-
-  const handleFilesChange = (newFiles) => {
-    setFiles(newFiles);
-  };
 
   // 승인률 조회 함수 수정
   const fetchApprovalRate = async () => {
@@ -1683,10 +1691,9 @@ const ApprovalProposal = ({
               <FileLinkUploader
                 onFilesChange={handleFilesChange}
                 onLinksChange={handleLinksChange}
-                initialFiles={files}
-                initialLinks={links}
+                initialFiles={[...existingFiles, ...newFiles]}
+                initialLinks={[...existingLinks, ...newLinks]}
               />
-
             </ModalContent>
             <ModalButtonContainer>
               <CancelButton onClick={handleCloseModal}>취소</CancelButton>

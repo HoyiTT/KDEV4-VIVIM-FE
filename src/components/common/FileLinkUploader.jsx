@@ -71,15 +71,28 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
       return;
     }
 
-    const newLinks = [...links, { title: linkTitle, url: linkUrl }];
-    setLinks(newLinks);
-    onLinksChange?.({
-      currentLinks: newLinks,
-      deletedLinks: []
-    });
-    setLinkTitle('');
-    setLinkUrl('');
-    setLinkUrlError('');
+    try {
+      // URL 유효성 검사
+      new URL(linkUrl);
+      
+      const newLink = { title: linkTitle, url: linkUrl };
+      const newLinks = [...links, newLink];
+      
+      console.log('▶ 링크 추가 시도:', { newLink, currentLinks: newLinks });
+      
+      setLinks(newLinks);
+      onLinksChange(newLinks);  // 단순히 링크 배열만 전달
+      
+      // 입력 필드 초기화
+      setLinkTitle('');
+      setLinkUrl('');
+      setLinkUrlError('');
+      
+      console.log('▶ 링크 추가 완료:', { newLinks });
+    } catch (error) {
+      console.error('▶ 링크 추가 실패:', error);
+      setLinkUrlError('올바른 URL 형식이 아닙니다.');
+    }
   };
 
   const handleLinkDelete = (indexToDelete) => {
@@ -90,10 +103,10 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
   };
 
   useEffect(() => {
-    onLinksChange?.({
-      currentLinks: links,
-      deletedLinks: deletedLinks
-    });
+    if (links.length > 0 || deletedLinks.length > 0) {
+      console.log('▶ 링크 상태 변경:', { links, deletedLinks });
+      onLinksChange(links);  // 단순히 링크 배열만 전달
+    }
   }, [links, deletedLinks, onLinksChange]);
 
   useEffect(() => {

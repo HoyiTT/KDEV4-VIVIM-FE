@@ -478,7 +478,7 @@ const FileList = styled.div`
 const FileItem = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -491,11 +491,17 @@ const FileItem = styled.div`
 
 const FileIcon = styled.span`
   font-size: 16px;
+  flex-shrink: 0;
 `;
 
 const FileName = styled.span`
   font-size: 14px;
   color: #1e293b;
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const LinkList = styled.div`
@@ -761,28 +767,35 @@ const ApprovalDetail = () => {
   const [deletedLinkIds, setDeletedLinkIds] = useState([]);
   const [approvers, setApprovers] = useState([]);
   const [showApproverGuide, setShowApproverGuide] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false);
 
   useEffect(() => {
-    if (projectId && approvalId) {
-      console.log('프로젝트 ID와 승인 ID로 데이터를 가져옵니다:', { projectId, approvalId });
-      fetchProposalDetail();
-      fetchFiles();
-      fetchLinks();
-    }
+    const fetchData = async () => {
+      if (!projectId || !approvalId) return;
+
+      try {
+        await Promise.all([
+          fetchProposalDetail(),
+          fetchFiles(),
+          fetchLinks()
+        ]);
+      } catch (error) {
+        console.error('데이터 조회 중 오류 발생:', error);
+      }
+    };
+
+    fetchData();
   }, [projectId, approvalId]);
 
   // 프로젝트 진행 단계 조회
   const fetchProjectProgress = async () => {
     try {
       setProgressLoading(true);
-      console.log("프로젝트 진행 단계 조회 시작:", projectId);
-      
       const { data } = await axiosInstance.get(`${API_ENDPOINTS.PROJECT_DETAIL(projectId)}/progress`);
-      console.log("프로젝트 진행 단계 데이터:", data);
       
       if (data.progressList && data.progressList.length > 0) {
         setProgressList(data.progressList);
-        console.log("프로젝트 진행 단계 설정 완료:", data.progressList.length, "개 항목");
         
         // 승인 요청이 속한 단계 찾기
         const stageIndex = data.progressList.findIndex(
@@ -790,17 +803,12 @@ const ApprovalDetail = () => {
         );
         
         if (stageIndex >= 0) {
-          console.log("현재 단계 찾음:", stageIndex, data.progressList[stageIndex].name);
           setCurrentStageIndex(stageIndex);
-        } else {
-          console.log("승인요청의 단계를 찾지 못함. progressId:", proposal?.progressId);
         }
-      } else {
-        console.log("프로젝트 진행 단계 데이터가 없거나 비어있습니다");
       }
       setProgressLoading(false);
     } catch (error) {
-      console.error('Error fetching project progress:', error);
+      console.error('프로젝트 진행 단계 조회 실패:', error);
       setProgressLoading(false);
     }
   };
@@ -811,8 +819,6 @@ const ApprovalDetail = () => {
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.DETAIL(approvalId), {
         withCredentials: true
       });
-      console.log('승인요청 상세 응답:', JSON.stringify(data, null, 2));
-      setProposal(data);
       
       // 백엔드 응답 필드 확인 (proposalStatus 또는 approvalProposalStatus)
       let proposalStatus = data.proposalStatus || data.approvalProposalStatus;
@@ -822,27 +828,10 @@ const ApprovalDetail = () => {
           (Array.isArray(data.approvers) && data.approvers.length === 0) ||
           proposalStatus === ApprovalProposalStatus.DRAFT) {
         proposalStatus = ApprovalProposalStatus.DRAFT;
-        console.log("승인권자가 없거나 요청 전 상태로 '요청전'으로 표시합니다.");
       }
       
-      // 상태가 결정된 후 로그 출력
       if (proposalStatus) {
-        console.log("승인요청 상태:", proposalStatus, "→", getApprovalStatusText(proposalStatus));
         data.displayStatus = proposalStatus;
-      }
-      
-      // 승인권자 카운트 정보 확인
-      if (data.totalApproverCount !== undefined) {
-        console.log(`승인권자 총 ${data.totalApproverCount}명 중 ${data.approvedApproverCount || 0}명 승인 완료`);
-        
-        const waitingOrBeforeRequest = (data.waitingApproverCount || 0) + (data.beforeRequestCount || 0);
-        console.log(`대기중: ${waitingOrBeforeRequest}명, 반려: ${data.modificationRequestedApproverCount || 0}명`);
-        
-        // 모든 승인권자가 승인을 완료했는지 확인
-        const isAllApproved = data.totalApproverCount > 0 && 
-          data.approvedApproverCount === data.totalApproverCount;
-        
-        console.log(`모두 승인됨: ${isAllApproved ? '예' : '아니오'}`);
       }
       
       // 마지막 전송 시간 추적 및 변경사항 감지
@@ -853,16 +842,14 @@ const ApprovalDetail = () => {
         if (data.updatedAt && data.lastSentAt) {
           const updatedTime = new Date(data.updatedAt).getTime();
           const lastSentTime = new Date(data.lastSentAt).getTime();
-          const changes = updatedTime > lastSentTime;
-          setHasChanges(changes);
-          console.log(`마지막 전송 후 변경사항: ${changes ? '있음' : '없음'}`);
+          setHasChanges(updatedTime > lastSentTime);
         }
       } else {
-        // 전송 이력이 없는 경우
         setLastSentAt(null);
-        setHasChanges(true); // 처음 전송하는 경우 변경사항 있음으로 간주
+        setHasChanges(true);
       }
       
+      setProposal(data);
       setLoading(false);
     } catch (error) {
       console.error('승인요청 상세 조회 실패:', error);
@@ -1203,45 +1190,55 @@ const ApprovalDetail = () => {
     }
   };
 
+  // 파일 목록 조회 함수 수정
   const fetchFiles = async () => {
-    try {
-      // 권한 체크
-      if (!user.isAdmin && !user.isClient && !user.isDeveloperManager) {
-        console.log('파일 조회 권한이 없습니다.');
-        return;
-      }
+    if (!approvalId) return;
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.FILES(approvalId)}`, {
-        withCredentials: true
-      });
-      setFiles(response.data);
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      if (error.response?.status === 403) {
-        console.log('파일 조회 권한이 없습니다.');
+    try {
+      setIsLoadingFiles(true);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.APPROVAL.FILES(approvalId),
+        { withCredentials: true }
+      );
+      
+      if (Array.isArray(response.data)) {
+        setFiles(response.data);
+      } else if (response.data?.files) {
+        setFiles(response.data.files);
+      } else {
+        setFiles([]);
       }
+    } catch (error) {
+      console.error('파일 목록 조회 실패:', error);
       setFiles([]);
+    } finally {
+      setIsLoadingFiles(false);
     }
   };
 
+  // 링크 목록 조회 함수 수정
   const fetchLinks = async () => {
-    try {
-      // 권한 체크
-      if (!user.isAdmin && !user.isClient && !user.isDeveloperManager) {
-        console.log('링크 조회 권한이 없습니다.');
-        return;
-      }
+    if (!approvalId) return;
 
-      const response = await axiosInstance.get(`${API_ENDPOINTS.APPROVAL.GET_LINKS(approvalId)}`, {
-        withCredentials: true
-      });
-      setLinks(response.data);
-    } catch (error) {
-      console.error('Error fetching links:', error);
-      if (error.response?.status === 403) {
-        console.log('링크 조회 권한이 없습니다.');
+    try {
+      setIsLoadingLinks(true);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.APPROVAL.GET_LINKS(approvalId),
+        { withCredentials: true }
+      );
+      
+      if (Array.isArray(response.data)) {
+        setLinks(response.data);
+      } else if (response.data?.links) {
+        setLinks(response.data.links);
+      } else {
+        setLinks([]);
       }
+    } catch (error) {
+      console.error('링크 목록 조회 실패:', error);
       setLinks([]);
+    } finally {
+      setIsLoadingLinks(false);
     }
   };
 
@@ -1283,9 +1280,7 @@ const ApprovalDetail = () => {
       const { data } = await axiosInstance.get(API_ENDPOINTS.APPROVAL.APPROVERS(approvalId), {
         withCredentials: true
       });
-      console.log('승인권자 목록 응답:', data);
       
-      // approverResponses 배열이 있는 경우 해당 데이터 사용
       const approversList = data.approverResponses || [];
       setApprovers(approversList);
     } catch (error) {
