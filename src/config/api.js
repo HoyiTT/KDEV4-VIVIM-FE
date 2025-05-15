@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
     FILES: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/files`,
     FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
     LINKS: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/links`,
+    DELETE_LINK: (linkId) => `${API_BASE_URL}/links/${linkId}`,
     GET_LINKS: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/links`,
     STATUS_SUMMARY: (approvalId) => `${API_BASE_URL}/approvals/${approvalId}/status/summary`,
   },
@@ -76,6 +77,7 @@ export const API_ENDPOINTS = {
     FILE_DOWNLOAD: (fileId) => `${API_BASE_URL}/files/${fileId}/download`,
     GET_LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
     LINKS: (decisionId) => `${API_BASE_URL}/decisions/${decisionId}/links`,
+    DELETE_LINK: (linkId) => `${API_BASE_URL}/links/${linkId}`,
   },
   PROJECT_COMPANIES: (projectId) => `${API_BASE_URL}/projects/${projectId}/companies`,
 

@@ -103,18 +103,25 @@ const FileLinkUploader = ({ onFilesChange, onLinksChange, initialFiles = [], ini
   };
 
   useEffect(() => {
-    if (links.length > 0 || deletedLinks.length > 0) {
-      console.log('▶ 링크 상태 변경:', { links, deletedLinks });
-      onLinksChange(links);  // 단순히 링크 배열만 전달
+    // 링크가 실제로 변경되었을 때만 onLinksChange 호출
+    const hasChanges = links.length > 0 || deletedLinks.length > 0;
+    if (hasChanges) {
+      console.log('▶ 링크 상태 변경 감지:', { links, deletedLinks });
+      onLinksChange(links);
     }
-  }, [links, deletedLinks, onLinksChange]);
+  }, [links, deletedLinks]); // onLinksChange 제거
 
   useEffect(() => {
-    onFilesChange?.({
-      currentFiles: files,
-      deletedFiles: deletedFiles
-    });
-  }, [files, deletedFiles, onFilesChange]);
+    // 파일이 실제로 변경되었을 때만 onFilesChange 호출
+    const hasChanges = files.length > 0 || deletedFiles.length > 0;
+    if (hasChanges) {
+      console.log('▶ 파일 상태 변경 감지:', { files, deletedFiles });
+      onFilesChange?.({
+        currentFiles: files,
+        deletedFiles: deletedFiles
+      });
+    }
+  }, [files, deletedFiles]); // onFilesChange 제거
 
   return (
     <>
