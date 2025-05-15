@@ -83,16 +83,14 @@ const AdminProjects = () => {
     setFilters(newFilters);
   };
 
-  const getProjectStatus = (status, deleted) => {
+  const getProjectStatus = (status, deleted, currentProgress) => {
     if (deleted) {
       return '삭제됨';
     }
-    switch (status) {
-      case 'COMPLETED':
-        return '완료됨';
-      default:
-        return '진행중';
+    if (currentProgress === 'COMPLETED') {
+      return '완료됨';
     }
+    return '진행중';
   };
 
   const getProgressStatus = (progress) => {
@@ -242,8 +240,12 @@ const AdminProjects = () => {
                       <TableCell>{project.startDate}</TableCell>
                       <TableCell>{project.endDate}</TableCell>
                       <TableCell>
-                        <StatusBadge status={project.projectStatus} deleted={project.deleted}>
-                          {getProjectStatus(project.projectStatus, project.deleted)}
+                        <StatusBadge 
+                          status={project.projectStatus} 
+                          deleted={project.deleted}
+                          currentProgress={project.currentProgress}
+                        >
+                          {getProjectStatus(project.projectStatus, project.deleted, project.currentProgress)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>

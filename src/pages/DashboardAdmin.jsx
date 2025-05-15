@@ -516,9 +516,13 @@ const DashboardAdmin = () => {
         setAllProjects(activeProjects);
         
         // 통계 데이터 계산
-        const totalProjects = activeProjects.length;
-        const inProgressProjects = activeProjects.filter(project => project.projectStatus === 'PROGRESS').length;
-        const completedProjects = activeProjects.filter(project => project.projectStatus === 'COMPLETED').length;
+        const totalProjects = activeProjects.filter(project => !project.deleted).length;
+        const inProgressProjects = activeProjects.filter(project => 
+          !project.deleted && project.currentProgress !== 'COMPLETED' && project.currentProgress !== '완료'
+        ).length;
+        const completedProjects = activeProjects.filter(project => 
+          !project.deleted && (project.currentProgress === 'COMPLETED' || project.currentProgress === '완료')
+        ).length;
         
         // 프로젝트 단계별 통계 계산
         const progressCounts = {
@@ -628,13 +632,17 @@ const DashboardAdmin = () => {
       let filteredProjects;
       switch (title) {
         case '전체 프로젝트':
-          filteredProjects = allProjects;
+          filteredProjects = allProjects.filter(project => !project.deleted);
           break;
         case '진행중인 프로젝트':
-          filteredProjects = allProjects.filter(project => project.projectStatus === 'PROGRESS');
+          filteredProjects = allProjects.filter(project => 
+            !project.deleted && project.currentProgress !== 'COMPLETED' && project.currentProgress !== '완료'
+          );
           break;
         case '완료된 프로젝트':
-          filteredProjects = allProjects.filter(project => project.projectStatus === 'COMPLETED');
+          filteredProjects = allProjects.filter(project => 
+            !project.deleted && (project.currentProgress === 'COMPLETED' || project.currentProgress === '완료')
+          );
           break;
         default:
           filteredProjects = [];
