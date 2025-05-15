@@ -1074,7 +1074,10 @@ const ProjectDetail = () => {
   const stageRefs = useRef([]);
   const [showAll, setShowAll] = useState(false);
   const [progressList, setProgressList] = useState([]);
-  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [currentStageIndex, setCurrentStageIndex] = useState(() => {
+    // 초기값을 null로 설정하여 데이터가 로드되기 전까지는 undefined 상태를 방지
+    return null;
+  });
   const [statusSummary, setStatusSummary] = useState(null);
   const [approvalRequests, setApprovalRequests] = useState([]);
   const [projectProgress, setProjectProgress] = useState({
@@ -1431,17 +1434,29 @@ const ProjectDetail = () => {
       });
       console.log('Progress 조회 응답:', response.data);
       
-      // 새로 추가된 단계는 항상 미완료 상태로 설정
       const updatedProgressList = response.data.progressList.map((progress, index, arr) => {
-        // position이 가장 큰 단계(마지막에 추가된 단계)는 항상 미완료 상태로 설정
         const isLastStage = progress.position === Math.max(...arr.map(p => p.position));
         return {
-        ...progress,
+          ...progress,
           isCompleted: isLastStage ? false : progress.isCompleted
         };
-      }).sort((a, b) => a.position - b.position);  // position 기준으로 정렬
+      }).sort((a, b) => a.position - b.position);
       
       setProgressList(updatedProgressList);
+
+      // project 정보가 이미 로드되어 있다면 현재 진행 단계 설정
+      if (project?.currentProgress) {
+        const initialStageIndex = updatedProgressList.findIndex(stage => 
+          stage.name === PROGRESS_STAGE_MAP[project.currentProgress] || 
+          stage.name === project.currentProgress
+        );
+        if (initialStageIndex !== -1) {
+          setCurrentStageIndex(initialStageIndex);
+        } else {
+          // 일치하는 단계를 찾지 못한 경우 첫 번째 단계로 설정
+          setCurrentStageIndex(0);
+        }
+      }
     } catch (error) {
       console.error('Error fetching progress:', error);
     }
@@ -1454,13 +1469,17 @@ const ProjectDetail = () => {
       });
       setProject(response.data);
       
-      // 현재 진행 단계 설정
+      // progressList가 이미 로드되어 있다면 현재 진행 단계 설정
       if (response.data.currentProgress && progressList.length > 0) {
-        const currentStageIndex = progressList.findIndex(
-          stage => stage.position === response.data.currentProgress
+        const initialStageIndex = progressList.findIndex(stage => 
+          stage.name === PROGRESS_STAGE_MAP[response.data.currentProgress] || 
+          stage.name === response.data.currentProgress
         );
-        if (currentStageIndex !== -1) {
-          setCurrentStageIndex(currentStageIndex);
+        if (initialStageIndex !== -1) {
+          setCurrentStageIndex(initialStageIndex);
+        } else {
+          // 일치하는 단계를 찾지 못한 경우 첫 번째 단계로 설정
+          setCurrentStageIndex(0);
         }
       }
       
@@ -1680,11 +1699,15 @@ const ProjectDetail = () => {
   // progressList가 변경될 때도 현재 진행 단계 업데이트
   useEffect(() => {
     if (project?.currentProgress && progressList.length > 0) {
-      const currentStageIndex = progressList.findIndex(
-        stage => stage.position === project.currentProgress
+      const initialStageIndex = progressList.findIndex(
+        stage => stage.name === PROGRESS_STAGE_MAP[project.currentProgress] || 
+        stage.name === project.currentProgress
       );
-      if (currentStageIndex !== -1) {
-        setCurrentStageIndex(currentStageIndex);
+      if (initialStageIndex !== -1) {
+        setCurrentStageIndex(initialStageIndex);
+      } else {
+        // 일치하는 단계를 찾지 못한 경우 첫 번째 단계로 설정
+        setCurrentStageIndex(0);
       }
     }
   }, [progressList, project?.currentProgress]);
