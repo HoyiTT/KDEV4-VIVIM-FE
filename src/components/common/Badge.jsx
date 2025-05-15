@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 
-export const StatusBadge = ({ status, deleted, children }) => {
+export const StatusBadge = ({ status, deleted, currentProgress, children }) => {
   return (
-    <StyledStatusBadge status={status} deleted={deleted}>
+    <StyledStatusBadge status={status} deleted={deleted} currentProgress={currentProgress}>
       {children}
     </StyledStatusBadge>
   );
@@ -37,17 +37,13 @@ const StyledStatusBadge = styled.span`
   transition: all 0.15s ease;
   background: ${props => {
     if (props.deleted) return '#FEE2E2';
-    switch (props.status) {
-      case 'COMPLETED': return '#F0FDF4';
-      default: return '#E0F2FE';
-    }
+    if (props.currentProgress === 'COMPLETED') return '#F0FDF4';
+    return '#E0F2FE';
   }};
   color: ${props => {
     if (props.deleted) return '#B91C1C';
-    switch (props.status) {
-      case 'COMPLETED': return '#15803D';
-      default: return '#0369A1';
-    }
+    if (props.currentProgress === 'COMPLETED') return '#15803D';
+    return '#0369A1';
   }};
 
   &::before {

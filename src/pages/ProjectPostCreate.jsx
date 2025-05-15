@@ -117,7 +117,7 @@ const ProjectPostCreate = () => {
     try {
       // 1. 게시글 생성
       const { data: postData } = await axiosInstance.post(API_ENDPOINTS.PROJECT_POSTS(projectId), {
-        title: parentPost ? `[Reply : ${parentPost.title.replace(/\[Reply\s*:\s*.*?\]\s*-\s*/, '')}] - ${title}` : title,
+        title: parentPost ? `[Re : ${parentPost.title.replace(/\[Reply\s*:\s*.*?\]\s*-\s*/, '')}] - ${title}` : title,
         content,
         projectPostStatus: postStatus,
         parentId: parentPost ? (parentPost.parentId === null ? parentPost.postId : parentPost.parentId) : null,
